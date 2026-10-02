@@ -1,0 +1,108 @@
+<%- include('../partials/head', { 
+  title: course.title,
+  heading: course.title,
+  subtitle: course.description || 'Course materials'
+}) %>
+
+<style>
+  .course-hero {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #ec4899 100%);
+    border-radius: 24px; padding: 2.25rem 2.5rem; color: #fff;
+    display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;
+    box-shadow: 0 20px 50px rgba(99,102,241,.35);
+    margin-bottom: 2rem;
+  }
+  .hero-btn {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .7rem 1.35rem; border-radius: 12px;
+    font-weight: 700; font-size: .88rem;
+    border: none; cursor: pointer; text-decoration: none;
+  }
+  .hero-btn.white { background: #fff; color: #4f46e5; }
+  .lesson-card {
+    display: flex; align-items: center; gap: 1.1rem;
+    background: #fff; border: 1px solid #eef0f6;
+    border-radius: 18px; padding: 1.15rem 1.35rem;
+    text-decoration: none; color: inherit;
+    transition: all .2s; margin-bottom: .85rem;
+  }
+  .lesson-card:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(15,23,42,.08); }
+  .lesson-card.done { background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border-color: #bbf7d0; }
+  .num-badge {
+    width: 48px; height: 48px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1.05rem; color: #fff; flex-shrink: 0;
+  }
+  .num-badge.done { background: linear-gradient(135deg, #10b981, #14b8a6); }
+  .num-badge.todo { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+</style>
+
+<!-- HERO -->
+<div class="course-hero animate">
+  <div style="flex:1;min-width:240px;">
+    <div style="font-size:.72rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;opacity:.85;">
+      Course · <%= lessons.length %> lessons
+    </div>
+    <h2 style="font-size:1.5rem;font-weight:800;margin-top:.4rem;">
+      <%= done %> of <%= total %> lessons completed (<%= percent %>%)
+    </h2>
+    <div style="margin-top:.6rem;opacity:.9;font-size:.88rem;">
+      👨‍🏫 <%= course.teacher_name || 'LuxMind' %>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    <% if (!enrolled) { %>
+      <form method="POST" action="/courses/<%= course.id %>/enroll" style="margin:0;">
+        <button class="hero-btn white" type="submit">➕ Enroll in Course</button>
+      </form>
+    <% } else { %>
+      <a class="hero-btn white" href="/forums/<%= course.id %>">💬 Course Forum</a>
+      <% if (percent === 100 && total > 0) { %>
+        <a class="hero-btn white" href="/certificates/<%= course.id %>" target="_blank"
+          style="background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#fff;">🏆 Get Certificate</a>
+      <% } %>
+      <form method="POST" action="/courses/<%= course.id %>/unenroll" onsubmit="return confirm('Leave this course?');" style="margin:0;">
+        <button class="hero-btn" style="background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);" type="submit">Leave</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<!-- LESSONS -->
+<div class="animate">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem;">
+    <h2 style="font-size:1.15rem;font-weight:700;color:#0f172a;">Lessons</h2>
+    <% if (enrolled) { %><span class="badge ok">✓ Enrolled</span>
+    <% } else { %><span class="badge warn">Enroll to unlock</span><% } %>
+  </div>
+
+  <% if (lessons.length === 0) { %>
+    <div class="empty">📭 No lessons in this course yet.</div>
+  <% } else { %>
+    <% lessons.forEach((l, i) => {
+      const isDone = l.completed;
+      const locked = !enrolled;
+    %>
+      <a class="lesson-card <%= isDone ? 'done' : '' %>"
+         href="<%= locked ? 'javascript:void(0)' : '/lessons/' + l.id %>">
+        <div class="num-badge <%= isDone ? 'done' : 'todo' %>">
+          <%= isDone ? '✓' : (i + 1) %>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;color:#0f172a;"><%= l.title %></div>
+          <div class="muted" style="font-size:.8rem;">
+            📎 <%= l.resource_count %> file<%= l.resource_count === 1 ? '' : 's' %>
+            <% if (locked) { %> · 🔒 Enroll to view<% } %>
+          </div>
+        </div>
+        <div class="status-pill" style="padding:.35rem .85rem;border-radius:100px;font-size:.78rem;font-weight:700;
+          <%= isDone ? 'background:#fff;color:#047857;' : 'background:rgba(99,102,241,.1);color:#4f46e5;' %>">
+          <%= isDone ? '✓ Done' : (locked ? '🔒' : 'Open →') %>
+        </div>
+      </a>
+    <% }) %>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

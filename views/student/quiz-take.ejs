@@ -1,0 +1,57 @@
+<%- include('../partials/head', { 
+  title: quiz.title,
+  heading: quiz.title,
+  subtitle: quiz.course_title
+}) %>
+
+<div class="card animate" style="background:linear-gradient(135deg,#0f172a,#1e1b4b);color:#fff;border:none;margin-bottom:1.5rem;">
+  <div style="display:flex;gap:2rem;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+    <div>
+      <div style="font-size:.78rem;letter-spacing:.14em;text-transform:uppercase;font-weight:700;opacity:.7;">Quiz</div>
+      <h2 style="font-size:1.4rem;font-weight:800;margin-top:.3rem;"><%= questions.length %> question<%= questions.length === 1 ? '' : 's' %></h2>
+    </div>
+    <div style="display:flex;gap:2rem;">
+      <div>
+        <div style="font-size:.78rem;opacity:.7;font-weight:600;">⏱️ Duration</div>
+        <div style="font-size:1.2rem;font-weight:800;"><%= quiz.duration_min %> min</div>
+      </div>
+      <div>
+        <div style="font-size:.78rem;opacity:.7;font-weight:600;">✅ Auto-graded</div>
+        <div style="font-size:1.2rem;font-weight:800;">Instant</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<form method="POST" action="/student/quiz/<%= quiz.id %>" id="quizForm">
+  <% questions.forEach((q, i) => { %>
+    <div class="card animate" style="margin-bottom:1rem;">
+      <div style="display:flex;gap:.75rem;align-items:baseline;margin-bottom:1rem;">
+        <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;">
+          <%= i+1 %>
+        </div>
+        <div style="flex:1;">
+          <div style="font-weight:700;color:#0f172a;font-size:1.02rem;"><%= q.text %></div>
+          <div class="muted" style="font-size:.78rem;"><%= q.points %> point<%= q.points === 1 ? '' : 's' %></div>
+        </div>
+      </div>
+
+      <% ['A','B','C','D'].forEach(opt => { %>
+        <label style="display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;border:1.5px solid #eef0f6;border-radius:12px;margin-bottom:.5rem;cursor:pointer;transition:all .15s;"
+               onmouseover="this.style.borderColor='#a5b4fc';this.style.background='#f8fafc';"
+               onmouseout="this.style.borderColor='#eef0f6';this.style.background='#fff';">
+          <input type="radio" name="q_<%= q.id %>" value="<%= opt %>" required style="width:18px;height:18px;accent-color:#6366f1;">
+          <span style="font-weight:600;color:#334155;min-width:20px;"><%= opt %>.</span>
+          <span style="color:#0f172a;"><%= q['option_' + opt.toLowerCase()] %></span>
+        </label>
+      <% }) %>
+    </div>
+  <% }) %>
+
+  <div class="action-bar" style="margin-top:1.5rem;">
+    <a class="btn outline" href="/student/quizzes">← Cancel</a>
+    <button class="btn" type="submit" style="padding:.85rem 1.8rem;font-size:1rem;">✓ Submit Quiz</button>
+  </div>
+</form>
+
+<%- include('../partials/foot') %>

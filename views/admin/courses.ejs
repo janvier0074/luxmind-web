@@ -1,0 +1,42 @@
+<%- include('../partials/head', { 
+  title: 'Courses',
+  heading: 'Course Management',
+  subtitle: 'Assign teachers and review all courses.'
+}) %>
+
+<div class="table-wrap animate">
+  <table>
+    <thead>
+      <tr><th>Course</th><th>Teacher</th><th>Lessons</th><th>Files</th><th>Students</th><th style="width:200px;">Actions</th></tr>
+    </thead>
+    <tbody>
+      <% courses.forEach(c => { %>
+        <tr>
+          <td><strong><%= c.title %></strong></td>
+          <td>
+            <form method="POST" action="/admin/courses/<%= c.id %>/teacher" style="display:inline;">
+              <select name="teacher_id" onchange="this.form.submit()"
+                style="padding:.35rem .6rem;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:.82rem;">
+                <option value="">— Unassigned —</option>
+                <% teachers.forEach(t => { %>
+                  <option value="<%= t.id %>" <%= c.teacher_id === t.id ? 'selected' : '' %>><%= t.full_name || t.username %></option>
+                <% }) %>
+              </select>
+            </form>
+          </td>
+          <td><span class="badge info"><%= c.lesson_count %></span></td>
+          <td><span class="badge purple"><%= c.resource_count %></span></td>
+          <td><span class="badge ok"><%= c.student_count %></span></td>
+          <td>
+            <a class="btn outline" href="/courses/<%= c.id %>" target="_blank" style="padding:.4rem .8rem;font-size:.8rem;">Preview</a>
+            <form method="POST" action="/admin/courses/<%= c.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= c.title %>?');">
+              <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:.4rem .8rem;font-size:.8rem;" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/foot') %>

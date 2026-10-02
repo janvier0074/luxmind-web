@@ -1,0 +1,86 @@
+<%- include('../partials/head', { 
+  title: 'Teacher Dashboard', 
+  heading: 'Welcome, ' + user.full_name.split(' ')[0] + ' 🎓',
+  subtitle: 'Manage your courses, students, and grading.'
+}) %>
+
+<div class="stat-grid animate">
+  <div class="stat blue">
+    <div class="stat-icon">📚</div>
+    <div class="num"><%= stats.courses %></div>
+    <div class="lbl">My Courses</div>
+  </div>
+  <div class="stat violet">
+    <div class="stat-icon">🎓</div>
+    <div class="num"><%= stats.students %></div>
+    <div class="lbl">Enrolled Students</div>
+  </div>
+  <div class="stat cyan">
+    <div class="stat-icon">📝</div>
+    <div class="num"><%= stats.quizzes %></div>
+    <div class="lbl">Active Quizzes</div>
+  </div>
+  <div class="stat orange">
+    <div class="stat-icon">⏳</div>
+    <div class="num"><%= stats.pending %></div>
+    <div class="lbl">Awaiting Grade</div>
+  </div>
+</div>
+
+<div class="section animate">
+  <div class="section-head">
+    <h2><span class="dot"></span> My Courses</h2>
+    <a class="btn" href="/teacher/courses">+ Manage</a>
+  </div>
+  <% if (courses.length === 0) { %>
+    <div class="empty">📭 You don't have any courses yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Course</th><th>Lessons</th><th>Students</th><th>Status</th></tr></thead>
+        <tbody>
+          <% courses.forEach(c => { %>
+            <tr>
+              <td><strong><%= c.title %></strong></td>
+              <td><span class="badge info"><%= c.lesson_count %></span></td>
+              <td><span class="badge purple"><%= c.student_count %></span></td>
+              <td><span class="badge ok">Active</span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<div class="section animate">
+  <div class="section-head">
+    <h2><span class="dot"></span> Recent Submissions</h2>
+    <a class="btn outline" href="/teacher/grading">Go to grading</a>
+  </div>
+  <% if (submissions.length === 0) { %>
+    <div class="empty">📝 No quiz submissions yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Quiz</th><th>Score</th><th>Submitted</th></tr></thead>
+        <tbody>
+          <% submissions.forEach(s => { %>
+            <tr>
+              <td><strong><%= s.student_name %></strong></td>
+              <td><%= s.quiz_title %></td>
+              <td>
+                <span class="badge <%= s.score / s.max_score >= 0.5 ? 'ok' : 'err' %>">
+                  <%= s.score %> / <%= s.max_score %>
+                </span>
+              </td>
+              <td class="muted"><%= new Date(s.submitted_at).toLocaleString() %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

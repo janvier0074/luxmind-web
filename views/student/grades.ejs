@@ -1,0 +1,104 @@
+<%- include('../partials/head', { 
+  title: 'My Grades',
+  heading: 'My Grades',
+  subtitle: 'All your quiz and assignment grades.'
+}) %>
+
+<div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+  <div class="stat blue">
+    <div class="stat-icon">📝</div>
+    <div class="num"><%= stats.quizScore %>/<%= stats.quizMax || '—' %></div>
+    <div class="lbl">Quiz Points</div>
+  </div>
+  <div class="stat emerald">
+    <div class="stat-icon">📋</div>
+    <div class="num"><%= stats.assScore %>/<%= stats.assMax || '—' %></div>
+    <div class="lbl">Assignment Points</div>
+  </div>
+  <div class="stat orange">
+    <div class="stat-icon">⏳</div>
+    <div class="num"><%= stats.pendingQuizzes %></div>
+    <div class="lbl">Quiz Grades Pending</div>
+  </div>
+  <div class="stat pink">
+    <div class="stat-icon">🕐</div>
+    <div class="num"><%= stats.pendingAssignments %></div>
+    <div class="lbl">Awaiting Grade</div>
+  </div>
+</div>
+
+<div class="section-head" style="margin-top:1.5rem;"><h2><span class="dot"></span> Course Progress</h2></div>
+<% if (progressRows.length === 0) { %>
+  <div class="empty">You are not enrolled in any course yet.</div>
+<% } else { %>
+  <% progressRows.forEach(c => {
+       const pct = c.total_lessons ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
+  %>
+    <div class="card animate" style="margin-bottom:.85rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div style="font-weight:700;color:#0f172a;"><%= c.course_title %></div>
+        <div class="muted"><%= c.done_lessons %>/<%= c.total_lessons %> · <%= pct %>%</div>
+      </div>
+      <div class="progress" style="margin-top:.6rem;">
+        <div style="width:<%= pct %>%"></div>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<div class="section-head" style="margin-top:2rem;"><h2><span class="dot"></span> Quiz Grades</h2></div>
+<% if (quizzes.length === 0) { %>
+  <div class="empty">📭 No quiz attempts yet.</div>
+<% } else { %>
+  <div class="table-wrap animate">
+    <table>
+      <thead><tr><th>Quiz</th><th>Course</th><th>Score</th><th>Status</th><th>Submitted</th></tr></thead>
+      <tbody>
+        <% quizzes.forEach(q => { %>
+          <tr>
+            <td><strong><%= q.title %></strong></td>
+            <td class="muted"><%= q.course_title %></td>
+            <td>
+              <% if (q.released) { %><strong><%= q.finalScore %> / <%= q.max_score %></strong>
+              <% } else { %><span class="muted">🔒 Locked</span><% } %>
+            </td>
+            <td>
+              <% if (q.released) { %><span class="badge ok">Released</span>
+              <% } else { %><span class="badge warn">Pending</span><% } %>
+            </td>
+            <td class="muted"><%= new Date(q.submitted_at).toLocaleDateString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<div class="section-head" style="margin-top:2rem;"><h2><span class="dot"></span> Assignment Grades</h2></div>
+<% if (assignments.length === 0) { %>
+  <div class="empty">📭 No assignment submissions yet.</div>
+<% } else { %>
+  <div class="table-wrap animate">
+    <table>
+      <thead><tr><th>Assignment</th><th>Course</th><th>Score</th><th>Status</th><th>Submitted</th></tr></thead>
+      <tbody>
+        <% assignments.forEach(a => {
+             const hasGrade = a.score !== null && a.score !== undefined;
+        %>
+          <tr>
+            <td><strong><%= a.title %></strong></td>
+            <td class="muted"><%= a.course_title %></td>
+            <td><% if (hasGrade) { %><strong><%= a.score %> / <%= a.max_points %></strong><% } else { %>—<% } %></td>
+            <td>
+              <% if (hasGrade) { %><span class="badge ok">Graded</span>
+              <% } else { %><span class="badge warn">Awaiting</span><% } %>
+            </td>
+            <td class="muted"><%= new Date(a.submitted_at).toLocaleDateString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

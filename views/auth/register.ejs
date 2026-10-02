@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create account · LuxMind</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Inter', sans-serif; }
+    html, body { height: 100%; }
+    body { background: #0f172a; color: #fff; overflow: hidden; }
+
+    .split { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100vh; }
+
+    .brand-side {
+      position: relative; padding: 3rem;
+      display: flex; flex-direction: column; justify-content: space-between;
+      overflow: hidden;
+      background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 40%, #4c1d95 75%, #be185d 100%);
+    }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; pointer-events: none; }
+    .blob.b1 { width: 500px; height: 500px; background: #8b5cf6; top: -150px; left: -100px; animation: float1 18s ease-in-out infinite; }
+    .blob.b2 { width: 400px; height: 400px; background: #ec4899; bottom: -120px; right: -80px; animation: float2 22s ease-in-out infinite; }
+    .blob.b3 { width: 300px; height: 300px; background: #06b6d4; top: 40%; left: 55%; animation: float3 25s ease-in-out infinite; opacity: .35; }
+    @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.1); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,-30px) scale(1.15); } }
+    @keyframes float3 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-40px,20px) scale(.9); } 66% { transform: translate(30px,-30px) scale(1.05); } }
+    .grid-overlay {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+      pointer-events: none;
+    }
+    .brand-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+    .brand-top { display: flex; align-items: center; gap: .85rem; }
+    .brand-logo { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #fff, #e0e7ff); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.5rem; color: #be185d; box-shadow: 0 10px 30px rgba(255,255,255,.25); }
+    .brand-name { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: #fff; }
+    .brand-middle { margin: 2rem 0; }
+    .brand-tag { display: inline-block; padding: .45rem 1rem; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 100px; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 1.5rem; backdrop-filter: blur(10px); }
+    .brand-headline { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; line-height: 1.1; letter-spacing: -.03em; margin-bottom: 1.25rem; }
+    .brand-headline span { background: linear-gradient(135deg, #f0abfc, #fda4af); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .brand-sub { font-size: 1.05rem; color: rgba(255,255,255,.75); line-height: 1.6; max-width: 480px; }
+    .checklist { margin-top: 2rem; display: flex; flex-direction: column; gap: .9rem; }
+    .check { display: flex; align-items: center; gap: .75rem; color: rgba(255,255,255,.9); font-size: .95rem; }
+    .check-icon { width: 26px; height: 26px; border-radius: 50%; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.25); display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; backdrop-filter: blur(10px); }
+    .brand-bottom { padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.12); font-size: .82rem; color: rgba(255,255,255,.55); }
+
+    .form-side { background: #fff; color: #0f172a; display: flex; align-items: center; justify-content: center; padding: 3rem; overflow-y: auto; }
+    .form-container { width: 100%; max-width: 420px; animation: slideIn .5s cubic-bezier(.2,.8,.3,1); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .form-header { margin-bottom: 2rem; }
+    .form-header h1 { font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -.025em; margin-bottom: .5rem; }
+    .form-header p { color: #64748b; font-size: .95rem; line-height: 1.5; }
+
+    .flash { padding: 12px 16px; border-radius: 12px; margin-bottom: 1.25rem; font-size: .88rem; font-weight: 500; display: flex; align-items: center; gap: .55rem; }
+    .flash.error { background: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash.success { background: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
+
+    .field { margin-bottom: 1rem; }
+    .field label { display: block; font-size: .85rem; font-weight: 600; color: #334155; margin-bottom: .4rem; }
+    .field input { width: 100%; padding: 12px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: .95rem; background: #f8fafc; color: #0f172a; transition: all .15s; font-family: inherit; }
+    .field input:focus { outline: none; border-color: #ec4899; background: #fff; box-shadow: 0 0 0 4px rgba(236,72,153,.12); }
+    .field input::placeholder { color: #94a3b8; }
+    .field .hint { font-size: .75rem; color: #94a3b8; margin-top: .3rem; }
+
+    .strength { height: 5px; background: #f1f5f9; border-radius: 100px; margin-top: .5rem; overflow: hidden; }
+    .strength-bar { height: 100%; width: 0; transition: all .3s; }
+    .strength-bar.weak { width: 33%; background: #ef4444; }
+    .strength-bar.medium { width: 66%; background: #f59e0b; }
+    .strength-bar.strong { width: 100%; background: #10b981; }
+
+    .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #ec4899, #8b5cf6); color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 24px rgba(236,72,153,.4); transition: all .15s; display: flex; align-items: center; justify-content: center; gap: .5rem; margin-top: .5rem; }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(236,72,153,.5); }
+    .submit-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+
+    .swap { text-align: center; margin-top: 1.5rem; font-size: .88rem; color: #64748b; }
+    .swap a { color: #ec4899; text-decoration: none; font-weight: 700; }
+    .swap a:hover { text-decoration: underline; }
+
+    .footer-note { text-align: center; margin-top: 1.5rem; font-size: .78rem; color: #94a3b8; }
+
+    @media (max-width: 900px) {
+      .split { grid-template-columns: 1fr; }
+      .brand-side { display: none; }
+      .form-side { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="split">
+  <div class="brand-side">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="grid-overlay"></div>
+    <div class="brand-content">
+      <div class="brand-top">
+        <div class="brand-logo">L</div>
+        <div class="brand-name">LuxMind</div>
+      </div>
+      <div class="brand-middle">
+        <div class="brand-tag">Create your account</div>
+        <h1 class="brand-headline">Start learning <span>in minutes.</span></h1>
+        <p class="brand-sub">Join LuxMind and get access to all your courses, quizzes, assignments, and grades — in one modern dashboard.</p>
+
+        <div class="checklist">
+          <div class="check"><div class="check-icon">✓</div> Free forever for students</div>
+          <div class="check"><div class="check-icon">✓</div> Instant access to enrolled courses</div>
+          <div class="check"><div class="check-icon">✓</div> Auto-saved progress and grades</div>
+          <div class="check"><div class="check-icon">✓</div> Secured by Google Firebase</div>
+        </div>
+      </div>
+      <div class="brand-bottom">© <%= new Date().getFullYear() %> LuxMind</div>
+    </div>
+  </div>
+
+  <div class="form-side">
+    <div class="form-container">
+      <div class="form-header">
+        <h1>Create your account</h1>
+        <p>Fill in your details to get started.</p>
+      </div>
+
+      <div id="error-box" class="flash error" style="display:none;"></div>
+
+      <form id="registerForm">
+        <div class="field">
+          <label for="full_name">Full name</label>
+          <input type="text" id="full_name" placeholder="Jane Doe" required>
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="At least 6 characters" required minlength="6" autocomplete="new-password">
+          <div class="strength"><div id="strengthBar" class="strength-bar"></div></div>
+          <div class="hint" id="strengthHint">Use 6+ characters with a mix of letters and numbers</div>
+        </div>
+
+        <div class="field">
+          <label for="password2">Confirm password</label>
+          <input type="password" id="password2" placeholder="Re-enter your password" required minlength="6" autocomplete="new-password">
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span id="btnText">Create account</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+
+      <div class="swap">
+        Already have an account? <a href="/login">Sign in</a>
+      </div>
+
+      <div class="footer-note">🔒 Your password is encrypted by Google Firebase</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, updateProfile, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCv4qQpAm4yDr68i-Z6ftIoYzK_2vTJhJc",
+    authDomain: "luxmind-web.firebaseapp.com",
+    projectId: "luxmind-web",
+    storageBucket: "luxmind-web.firebasestorage.app",
+    messagingSenderId: "626044917535",
+    appId: "1:626044917535:web:d0dfe8389022f4349ac22a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const form = document.getElementById('registerForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const errBox = document.getElementById('error-box');
+  const passInput = document.getElementById('password');
+  const strengthBar = document.getElementById('strengthBar');
+  const strengthHint = document.getElementById('strengthHint');
+
+  // password strength
+  passInput.addEventListener('input', () => {
+    const v = passInput.value;
+    let score = 0;
+    if (v.length >= 6) score++;
+    if (v.length >= 10) score++;
+    if (/[A-Z]/.test(v)) score++;
+    if (/[0-9]/.test(v)) score++;
+    if (/[^A-Za-z0-9]/.test(v)) score++;
+
+    strengthBar.className = 'strength-bar';
+    if (v.length === 0) { strengthBar.style.width = '0'; strengthHint.textContent = 'Use 6+ characters with a mix of letters and numbers'; return; }
+    if (score <= 2) { strengthBar.classList.add('weak'); strengthHint.textContent = 'Weak password'; }
+    else if (score <= 3) { strengthBar.classList.add('medium'); strengthHint.textContent = 'Medium strength'; }
+    else { strengthBar.classList.add('strong'); strengthHint.textContent = 'Strong password ✓'; }
+  });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const fullName = document.getElementById('full_name').value.trim();
+    const email = document.getElementById('email').value.trim();
+    const password = passInput.value;
+    const password2 = document.getElementById('password2').value;
+
+    errBox.style.display = 'none';
+
+    if (password !== password2) {
+      errBox.textContent = '⚠️ Passwords do not match.';
+      errBox.style.display = 'flex';
+      return;
+    }
+    if (password.length < 6) {
+      errBox.textContent = '⚠️ Password must be at least 6 characters.';
+      errBox.style.display = 'flex';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    btnText.textContent = 'Creating account...';
+
+    try {
+      // 1. Create Firebase user
+      const cred = await createUserWithEmailAndPassword(auth, email, password);
+
+      // 2. Set display name
+      if (fullName) {
+        await updateProfile(cred.user, { displayName: fullName });
+      }
+
+      // 3. Get fresh ID token
+      const idToken = await cred.user.getIdToken();
+
+      // 4. Send to server → creates SQLite user + session
+      const resp = await fetch('/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken, full_name: fullName })
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok && data.success) {
+        window.location.href = data.redirect || '/dashboard';
+      } else {
+        throw new Error(data.error || 'Registration failed');
+      }
+    } catch (err) {
+      let msg = err.message || 'Registration failed.';
+      if (err.code === 'auth/email-already-in-use') msg = 'This email is already registered. Try logging in.';
+      if (err.code === 'auth/invalid-email') msg = 'Invalid email address.';
+      if (err.code === 'auth/weak-password') msg = 'Password too weak. Use at least 6 characters.';
+      if (err.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
+
+      errBox.textContent = '⚠️ ' + msg;
+      errBox.style.display = 'flex';
+      submitBtn.disabled = false;
+      btnText.textContent = 'Create account';
+    }
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,37 @@
+<%- include('../partials/head', { 
+  title: 'Courses',
+  heading: 'Courses',
+  subtitle: 'Enroll and start learning.'
+}) %>
+
+<% if (courses.length === 0) { %>
+  <div class="empty">📭 No courses yet. Ask your teacher to add content to the <code>content/</code> folder.</div>
+<% } else { %>
+  <div class="course-grid animate">
+    <% courses.forEach((c, i) => {
+      const palette = ['blue','violet','pink','orange','emerald','cyan'];
+      const color = palette[i % palette.length];
+    %>
+      <div class="course-card">
+        <span class="badge-top badge-<%= color %>"><%= c.enrolled ? 'Enrolled' : 'Available' %></span>
+        <h3><%= c.title %></h3>
+        <p><%= c.description || 'A course on LuxMind.' %></p>
+        <div class="meta">
+          <span>📖 <%= c.lesson_count %> lessons</span>
+          <span>👥 <%= c.student_count %> students</span>
+        </div>
+        <div style="margin-top:1rem;display:flex;gap:.5rem;">
+          <a class="btn" href="/courses/<%= c.id %>">Open →</a>
+<a class="btn outline" href="/forums/<%= c.id %>" style="margin-left:.4rem;">💬</a>
+          <% if (!c.enrolled) { %>
+            <form method="POST" action="/courses/<%= c.id %>/enroll" style="display:inline;">
+              <button class="btn outline" type="submit">Enroll</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

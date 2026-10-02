@@ -1,0 +1,56 @@
+<%- include('../partials/head', { 
+  title: 'My Profile',
+  heading: 'My Profile',
+  subtitle: 'Your public identity on LuxMind.'
+}) %>
+
+<div class="card animate" style="display:flex;gap:2rem;align-items:center;flex-wrap:wrap;">
+  <div style="width:120px;height:120px;border-radius:50%;overflow:hidden;box-shadow:0 12px 30px rgba(99,102,241,.3);flex-shrink:0;">
+    <% if (profile.avatar_path) { %>
+      <img src="<%= profile.avatar_path %>" alt="" style="width:100%;height:100%;object-fit:cover;">
+    <% } else { %>
+      <div style="width:100%;height:100%;background:linear-gradient(135deg,#6366f1,#ec4899);display:flex;align-items:center;justify-content:center;color:#fff;font-size:3rem;font-weight:800;">
+        <%= (profile.full_name || profile.username).charAt(0).toUpperCase() %>
+      </div>
+    <% } %>
+  </div>
+
+  <div style="flex:1;min-width:220px;">
+    <h2 style="font-size:1.7rem;font-weight:800;color:#0f172a;letter-spacing:-.02em;">
+      <%= profile.full_name || profile.username %>
+    </h2>
+    <div style="margin:.5rem 0 1rem;">
+      <span class="badge <%= profile.role === 'admin' ? 'err' : profile.role === 'teacher' ? 'purple' : 'info' %>">
+        <%= profile.role %>
+      </span>
+    </div>
+    <p class="muted"><%= profile.bio || 'No bio yet.' %></p>
+    <p class="muted" style="margin-top:.5rem;">📧 <%= profile.email || '—' %></p>
+    <p class="muted">📅 Joined <%= new Date(profile.created_at).toLocaleDateString() %></p>
+  </div>
+
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    <a class="btn" href="/profile/edit">✏️ Edit Profile</a>
+    <a class="btn outline" href="/profile/password">🔒 Change Password</a>
+  </div>
+</div>
+
+<div class="stat-grid animate" style="margin-top:1.5rem;">
+  <div class="stat blue">
+    <div class="stat-icon">📚</div>
+    <div class="num"><%= stats.enrollments %></div>
+    <div class="lbl">Enrollments</div>
+  </div>
+  <div class="stat emerald">
+    <div class="stat-icon">✅</div>
+    <div class="num"><%= stats.lessonsDone %></div>
+    <div class="lbl">Lessons Completed</div>
+  </div>
+  <div class="stat violet">
+    <div class="stat-icon">💬</div>
+    <div class="num"><%= stats.messages %></div>
+    <div class="lbl">Messages Received</div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

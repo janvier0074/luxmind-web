@@ -1,0 +1,99 @@
+<%- include('../partials/head', { 
+  title: 'Users',
+  heading: 'User Management',
+  subtitle: 'Create, edit, and manage all accounts.'
+}) %>
+
+<div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+  <div class="stat blue">
+    <div class="stat-icon">👥</div>
+    <div class="num"><%= totals.all %></div>
+    <div class="lbl">All Users</div>
+  </div>
+  <div class="stat pink">
+    <div class="stat-icon">🛡️</div>
+    <div class="num"><%= totals.admin %></div>
+    <div class="lbl">Admins</div>
+  </div>
+  <div class="stat violet">
+    <div class="stat-icon">👨‍🏫</div>
+    <div class="num"><%= totals.teacher %></div>
+    <div class="lbl">Teachers</div>
+  </div>
+  <div class="stat emerald">
+    <div class="stat-icon">🎓</div>
+    <div class="num"><%= totals.student %></div>
+    <div class="lbl">Students</div>
+  </div>
+</div>
+
+<div class="card animate" style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;margin-bottom:1.25rem;">
+  <form method="GET" action="/admin/users" style="display:flex;gap:.5rem;flex:1;min-width:220px;">
+    <input name="q" value="<%= q %>" placeholder="Search username, name, email..."
+      style="flex:1;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:.9rem;">
+    <select name="role" style="padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:.9rem;">
+      <option value="">All roles</option>
+      <option value="admin" <%= role==='admin'?'selected':'' %>>Admin</option>
+      <option value="teacher" <%= role==='teacher'?'selected':'' %>>Teacher</option>
+      <option value="student" <%= role==='student'?'selected':'' %>>Student</option>
+    </select>
+    <button class="btn" type="submit">🔍 Search</button>
+  </form>
+  <a class="btn" href="/admin/users/new">+ New User</a>
+</div>
+
+<div class="table-wrap animate">
+  <table>
+    <thead>
+     <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Last Seen</th><th>Joined</th><th style="width:200px;">Actions</th></tr>
+    </thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr>
+          <td>
+            <div style="font-weight:700;color:#0f172a;"><%= u.full_name || u.username %></div>
+            <div class="muted" style="font-size:.78rem;">@<%= u.username %></div>
+          </td>
+          <td class="muted"><%= u.email || '—' %></td>
+          <td>
+            <form method="POST" action="/admin/users/<%= u.id %>/role" style="display:inline;">
+              <select name="role" onchange="this.form.submit()"
+                style="padding:.35rem .6rem;border:1.5px solid #e2e8f0;border-radius:8px;background:#f8fafc;font-size:.82rem;font-weight:600;">
+                <option value="student" <%= u.role==='student'?'selected':'' %>>Student</option>
+                <option value="teacher" <%= u.role==='teacher'?'selected':'' %>>Teacher</option>
+                <option value="admin" <%= u.role==='admin'?'selected':'' %>>Admin</option>
+              </select>
+            </form>
+          </td>
+          <td>
+            <% if (u.is_active) { %><span class="badge ok">Active</span>
+            <% } else { %><span class="badge err">Disabled</span><% } %>
+          </td>
+   
+<td>
+  <% if (isOnline(u.last_seen)) { %>
+    <span style="display:inline-flex;align-items:center;gap:.35rem;font-weight:700;color:#047857;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2);"></span>
+      Online
+    </span>
+  <% } else { %>
+    <span class="muted" style="font-size:.82rem;"><%= timeAgo(u.last_seen) %></span>
+  <% } %>
+</td>
+
+          <td class="muted"><%= new Date(u.created_at).toLocaleDateString() %></td>
+          <td>
+            <a class="btn outline" href="/admin/users/<%= u.id %>/edit" style="padding:.4rem .8rem;font-size:.8rem;">Edit</a>
+            <% if (u.id !== user.id) { %>
+              <form method="POST" action="/admin/users/<%= u.id %>/delete" style="display:inline;" onsubmit="return confirm('Delete <%= u.username %>?');">
+                <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:.4rem .8rem;font-size:.8rem;" type="submit">Delete</button>
+              </form>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<%- include('../partials/foot') %>

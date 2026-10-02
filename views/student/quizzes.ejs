@@ -1,0 +1,47 @@
+<%- include('../partials/head', { 
+  title: 'Quizzes',
+  heading: 'Quizzes',
+  subtitle: 'Take quizzes and check your grades.'
+}) %>
+
+<% if (quizzes.length === 0) { %>
+  <div class="empty">📝 No quizzes yet. Your teacher will add them soon.</div>
+<% } else { %>
+  <div class="course-grid animate">
+    <% quizzes.forEach((q, i) => {
+      const palette = ['blue','violet','pink','orange','emerald','cyan'];
+      const color = palette[i % palette.length];
+      const submitted = !!q.attempt_id;
+    %>
+      <div class="course-card">
+        <span class="badge-top badge-<%= color %>"><%= q.course_title %></span>
+        <h3><%= q.title %></h3>
+        <p class="muted">
+          ⏱️ <%= q.duration_min %> min · 📝 Auto-graded
+        </p>
+
+        <% if (submitted) { %>
+          <div style="margin-top:1rem;">
+            <% if (q.released) { %>
+              <div style="font-size:1.6rem;font-weight:800;color:#0f172a;letter-spacing:-.02em;">
+                <%= q.finalScore %> / <%= q.max_score %>
+              </div>
+              <div class="muted">Grade released</div>
+            <% } else { %>
+              <div style="font-size:1rem;font-weight:700;color:#92400e;">🔒 Grade pending</div>
+              <div class="muted">Wait for teacher to release</div>
+            <% } %>
+          </div>
+          <a class="btn" href="/student/quiz/<%= q.id %>/result" style="margin-top:1rem;">View result →</a>
+        <% } else { %>
+          <div style="margin-top:1rem;">
+            <span class="badge warn">Not taken</span>
+          </div>
+          <a class="btn" href="/student/quiz/<%= q.id %>" style="margin-top:1rem;">Take quiz →</a>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

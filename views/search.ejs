@@ -1,0 +1,88 @@
+<%- include('partials/head', { 
+  title: 'Search',
+  heading: 'Search',
+  subtitle: q ? 'Results for "' + q + '"' : 'Type to search across LuxMind.'
+}) %>
+
+<div class="card animate" style="margin-bottom:1.5rem;">
+  <form method="GET" action="/search" style="display:flex;gap:.6rem;">
+    <input name="q" value="<%= q %>" placeholder="Search courses, lessons, quizzes..."
+      autofocus
+      style="flex:1;padding:14px 18px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:1rem;">
+    <button class="btn" type="submit">🔍 Search</button>
+  </form>
+</div>
+
+<% if (q.length < 2 && q.length > 0) { %>
+  <div class="empty">Type at least 2 characters.</div>
+<% } else if (q.length >= 2) { %>
+  <%
+    const total = courses.length + lessons.length + quizzes.length;
+  %>
+  <% if (total === 0) { %>
+    <div class="empty">🔍 No results for "<%= q %>".</div>
+  <% } else { %>
+    <p class="muted" style="margin-bottom:1.25rem;"><%= total %> result<%= total === 1 ? '' : 's' %> found</p>
+
+    <% if (courses.length > 0) { %>
+      <div class="section-head"><h2><span class="dot"></span> Courses (<%= courses.length %>)</h2></div>
+      <div class="course-grid" style="margin-bottom:1.5rem;">
+        <% courses.forEach((c, i) => {
+          const palette = ['blue','violet','pink','orange','emerald','cyan'];
+          const color = palette[i % palette.length];
+        %>
+          <div class="course-card">
+            <span class="badge-top badge-<%= color %>">Course</span>
+            <h3><%= c.title %></h3>
+            <p><%= c.description || '' %></p>
+            <a class="btn" href="/courses/<%= c.id %>" style="margin-top:.75rem;">Open →</a>
+          </div>
+        <% }) %>
+      </div>
+    <% } %>
+
+    <% if (lessons.length > 0) { %>
+      <div class="section-head"><h2><span class="dot"></span> Lessons (<%= lessons.length %>)</h2></div>
+      <div class="table-wrap" style="margin-bottom:1.5rem;">
+        <table>
+          <thead><tr><th>Lesson</th><th>Course</th><th></th></tr></thead>
+          <tbody>
+            <% lessons.forEach(l => { %>
+              <tr>
+                <td><strong><%= l.title %></strong></td>
+                <td class="muted"><%= l.course_title %></td>
+                <td><a class="btn outline" href="/lessons/<%= l.id %>" style="padding:.35rem .8rem;font-size:.8rem;">Open</a></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+
+    <% if (quizzes.length > 0) { %>
+      <div class="section-head"><h2><span class="dot"></span> Quizzes (<%= quizzes.length %>)</h2></div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Quiz</th><th>Course</th><th></th></tr></thead>
+          <tbody>
+            <% quizzes.forEach(q => { %>
+              <tr>
+                <td><strong><%= q.title %></strong></td>
+                <td class="muted"><%= q.course_title %></td>
+                <td>
+                  <% if (user.role === 'student') { %>
+                    <a class="btn outline" href="/student/quiz/<%= q.id %>" style="padding:.35rem .8rem;font-size:.8rem;">Take</a>
+                  <% } else { %>
+                    <a class="btn outline" href="/teacher/quizzes" style="padding:.35rem .8rem;font-size:.8rem;">View</a>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  <% } %>
+<% } %>
+
+<%- include('partials/foot') %>

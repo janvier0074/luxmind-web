@@ -1,0 +1,72 @@
+<%- include('../partials/head', { 
+  title: assignment.title,
+  heading: assignment.title,
+  subtitle: assignment.course_title
+}) %>
+
+<div class="card animate" style="margin-bottom:1.5rem;">
+  <div class="muted" style="font-size:.82rem;margin-bottom:.5rem;">
+    📅 <%= assignment.deadline ? new Date(assignment.deadline).toLocaleString() : 'No deadline' %>
+    · 💯 <%= assignment.max_points %> pts
+    <% if (assignment.isOverdue) { %>· <span class="badge err">Overdue</span><% } %>
+  </div>
+  <% if (assignment.description) { %>
+    <p style="color:#334155;line-height:1.6;"><%= assignment.description %></p>
+  <% } %>
+</div>
+
+<% if (submission && submission.score !== null) { %>
+  <div class="card animate" style="background:linear-gradient(135deg,#ecfdf5,#f0fdf4);border:1px solid #bbf7d0;margin-bottom:1.5rem;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+      <div>
+        <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#047857;">Your grade</div>
+        <div style="font-size:2rem;font-weight:800;color:#065f46;"><%= submission.score %> / <%= assignment.max_points %></div>
+      </div>
+      <% if (submission.feedback) { %>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:700;color:#065f46;font-size:.85rem;">Feedback</div>
+          <p style="color:#334155;margin-top:.3rem;"><%= submission.feedback %></p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+<% } %>
+
+<div class="card animate">
+  <% if (submission) { %>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;margin-bottom:1rem;">
+      <div>
+        <div style="font-weight:700;color:#0f172a;">✓ Your submission</div>
+        <div class="muted" style="font-size:.82rem;">Submitted <%= new Date(submission.submitted_at).toLocaleString() %></div>
+      </div>
+      <% if (submission.file_path) { %>
+        <a class="btn outline" href="<%= submission.file_path %>" download>⬇️ <%= submission.file_name %></a>
+      <% } %>
+    </div>
+    <% if (submission.text_content) { %>
+      <div style="background:#f8fafc;padding:.85rem 1rem;border-radius:10px;border-left:3px solid #6366f1;margin-bottom:1rem;">
+        <%= submission.text_content %>
+      </div>
+    <% } %>
+  <% } else { %>
+    <div style="font-weight:700;color:#0f172a;margin-bottom:.5rem;">Submit your work</div>
+    <p class="muted" style="margin-bottom:1rem;">Upload a file and/or write a response below.</p>
+  <% } %>
+
+  <form method="POST" action="/student/assignments/<%= assignment.id %>/submit" enctype="multipart/form-data">
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Attach a file (max 25MB)</label>
+    <input type="file" name="file"
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.9rem;margin-bottom:1rem;">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Or write a response</label>
+    <textarea name="text_content" rows="5" placeholder="Type your answer..."
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;font-family:inherit;resize:vertical;margin-bottom:1rem;"><%= submission ? (submission.text_content || '') : '' %></textarea>
+
+    <div style="display:flex;gap:.6rem;">
+      <button class="btn" type="submit"><%= submission ? '↻ Resubmit' : '✓ Submit' %></button>
+      <a class="btn outline" href="/student/assignments">← Back</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

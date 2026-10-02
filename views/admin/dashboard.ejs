@@ -1,0 +1,80 @@
+<%- include('../partials/head', { 
+  title: 'Admin', 
+  heading: 'Admin Control Center 🛡️',
+  subtitle: 'System overview and management.'
+}) %>
+
+<div class="stat-grid animate">
+  <div class="stat violet">
+    <div class="stat-icon">👥</div>
+    <div class="num"><%= stats.users %></div>
+    <div class="lbl">Total Users</div>
+  </div>
+  <div class="stat cyan">
+    <div class="stat-icon">👨‍🏫</div>
+    <div class="num"><%= stats.teachers %></div>
+    <div class="lbl">Teachers</div>
+  </div>
+  <div class="stat blue">
+    <div class="stat-icon">🎓</div>
+    <div class="num"><%= stats.students %></div>
+    <div class="lbl">Students</div>
+  </div>
+  <div class="stat pink">
+    <div class="stat-icon">📚</div>
+    <div class="num"><%= stats.courses %></div>
+    <div class="lbl">Courses</div>
+  </div>
+</div>
+
+<div class="section animate">
+  <div class="section-head">
+    <h2><span class="dot"></span> Recent Users</h2>
+    <a class="btn outline" href="/admin/users">Manage users</a>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Username</th><th>Full Name</th><th>Role</th><th>Joined</th></tr></thead>
+      <tbody>
+        <% recentUsers.forEach(u => { %>
+          <tr>
+            <td><strong><%= u.username %></strong></td>
+            <td><%= u.full_name || '—' %></td>
+            <td>
+              <% const roleBadge = u.role === 'admin' ? 'err' : u.role === 'teacher' ? 'purple' : 'info'; %>
+              <span class="badge <%= roleBadge %>"><%= u.role %></span>
+            </td>
+            <td class="muted"><%= new Date(u.created_at).toLocaleDateString() %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="section animate">
+  <div class="section-head">
+    <h2><span class="dot"></span> All Courses</h2>
+  </div>
+  <% if (courses.length === 0) { %>
+    <div class="empty">📭 No courses yet.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Title</th><th>Teacher</th><th>Lessons</th><th>Created</th></tr></thead>
+        <tbody>
+          <% courses.forEach(c => { %>
+            <tr>
+              <td><strong><%= c.title %></strong></td>
+              <td><%= c.teacher_name || '<span class="muted">—</span>' %></td>
+              <td><span class="badge info"><%= c.lesson_count %></span></td>
+              <td class="muted"><%= new Date(c.created_at).toLocaleDateString() %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

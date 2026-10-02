@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign in · LuxMind</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Inter', sans-serif; }
+    html, body { height: 100%; }
+    body { background: #0f172a; color: #fff; overflow: hidden; }
+
+    .split { display: grid; grid-template-columns: 1.1fr 1fr; min-height: 100vh; }
+
+    /* LEFT */
+    .brand-side {
+      position: relative; padding: 3rem;
+      display: flex; flex-direction: column; justify-content: space-between;
+      overflow: hidden;
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 75%, #6b21a8 100%);
+    }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .55; pointer-events: none; }
+    .blob.b1 { width: 500px; height: 500px; background: #6366f1; top: -150px; left: -100px; animation: float1 18s ease-in-out infinite; }
+    .blob.b2 { width: 400px; height: 400px; background: #ec4899; bottom: -120px; right: -80px; animation: float2 22s ease-in-out infinite; }
+    .blob.b3 { width: 300px; height: 300px; background: #06b6d4; top: 40%; left: 55%; animation: float3 25s ease-in-out infinite; opacity: .35; }
+    @keyframes float1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px,40px) scale(1.1); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-50px,-30px) scale(1.15); } }
+    @keyframes float3 { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(-40px,20px) scale(.9); } 66% { transform: translate(30px,-30px) scale(1.05); } }
+    .grid-overlay {
+      position: absolute; inset: 0;
+      background-image: linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size: 44px 44px;
+      mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 20%, transparent 70%);
+      pointer-events: none;
+    }
+    .brand-content { position: relative; z-index: 2; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
+    .brand-top { display: flex; align-items: center; gap: .85rem; }
+    .brand-logo { width: 48px; height: 48px; border-radius: 14px; background: linear-gradient(135deg, #fff, #e0e7ff); display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.5rem; color: #4f46e5; box-shadow: 0 10px 30px rgba(255,255,255,.25); }
+    .brand-name { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; color: #fff; }
+    .brand-middle { margin: 2rem 0; }
+    .brand-tag { display: inline-block; padding: .45rem 1rem; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); border-radius: 100px; font-size: .78rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 1.5rem; backdrop-filter: blur(10px); }
+    .brand-headline { font-size: clamp(2rem, 4vw, 3.2rem); font-weight: 800; line-height: 1.1; letter-spacing: -.03em; margin-bottom: 1.25rem; }
+    .brand-headline span { background: linear-gradient(135deg, #a5b4fc, #f0abfc); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .brand-sub { font-size: 1.05rem; color: rgba(255,255,255,.75); line-height: 1.6; max-width: 480px; }
+    .features { display: flex; gap: 2rem; margin-top: 2.5rem; flex-wrap: wrap; }
+    .feature { display: flex; align-items: flex-start; gap: .7rem; max-width: 200px; }
+    .feature-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.2); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; backdrop-filter: blur(10px); }
+    .feature-title { font-size: .9rem; font-weight: 700; color: #fff; margin-bottom: .15rem; }
+    .feature-desc { font-size: .78rem; color: rgba(255,255,255,.65); line-height: 1.5; }
+    .brand-bottom { display: flex; justify-content: space-between; align-items: center; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,.12); font-size: .82rem; color: rgba(255,255,255,.55); flex-wrap: wrap; gap: 1rem; }
+    .brand-stats { display: flex; gap: 2rem; }
+    .brand-stat .num { font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
+    .brand-stat .lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: rgba(255,255,255,.5); margin-top: .3rem; }
+
+    /* RIGHT */
+    .form-side { background: #fff; color: #0f172a; display: flex; align-items: center; justify-content: center; padding: 3rem; }
+    .form-container { width: 100%; max-width: 400px; animation: slideIn .5s cubic-bezier(.2,.8,.3,1); }
+    @keyframes slideIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .form-header { margin-bottom: 2.25rem; }
+    .form-header h1 { font-size: 1.85rem; font-weight: 800; color: #0f172a; letter-spacing: -.025em; margin-bottom: .5rem; }
+    .form-header p { color: #64748b; font-size: .95rem; line-height: 1.5; }
+
+    .flash { padding: 12px 16px; border-radius: 12px; margin-bottom: 1.25rem; font-size: .88rem; font-weight: 500; display: flex; align-items: center; gap: .55rem; }
+    .flash.error { background: #fef2f2; color: #991b1b; border-left: 4px solid #ef4444; }
+    .flash.success { background: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
+
+    .field { margin-bottom: 1.15rem; }
+    .field label { display: block; font-size: .85rem; font-weight: 600; color: #334155; margin-bottom: .45rem; }
+    .field input { width: 100%; padding: 13px 16px; border: 1.5px solid #e2e8f0; border-radius: 12px; font-size: .95rem; background: #f8fafc; color: #0f172a; transition: all .15s; font-family: inherit; }
+    .field input:focus { outline: none; border-color: #6366f1; background: #fff; box-shadow: 0 0 0 4px rgba(99,102,241,.12); }
+    .field input::placeholder { color: #94a3b8; }
+
+    .form-extras { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: .85rem; }
+    .remember { display: flex; align-items: center; gap: .5rem; cursor: pointer; color: #475569; }
+    .remember input { width: 16px; height: 16px; accent-color: #6366f1; cursor: pointer; }
+    .forgot { color: #6366f1; text-decoration: none; font-weight: 600; }
+    .forgot:hover { text-decoration: underline; }
+
+    .submit-btn { width: 100%; padding: 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; cursor: pointer; box-shadow: 0 10px 24px rgba(99,102,241,.4); transition: all .15s; display: flex; align-items: center; justify-content: center; gap: .5rem; }
+    .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(99,102,241,.5); }
+    .submit-btn:disabled { opacity: .6; cursor: wait; transform: none; }
+
+    .footer-note { text-align: center; margin-top: 2rem; font-size: .82rem; color: #94a3b8; }
+
+    @media (max-width: 900px) {
+      .split { grid-template-columns: 1fr; }
+      .brand-side { display: none; }
+      .form-side { padding: 2rem 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="split">
+  <div class="brand-side">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+    <div class="grid-overlay"></div>
+    <div class="brand-content">
+      <div class="brand-top">
+        <div class="brand-logo">L</div>
+        <div class="brand-name">LuxMind</div>
+      </div>
+      <div class="brand-middle">
+        <div class="brand-tag">Learning Management System</div>
+        <h1 class="brand-headline">Learning that <span>feels modern.</span></h1>
+        <p class="brand-sub">A complete platform for courses, quizzes, assignments, grades and real-time progress — built for teachers and students who expect more.</p>
+        <div class="features">
+          <div class="feature">
+            <div class="feature-icon">📚</div>
+            <div><div class="feature-title">Smart Courses</div><div class="feature-desc">Auto-organized content library</div></div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <div><div class="feature-title">Auto-Grading</div><div class="feature-desc">Instant feedback on quizzes</div></div>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📊</div>
+            <div><div class="feature-title">Live Analytics</div><div class="feature-desc">Track every student's progress</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="brand-bottom">
+        <div class="brand-stats">
+          <div class="brand-stat"><div class="num">36+</div><div class="lbl">Courses</div></div>
+          <div class="brand-stat"><div class="num">100%</div><div class="lbl">Uptime</div></div>
+          <div class="brand-stat"><div class="num">24/7</div><div class="lbl">Available</div></div>
+        </div>
+        <div>© <%= new Date().getFullYear() %> LuxMind</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="form-side">
+    <div class="form-container">
+      <div class="form-header">
+        <h1>Welcome back</h1>
+        <p>Sign in to continue to your dashboard.</p>
+      </div>
+
+      <div id="error-box" class="flash error" style="display:none;"></div>
+
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" id="email" placeholder="you@example.com" required autocomplete="email" autofocus>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <div class="form-extras">
+          <label class="remember">
+            <input type="checkbox" id="remember">
+            <span>Remember me</span>
+          </label>
+         <a href="/forgot-password" class="forgot">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="submit-btn" id="submitBtn">
+          <span id="btnText">Sign in</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
+
+
+<div style="text-align:center;margin-top:1.5rem;font-size:.88rem;color:#64748b;">
+  Don't have an account?
+  <a href="/register" style="color:#6366f1;text-decoration:none;font-weight:700;">Create one</a>
+</div>
+
+
+
+      <div class="footer-note">🔒 Secured by Google Firebase</div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCv4qQpAm4yDr68i-Z6ftIoYzK_2vTJhJc",
+    authDomain: "luxmind-web.firebaseapp.com",
+    projectId: "luxmind-web",
+    storageBucket: "luxmind-web.firebasestorage.app",
+    messagingSenderId: "626044917535",
+    appId: "1:626044917535:web:d0dfe8389022f4349ac22a"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  const form = document.getElementById('loginForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('btnText');
+  const errBox = document.getElementById('error-box');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    submitBtn.disabled = true;
+    btnText.textContent = 'Signing in...';
+    errBox.style.display = 'none';
+
+    try {
+      // 1. Verify password with Firebase
+      const cred = await signInWithEmailAndPassword(auth, email, password);
+      // 2. Get the ID token
+      const idToken = await cred.user.getIdToken();
+      // 3. Send token to LuxMind server → creates session
+      const resp = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
+
+      const data = await resp.json();
+
+      if (resp.ok && data.success) {
+        window.location.href = data.redirect || '/dashboard';
+      } else {
+        throw new Error(data.error || 'Login failed');
+      }
+    } catch (err) {
+      let msg = 'Invalid email or password.';
+      if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+      if (err.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
+      if (err.message && err.message.includes('not in LuxMind')) msg = err.message;
+
+      errBox.textContent = '⚠️ ' + msg;
+      errBox.style.display = 'flex';
+      submitBtn.disabled = false;
+      btnText.textContent = 'Sign in';
+    }
+  });
+</script>
+
+</body>
+</html>

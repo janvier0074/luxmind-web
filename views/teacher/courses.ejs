@@ -1,0 +1,56 @@
+<%- include('../partials/head', { 
+  title: 'My Courses',
+  heading: 'My Courses',
+  subtitle: 'Everything you teach on LuxMind.'
+}) %>
+
+<% if (courses.length === 0) { %>
+  <div class="empty">📭 You have no courses yet.</div>
+<% } else { %>
+  <div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));margin-bottom:2rem;">
+    <div class="stat blue">
+      <div class="stat-icon">📚</div>
+      <div class="num"><%= courses.length %></div>
+      <div class="lbl">Total Courses</div>
+    </div>
+    <div class="stat violet">
+      <div class="stat-icon">📖</div>
+      <div class="num"><%= courses.reduce((s, c) => s + c.lesson_count, 0) %></div>
+      <div class="lbl">Total Lessons</div>
+    </div>
+    <div class="stat emerald">
+      <div class="stat-icon">🎓</div>
+      <div class="num"><%= courses.reduce((s, c) => s + c.student_count, 0) %></div>
+      <div class="lbl">Enrollments</div>
+    </div>
+    <div class="stat orange">
+      <div class="stat-icon">📝</div>
+      <div class="num"><%= courses.reduce((s, c) => s + c.quiz_count + c.assignment_count, 0) %></div>
+      <div class="lbl">Assessments</div>
+    </div>
+  </div>
+
+  <div class="course-grid animate">
+    <% courses.forEach((c, i) => {
+      const palette = ['blue','violet','pink','orange','emerald','cyan'];
+      const color = palette[i % palette.length];
+    %>
+      <div class="course-card">
+        <span class="badge-top badge-<%= color %>">Course</span>
+        <h3><%= c.title %></h3>
+        <p class="muted"><%= c.description || 'No description' %></p>
+        <div class="meta" style="display:flex;gap:1rem;flex-wrap:wrap;margin:.75rem 0;font-size:.8rem;color:#64748b;">
+          <span>📖 <%= c.lesson_count %> lessons</span>
+          <span>🎓 <%= c.student_count %> students</span>
+        </div>
+        <div style="display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.75rem;">
+          <a class="btn" href="/teacher/courses/<%= c.id %>/manage">⚙️ Manage</a>
+<a class="btn outline" href="/courses/<%= c.id %>">Preview</a>
+<a class="btn outline" href="/forums/<%= c.id %>">💬</a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

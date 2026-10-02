@@ -1,0 +1,56 @@
+<%- include('../partials/head', { 
+  title: 'Students',
+  heading: 'My Students',
+  subtitle: 'Everyone enrolled in your courses.'
+}) %>
+
+<% if (students.length === 0) { %>
+  <div class="empty">📭 No students enrolled yet.</div>
+<% } else { %>
+  <p class="muted" style="margin-bottom:1rem;"><%= students.length %> student<%= students.length === 1 ? '' : 's' %> total</p>
+
+  <div class="table-wrap animate">
+    <table>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Email</th>
+         <th>Status</th>
+<th>Courses</th>
+<th>Lessons Done</th>
+<th>Joined</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(s => { %>
+          <tr>
+            <td>
+              <div style="font-weight:700;color:#0f172a;"><%= s.full_name || s.username %></div>
+              <div class="muted" style="font-size:.78rem;">@<%= s.username %></div>
+            </td>
+            <td class="muted"><%= s.email || '—' %></td>
+<td>
+  <% if (isOnline(s.last_seen)) { %>
+    <span style="display:inline-flex;align-items:center;gap:.35rem;font-weight:700;color:#047857;">
+      <span style="width:8px;height:8px;border-radius:50%;background:#10b981;box-shadow:0 0 0 3px rgba(16,185,129,.2);"></span>
+      Online
+    </span>
+  <% } else { %>
+    <span class="muted" style="font-size:.82rem;"><%= timeAgo(s.last_seen) %></span>
+  <% } %>
+</td>
+            <td><span class="badge info"><%= s.course_count %></span></td>
+            <td><span class="badge ok"><%= s.lessons_done %></span></td>
+            <td class="muted"><%= new Date(s.created_at).toLocaleDateString() %></td>
+            <td>
+              <a class="btn outline" href="/messages/new?to=<%= s.id %>" style="padding:.35rem .8rem;font-size:.8rem;">💬 Message</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

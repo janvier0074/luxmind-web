@@ -1,0 +1,73 @@
+<%- include('../partials/head', { 
+  title: 'Reports',
+  heading: 'Analytics & Reports',
+  subtitle: 'System-wide overview.'
+}) %>
+
+<div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(180px,1fr));">
+  <div class="stat blue"><div class="stat-icon">👥</div><div class="num"><%= stats.users %></div><div class="lbl">Users</div></div>
+  <div class="stat violet"><div class="stat-icon">👨‍🏫</div><div class="num"><%= stats.teachers %></div><div class="lbl">Teachers</div></div>
+  <div class="stat emerald"><div class="stat-icon">🎓</div><div class="num"><%= stats.students %></div><div class="lbl">Students</div></div>
+  <div class="stat pink"><div class="stat-icon">📚</div><div class="num"><%= stats.courses %></div><div class="lbl">Courses</div></div>
+  <div class="stat cyan"><div class="stat-icon">📖</div><div class="num"><%= stats.lessons %></div><div class="lbl">Lessons</div></div>
+  <div class="stat orange"><div class="stat-icon">✍️</div><div class="num"><%= stats.enrollments %></div><div class="lbl">Enrollments</div></div>
+  <div class="stat blue"><div class="stat-icon">📝</div><div class="num"><%= stats.quizzes %></div><div class="lbl">Quizzes</div></div>
+  <div class="stat violet"><div class="stat-icon">✅</div><div class="num"><%= stats.attempts %></div><div class="lbl">Attempts</div></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;">
+  <div class="section animate">
+    <div class="section-head"><h2><span class="dot"></span> Top Courses</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Course</th><th>Enrollments</th></tr></thead>
+        <tbody>
+          <% topCourses.forEach(c => { %>
+            <tr>
+              <td><strong><%= c.title %></strong></td>
+              <td><span class="badge info"><%= c.enrolls %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section animate">
+    <div class="section-head"><h2><span class="dot"></span> Top Students</h2></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Student</th><th>Lessons Done</th><th>Quizzes</th></tr></thead>
+        <tbody>
+          <% topStudents.forEach(s => { %>
+            <tr>
+              <td><strong><%= s.full_name || s.username %></strong></td>
+              <td><span class="badge ok"><%= s.done %></span></td>
+              <td><span class="badge purple"><%= s.quizzes %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="section animate">
+  <div class="section-head"><h2><span class="dot"></span> New Signups (Last 7 Days)</h2></div>
+  <% if (signups.length === 0) { %>
+    <div class="empty">No new users in the last 7 days.</div>
+  <% } else { %>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Date</th><th>Users</th></tr></thead>
+        <tbody>
+          <% signups.forEach(s => { %>
+            <tr><td><%= s.d %></td><td><span class="badge info"><%= s.c %></span></td></tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Verify Certificate · LuxMind</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+    body { background: radial-gradient(circle at 30% 20%, #1e1b4b 0%, #0f172a 70%); color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem; }
+    .box { background: #fff; color: #0f172a; max-width: 560px; width: 100%; border-radius: 24px; padding: 2.5rem; box-shadow: 0 30px 80px rgba(0,0,0,.5); text-align: center; }
+    .icon { font-size: 3.5rem; margin-bottom: 1rem; }
+    .icon.ok { color: #10b981; }
+    .icon.bad { color: #ef4444; }
+    h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: .5rem; }
+    .sub { color: #64748b; font-size: .9rem; margin-bottom: 2rem; }
+    .row { display: flex; justify-content: space-between; padding: .85rem 1rem; border-bottom: 1px solid #eef0f6; font-size: .92rem; text-align: left; }
+    .row:last-child { border-bottom: none; }
+    .row .k { color: #64748b; font-weight: 600; }
+    .row .v { font-weight: 700; color: #0f172a; }
+    .card-info { background: #f8fafc; border-radius: 14px; padding: .5rem 0; margin-top: 1rem; border: 1px solid #eef0f6; }
+    .code { font-family: ui-monospace, monospace; color: #6366f1; font-weight: 700; }
+    .brand { margin-top: 1.75rem; color: #94a3b8; font-size: .8rem; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <% if (cert) { %>
+      <div class="icon ok">✅</div>
+      <h1>Certificate Valid</h1>
+      <p class="sub">This certificate was issued by LuxMind and is authentic.</p>
+
+      <div class="card-info">
+        <div class="row"><span class="k">Student</span><span class="v"><%= cert.student_name || cert.student_username %></span></div>
+        <div class="row"><span class="k">Course</span><span class="v"><%= cert.course_title %></span></div>
+        <div class="row"><span class="k">Issued</span><span class="v"><%= new Date(cert.issued_at).toLocaleDateString() %></span></div>
+        <div class="row"><span class="k">Certificate ID</span><span class="v code"><%= cert.code %></span></div>
+      </div>
+    <% } else { %>
+      <div class="icon bad">❌</div>
+      <h1>Certificate Not Found</h1>
+      <p class="sub">No certificate matches this code.</p>
+      <div style="font-family:ui-monospace,monospace;color:#94a3b8;font-size:.85rem;background:#f8fafc;padding:.85rem;border-radius:12px;margin-top:1rem;">
+        <%= code %>
+      </div>
+    <% } %>
+
+    <div class="brand">LuxMind Learning Platform</div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<%- include('../partials/head', { 
+  title: 'Quizzes',
+  heading: 'Quizzes',
+  subtitle: 'Create and manage quizzes.'
+}) %>
+
+<div class="section-head" style="margin-bottom:1rem;">
+  <h2><span class="dot"></span> Create New Quiz</h2>
+</div>
+
+<% if (courses.length === 0) { %>
+  <div class="empty">📭 You need a course first.</div>
+<% } else { %>
+  <div class="course-grid animate" style="margin-bottom:2rem;">
+    <% courses.forEach((c, i) => {
+      const palette = ['blue','violet','pink','orange','emerald','cyan'];
+      const color = palette[i % palette.length];
+    %>
+      <div class="course-card">
+        <span class="badge-top badge-<%= color %>">Course</span>
+        <h3><%= c.title %></h3>
+        <p>Create a new quiz for this course.</p>
+        <a class="btn" href="/teacher/quiz/new/<%= c.id %>">+ New Quiz</a>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<div class="section-head" style="margin-bottom:1rem;">
+  <h2><span class="dot"></span> My Quizzes</h2>
+  <a class="btn outline" href="/teacher/grading">Go to grading →</a>
+</div>
+
+<% if (quizzes.length === 0) { %>
+  <div class="empty">📝 No quizzes yet. Create one above.</div>
+<% } else { %>
+  <div class="table-wrap animate">
+    <table>
+      <thead>
+        <tr><th>Quiz</th><th>Course</th><th>Questions</th><th>Attempts</th><th>Release Time</th></tr>
+      </thead>
+      <tbody>
+        <% quizzes.forEach(q => { %>
+          <tr>
+            <td><strong><%= q.title %></strong></td>
+            <td class="muted"><%= q.course_title %></td>
+            <td><span class="badge info"><%= q.q_count %></span></td>
+            <td><span class="badge purple"><%= q.attempts %></span></td>
+            <td>
+              <form method="POST" action="/teacher/quiz/<%= q.id %>/release" style="display:flex;gap:.4rem;align-items:center;">
+                <input type="datetime-local" name="release_at"
+                  value="<%= q.release_at ? new Date(q.release_at).toISOString().slice(0,16) : '' %>"
+                  style="padding:.4rem .6rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#f8fafc;">
+                <button class="btn" type="submit" style="padding:.4rem .8rem;font-size:.78rem;">Save</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

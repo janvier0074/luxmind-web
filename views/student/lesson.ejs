@@ -1,0 +1,171 @@
+<%- include('../partials/head', { 
+  title: lesson.title,
+  heading: lesson.title,
+  subtitle: lesson.course_title
+}) %>
+
+<style>
+  .lesson-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4c1d95 100%);
+    border-radius: 22px; padding: 1.85rem 2.15rem; color: #fff;
+    position: relative; overflow: hidden; margin-bottom: 1.75rem;
+    box-shadow: 0 18px 45px rgba(30,27,75,.3);
+  }
+  .lesson-hero::before {
+    content:''; position:absolute; right:-60px; top:-60px;
+    width:240px; height:240px; border-radius:50%;
+    background: radial-gradient(circle, rgba(236,72,153,.35), transparent 70%);
+  }
+  .lesson-hero::after {
+    content:''; position:absolute; left:-80px; bottom:-80px;
+    width:220px; height:220px; border-radius:50%;
+    background: radial-gradient(circle, rgba(99,102,241,.4), transparent 70%);
+  }
+  .lesson-hero > * { position: relative; z-index: 1; }
+
+  .lesson-title-hero { font-size:1.85rem; font-weight:800; letter-spacing:-.025em; line-height:1.15; margin-bottom:.8rem; }
+  .breadcrumb { font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700; opacity:.7; margin-bottom:.5rem; }
+  .hero-stats { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:.88rem; opacity:.9; }
+
+  .file-tabs { display:flex; gap:.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+  .file-tab {
+    padding:.55rem 1rem; border-radius:12px;
+    background:#fff; border:1.5px solid #eef0f6;
+    font-size:.85rem; font-weight:600; color:#334155;
+    cursor:pointer; transition:all .15s;
+  }
+  .file-tab:hover { border-color:#a5b4fc; background:#f8fafc; }
+  .file-tab.active { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(99,102,241,.35); }
+
+  .viewer-card { background:#fff; border-radius:20px; border:1px solid #eef0f6; box-shadow:0 6px 24px rgba(15,23,42,.06); overflow:hidden; margin-bottom:1.25rem; }
+  .viewer-header { padding:1rem 1.5rem; border-bottom:1px solid #eef0f6; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; background:#fafbff; }
+  .viewer-filename { font-weight:700; color:#0f172a; }
+  .viewer-meta { font-size:.78rem; color:#64748b; margin-top:.15rem; }
+  .viewer-actions { display:flex; gap:.4rem; flex-wrap:wrap; }
+
+  .viewer-body { padding:0; }
+  .viewer-body iframe { width:100%; height: calc(100vh - 340px); min-height: 620px; border:0; display:block; background:#fff; }
+  .viewer-body video { width:100%; max-height: 78vh; display:block; background:#000; }
+  .viewer-body audio { width:100%; display:block; padding:1.25rem; }
+  .viewer-body img { max-width:100%; display:block; margin:0 auto; padding:1.25rem; }
+
+  .icon-btn {
+    display:inline-flex; align-items:center; gap:.4rem;
+    padding:.55rem .9rem; border-radius:10px;
+    background:#fff; border:1.5px solid #eef0f6;
+    font-size:.82rem; font-weight:600; color:#334155;
+    cursor:pointer; text-decoration:none; transition:all .15s;
+  }
+  .icon-btn:hover { border-color:#6366f1; color:#4f46e5; background:#f5f3ff; }
+
+  .action-bar { background:#fff; border:1px solid #eef0f6; border-radius:20px; padding:1.15rem 1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; box-shadow:0 6px 24px rgba(15,23,42,.05); }
+  .btn-complete { padding:.75rem 1.35rem; border-radius:12px; border:none; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .15s; }
+  .btn-complete.todo { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 8px 20px rgba(99,102,241,.35); }
+  .btn-complete.done { background:linear-gradient(135deg,#10b981,#14b8a6); color:#fff; box-shadow:0 8px 20px rgba(16,185,129,.35); }
+
+  .hidden { display: none; }
+</style>
+
+<div class="lesson-hero animate">
+  <div class="breadcrumb">Lesson</div>
+  <div class="lesson-title-hero"><%= lesson.title %></div>
+  <div class="hero-stats">
+    <span>📚 <%= lesson.course_title %></span>
+    <span>📎 <%= resources.length %> file<%= resources.length === 1 ? '' : 's' %></span>
+    <% if (completed) { %><span style="color:#6ee7b7;">✓ Completed</span><% } %>
+  </div>
+</div>
+
+<% if (resources.length > 1) { %>
+  <div class="file-tabs">
+    <% for (let i = 0; i < resources.length; i++) {
+         const r = resources[i];
+         const ext = r.filename.split('.').pop().slice(0,4).toUpperCase();
+    %>
+      <button class="file-tab <%= i === 0 ? 'active' : '' %>" data-target="file-<%= r.id %>">
+        [<%= ext %>] <%= r.filename %>
+      </button>
+    <% } %>
+  </div>
+<% } %>
+
+<% if (resources.length === 0) { %>
+  <div class="empty">📭 No viewable files in this lesson.</div>
+<% } else { %>
+  <% for (let i = 0; i < resources.length; i++) {
+       const r = resources[i];
+       const fileUrl = '/lesson-files/' + lesson.id + '/' + encodeURIComponent(r.filename);
+  %>
+    <div class="viewer-card file-viewer <%= i === 0 ? '' : 'hidden' %>" id="file-<%= r.id %>">
+      <div class="viewer-header">
+        <div>
+          <div class="viewer-filename">📄 <%= r.filename %></div>
+          <div class="viewer-meta">
+            <%= r.type %> · <%= (r.size_bytes / 1024).toFixed(0) %> KB
+          </div>
+        </div>
+        <div class="viewer-actions">
+          <a class="icon-btn" href="/files/resource/<%= r.id %>" download>⬇️ Download</a>
+          <a class="icon-btn" href="<%= fileUrl %>" target="_blank">🔗 New tab</a>
+        </div>
+      </div>
+
+      <% if (r.type === 'pdf' || r.type === 'html') { %>
+        <div class="viewer-body">
+          <iframe src="<%= fileUrl %>"></iframe>
+        </div>
+      <% } else if (r.type === 'video') { %>
+        <div class="viewer-body">
+          <video controls><source src="<%= fileUrl %>"></video>
+        </div>
+      <% } else if (r.type === 'audio') { %>
+        <div class="viewer-body">
+          <audio controls><source src="<%= fileUrl %>"></audio>
+        </div>
+      <% } else if (r.type === 'image') { %>
+        <div class="viewer-body">
+          <img src="<%= fileUrl %>" alt="<%= r.filename %>">
+        </div>
+      <% } else { %>
+        <div class="viewer-body" style="padding:1.5rem;">
+          <div class="empty">📥 Not previewable here. Use Download or New tab.</div>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+<% } %>
+
+<% if (hiddenCount && hiddenCount > 0) { %>
+  <div class="empty" style="margin-bottom:1rem;">
+    🔒 <%= hiddenCount %> asset file<%= hiddenCount === 1 ? '' : 's' %> (images, CSS, JS) hidden — they still load inside the HTML above.
+  </div>
+<% } %>
+
+<div class="action-bar animate" style="margin-top:1.25rem;">
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <% if (prev) { %><a class="btn outline" href="/lessons/<%= prev.id %>">← Previous</a><% } %>
+    <a class="btn outline" href="/courses/<%= lesson.course_id %>">📚 All lessons</a>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <form method="POST" action="/lessons/<%= lesson.id %>/complete" style="display:inline;">
+      <button class="btn-complete <%= completed ? 'done' : 'todo' %>" type="submit">
+        <%= completed ? '✓ Completed — Undo' : '✓ Mark as complete' %>
+      </button>
+    </form>
+    <% if (next) { %><a class="btn" href="/lessons/<%= next.id %>">Next →</a><% } %>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.file-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.file-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.file-viewer').forEach(v => v.classList.add('hidden'));
+      const t = document.getElementById(tab.dataset.target);
+      if (t) t.classList.remove('hidden');
+    });
+  });
+</script>
+
+<%- include('../partials/foot') %>

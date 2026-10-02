@@ -1,0 +1,43 @@
+<%- include('../partials/head', { 
+  title: 'Notifications',
+  heading: 'Notifications',
+  subtitle: 'Recent activity.'
+}) %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:.6rem;">
+  <div>
+    <% if (unreadCount > 0) { %>
+      <span class="badge err"><%= unreadCount %> new</span>
+    <% } else { %>
+      <span class="badge ok">All caught up</span>
+    <% } %>
+  </div>
+  <% if (list.length > 0) { %>
+    <form method="POST" action="/notifications/clear" onsubmit="return confirm('Clear all?');">
+      <button class="btn outline" type="submit" style="font-size:.85rem;">🗑️ Clear all</button>
+    </form>
+  <% } %>
+</div>
+
+<% if (list.length === 0) { %>
+  <div class="empty">🔔 No notifications yet.</div>
+<% } else { %>
+  <% list.forEach(n => { %>
+    <a href="<%= n.link || '#' %>" style="text-decoration:none;color:inherit;">
+      <div class="card animate" style="margin-bottom:.65rem;border-left:4px solid <%= n.is_read ? '#cbd5e1' : '#6366f1' %>;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;">
+            <div style="display:flex;align-items:center;gap:.5rem;margin-bottom:.3rem;">
+              <% if (!n.is_read) { %><span class="badge err" style="font-size:.65rem;">NEW</span><% } %>
+              <div style="font-weight:700;color:#0f172a;"><%= n.title %></div>
+            </div>
+            <% if (n.body) { %><p class="muted" style="margin-top:.3rem;"><%= n.body %></p><% } %>
+          </div>
+          <div class="muted" style="font-size:.78rem;white-space:nowrap;"><%= new Date(n.created_at).toLocaleString() %></div>
+        </div>
+      </div>
+    </a>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

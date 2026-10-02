@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= typeof title !== 'undefined' ? title + ' · LuxMind' : 'LuxMind' %></title>
+  <link rel="stylesheet" href="/static/css/main.css">
+  <link rel="stylesheet" href="/static/css/mobile.css">
+</head>
+<body>
+<div class="layout">
+
+  <aside class="sidebar">
+    <div class="logo">LuxMind</div>
+    <nav>
+
+      <% if (user.role === 'student') { %>
+        <div class="section-label">Main</div>
+        <a href="/student" class="<%= currentPath === '/student' ? 'active' : '' %>"><span class="icon">📊</span> Dashboard</a>
+        <a href="/student/courses" class="<%= currentPath === '/student/courses' ? 'active' : '' %>"><span class="icon">📚</span> My Courses</a>
+        <a href="/student/quizzes" class="<%= currentPath === '/student/quizzes' ? 'active' : '' %>"><span class="icon">📝</span> Quizzes</a>
+        <a href="/student/assignments" class="<%= currentPath === '/student/assignments' ? 'active' : '' %>"><span class="icon">📋</span> Assignments</a>
+        <a href="/calendar" class="<%= currentPath === '/calendar' ? 'active' : '' %>"><span class="icon">📅</span> Calendar</a>
+        <a href="/student/grades" class="<%= currentPath === '/student/grades' ? 'active' : '' %>"><span class="icon">🏆</span> My Grades</a>
+        <a href="/my-certificates" class="<%= currentPath === '/my-certificates' ? 'active' : '' %>"><span class="icon">🎓</span> Certificates</a>
+
+
+
+
+        <div class="section-label">Social</div>
+        <a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>"><span class="icon">💬</span> Messages</a>
+        <a href="/student/announcements" class="<%= currentPath === '/student/announcements' ? 'active' : '' %>"><span class="icon">📢</span> Announcements</a>
+        <a href="/notifications" class="<%= currentPath === '/notifications' ? 'active' : '' %>"><span class="icon">🔔</span> Notifications</a>
+
+        <div class="section-label">Account</div>
+        <a href="/profile" class="<%= currentPath === '/profile' ? 'active' : '' %>"><span class="icon">👤</span> Profile</a>
+        <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>
+
+      <% } else if (user.role === 'teacher') { %>
+        <div class="section-label">Teaching</div>
+        <a href="/teacher" class="<%= currentPath === '/teacher' ? 'active' : '' %>"><span class="icon">📊</span> Dashboard</a>
+        <a href="/teacher/courses" class="<%= currentPath === '/teacher/courses' ? 'active' : '' %>"><span class="icon">📚</span> My Courses</a>
+        <a href="/teacher/quizzes" class="<%= currentPath === '/teacher/quizzes' ? 'active' : '' %>"><span class="icon">📝</span> Quizzes</a>
+        <a href="/teacher/assignments" class="<%= currentPath === '/teacher/assignments' ? 'active' : '' %>"><span class="icon">📋</span> Assignments</a>
+        <a href="/calendar" class="<%= currentPath === '/calendar' ? 'active' : '' %>"><span class="icon">📅</span> Calendar</a>
+        <a href="/teacher/grading" class="<%= currentPath === '/teacher/grading' ? 'active' : '' %>"><span class="icon">✅</span> Grading Queue</a>
+
+        <div class="section-label">Students</div>
+        <a href="/teacher/students" class="<%= currentPath === '/teacher/students' ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+        <a href="/teacher/announcements" class="<%= currentPath === '/teacher/announcements' ? 'active' : '' %>"><span class="icon">📢</span> Announcements</a>
+
+        <div class="section-label">Account</div>
+        <a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>"><span class="icon">💬</span> Messages</a>
+        <a href="/notifications" class="<%= currentPath === '/notifications' ? 'active' : '' %>"><span class="icon">🔔</span> Notifications</a>
+        <a href="/profile" class="<%= currentPath === '/profile' ? 'active' : '' %>"><span class="icon">👤</span> Profile</a>
+        <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>
+
+      <% } else { %>
+        <div class="section-label">Administration</div>
+        <a href="/admin" class="<%= currentPath === '/admin' ? 'active' : '' %>"><span class="icon">📊</span> Dashboard</a>
+        <a href="/admin/users" class="<%= currentPath === '/admin/users' ? 'active' : '' %>"><span class="icon">👥</span> Users</a>
+        <a href="/admin/courses" class="<%= currentPath === '/admin/courses' ? 'active' : '' %>"><span class="icon">📚</span> Courses</a>
+        <a href="/admin/reports" class="<%= currentPath === '/admin/reports' ? 'active' : '' %>"><span class="icon">📈</span> Reports</a>
+        <a href="/admin/settings" class="<%= currentPath === '/admin/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Site Settings</a>
+
+        <div class="section-label">Account</div>
+        <a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>"><span class="icon">💬</span> Messages</a>
+        <a href="/notifications" class="<%= currentPath === '/notifications' ? 'active' : '' %>"><span class="icon">🔔</span> Notifications</a>
+        <a href="/profile" class="<%= currentPath === '/profile' ? 'active' : '' %>"><span class="icon">👤</span> Profile</a>
+        <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>
+      <% } %>
+
+    </nav>
+    <div class="bottom">
+      <a href="/logout">🚪 Logout</a>
+    </div>
+  </aside>
+
+  <div class="sidebar-backdrop" onclick="toggleSidebar()"></div>
+  <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+
+  <main class="main">
+    <div class="topbar">
+      <div style="flex-shrink:0;">
+        <h1><%= typeof heading !== 'undefined' ? heading : 'Dashboard' %></h1>
+        <% if (typeof subtitle !== 'undefined') { %>
+          <div class="subtitle"><%= subtitle %></div>
+        <% } %>
+      </div>
+
+      <form method="GET" action="/search"
+        style="flex:1;max-width:420px;margin:0 1rem;">
+        <input name="q" placeholder="🔍 Search..."
+          style="width:100%;padding:.7rem 1.15rem;border:1.5px solid #e2e8f0;border-radius:12px;background:#fff;font-size:.9rem;box-shadow:0 1px 3px rgba(15,23,42,.04);">
+      </form>
+
+      <div class="topbar-right">
+        <div class="who">
+          <div>
+            <div class="name"><%= user.full_name %></div>
+            <div class="role"><%= user.role %></div>
+          </div>
+          <div class="avatar"><%= (user.full_name || user.username).charAt(0).toUpperCase() %></div>
+        </div>
+      </div>
+    </div>
+
+    <% if (flash.error && flash.error.length) { %>
+      <div class="flash error">⚠️ <%= flash.error[0] %></div>
+    <% } %>
+    <% if (flash.success && flash.success.length) { %>
+      <div class="flash success">✅ <%= flash.success[0] %></div>
+    <% } %>
+
+    <script>
+      function toggleSidebar() {
+        document.querySelector('.sidebar').classList.toggle('open');
+        document.querySelector('.sidebar-backdrop').classList.toggle('show');
+      }
+    </script>

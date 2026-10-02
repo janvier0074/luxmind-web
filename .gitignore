@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.production
+firebase-service-account.json
+database/*.db
+database/*.db-journal
+*.log
+storage/logs/*.log
+storage/exports/*
+storage/backups/*
+content/
+uploads/
+.DS_Store
+Thumbs.db

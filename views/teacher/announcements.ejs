@@ -1,0 +1,68 @@
+<%- include('../partials/head', { 
+  title: 'Announcements',
+  heading: 'Announcements',
+  subtitle: 'Broadcast updates to your students.'
+}) %>
+
+<div class="card animate" style="margin-bottom:1.5rem;">
+  <div style="font-weight:700;color:#0f172a;margin-bottom:1rem;">📢 Post New Announcement</div>
+
+  <% if (courses.length === 0) { %>
+    <div class="empty">You need a course first.</div>
+  <% } else { %>
+    <form method="POST" action="/teacher/announcements">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:1rem;margin-bottom:1rem;">
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Course</label>
+          <select name="course_id" required
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+            <option value="">Select a course</option>
+            <% courses.forEach(c => { %>
+              <option value="<%= c.id %>"><%= c.title %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Title</label>
+          <input name="title" required placeholder="e.g. Exam next week"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+        </div>
+      </div>
+
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Message</label>
+      <textarea name="body" rows="4" required placeholder="Write your announcement..."
+        style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;font-family:inherit;resize:vertical;margin-bottom:1rem;"></textarea>
+
+      <button class="btn" type="submit">📢 Post Announcement</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="section-head"><h2><span class="dot"></span> Past Announcements</h2></div>
+
+<% if (announcements.length === 0) { %>
+  <div class="empty">📭 No announcements yet.</div>
+<% } else { %>
+  <% announcements.forEach(a => { %>
+    <div class="card animate" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:240px;">
+          <div style="display:flex;gap:.6rem;align-items:center;margin-bottom:.5rem;">
+            <span class="badge info"><%= a.course_title %></span>
+            <span class="badge purple"><%= a.recipients %> recipients</span>
+          </div>
+          <div style="font-weight:700;color:#0f172a;font-size:1.05rem;"><%= a.title %></div>
+          <div class="muted" style="font-size:.82rem;margin-top:.2rem;">
+            Posted <%= new Date(a.created_at).toLocaleString() %>
+          </div>
+        </div>
+        <form method="POST" action="/teacher/announcements/<%= a.id %>/delete" onsubmit="return confirm('Delete?');">
+          <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:.4rem .8rem;font-size:.78rem;" type="submit">Delete</button>
+        </form>
+      </div>
+      <p style="margin-top:.85rem;color:#334155;line-height:1.6;"><%= a.body %></p>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

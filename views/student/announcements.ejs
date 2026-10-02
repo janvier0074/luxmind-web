@@ -1,0 +1,25 @@
+<%- include('../partials/head', { 
+  title: 'Announcements',
+  heading: 'Announcements',
+  subtitle: 'Updates from your teachers.'
+}) %>
+
+<% if (announcements.length === 0) { %>
+  <div class="empty">📭 No announcements yet.</div>
+<% } else { %>
+  <% announcements.forEach(a => { %>
+    <div class="card animate" style="margin-bottom:1rem;border-left:4px solid #6366f1;">
+      <div style="display:flex;gap:.6rem;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;">
+        <span class="badge info"><%= a.course_title %></span>
+        <span class="badge purple">👨‍🏫 <%= a.author_name %></span>
+      </div>
+      <div style="font-weight:700;color:#0f172a;font-size:1.1rem;"><%= a.title %></div>
+      <div class="muted" style="font-size:.82rem;margin-top:.2rem;">
+        <%= new Date(a.created_at).toLocaleString() %>
+      </div>
+      <p style="margin-top:.85rem;color:#334155;line-height:1.6;"><%= a.body %></p>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

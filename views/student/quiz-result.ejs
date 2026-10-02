@@ -1,0 +1,82 @@
+<%- include('../partials/head', { 
+  title: quiz.title + ' — Result',
+  heading: quiz.title,
+  subtitle: quiz.course_title
+}) %>
+
+<% if (!released) { %>
+  <!-- ============ LOCKED ============ -->
+  <div class="card animate" style="background:linear-gradient(135deg,#fef3c7,#fde68a);border:none;text-align:center;padding:3rem 2rem;">
+    <div style="font-size:4rem;margin-bottom:1rem;">🔒</div>
+    <h2 style="font-size:1.6rem;font-weight:800;color:#92400e;margin-bottom:.5rem;">Grade Not Released Yet</h2>
+    <p style="color:#78350f;max-width:480px;margin:0 auto 1.5rem;line-height:1.6;">
+      You submitted this quiz on
+      <strong><%= new Date(attempt.submitted_at).toLocaleString() %></strong>.<br>
+      Your grade will be revealed when the teacher releases it.
+    </p>
+    <div style="background:rgba(255,255,255,.7);border-radius:14px;padding:1.25rem;max-width:400px;margin:0 auto;">
+      <div style="font-size:.78rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#92400e;">Release time</div>
+      <div style="font-size:1.15rem;font-weight:800;color:#78350f;margin-top:.4rem;">
+        <%= quiz.release_at ? new Date(quiz.release_at).toLocaleString() : 'Not scheduled' %>
+      </div>
+    </div>
+    <a class="btn" href="/student/quizzes" style="margin-top:1.5rem;">← Back to quizzes</a>
+  </div>
+
+<% } else { %>
+  <!-- ============ RELEASED ============ -->
+  <%
+    const pct = attempt.max_score ? Math.round((finalScore / attempt.max_score) * 100) : 0;
+    const gradeColor = pct >= 80 ? 'emerald' : pct >= 50 ? 'blue' : 'pink';
+  %>
+  <div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+    <div class="stat <%= gradeColor %>">
+      <div class="stat-icon">🏆</div>
+      <div class="num"><%= finalScore %>/<%= attempt.max_score %></div>
+      <div class="lbl">Your Score</div>
+    </div>
+    <div class="stat violet">
+      <div class="stat-icon">📊</div>
+      <div class="num"><%= pct %>%</div>
+      <div class="lbl">Percentage</div>
+    </div>
+    <div class="stat cyan">
+      <div class="stat-icon">📅</div>
+      <div class="num" style="font-size:1.1rem;"><%= new Date(attempt.submitted_at).toLocaleDateString() %></div>
+      <div class="lbl">Submitted</div>
+    </div>
+  </div>
+
+  <% if (feedback) { %>
+    <div class="card animate" style="border-left:4px solid #6366f1;background:linear-gradient(90deg,#f5f3ff,#fff);">
+      <div style="font-weight:700;color:#4f46e5;margin-bottom:.4rem;">💬 Teacher Feedback</div>
+      <p style="color:#334155;"><%= feedback %></p>
+    </div>
+  <% } %>
+
+  <div class="section-head" style="margin-top:2rem;"><h2><span class="dot"></span> Answer Review</h2></div>
+
+  <% questions.forEach((q, i) => {
+       const picked = answers[q.id];
+       const correct = picked === q.correct;
+  %>
+    <div class="card animate" style="border-left:4px solid <%= correct ? '#10b981' : '#ef4444' %>;">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;">
+        <div style="font-weight:700;color:#0f172a;"><%= i+1 %>. <%= q.text %></div>
+        <span class="badge <%= correct ? 'ok' : 'err' %>"><%= correct ? '✓ Correct' : '✗ Wrong' %></span>
+      </div>
+      <div style="margin-top:.75rem;font-size:.9rem;">
+        <div style="color:#64748b;">Your answer: <strong style="color:<%= correct ? '#047857' : '#b91c1c' %>;"><%= picked || '—' %></strong></div>
+        <% if (!correct) { %>
+          <div style="color:#64748b;margin-top:.3rem;">Correct answer: <strong style="color:#047857;"><%= q.correct %></strong></div>
+        <% } %>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<div style="margin-top:1.5rem;">
+  <a class="btn outline" href="/student/quizzes">← Back to quizzes</a>
+</div>
+
+<%- include('../partials/foot') %>

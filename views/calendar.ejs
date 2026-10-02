@@ -1,0 +1,164 @@
+<%- include('partials/head', { 
+  title: 'Calendar',
+  heading: 'Calendar',
+  subtitle: 'Every deadline, release, and update.'
+}) %>
+
+<style>
+  .cal-nav { display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; flex-wrap:wrap; gap:.6rem; }
+  .cal-title { font-size:1.4rem; font-weight:800; color:#0f172a; letter-spacing:-.02em; }
+
+  .cal-grid {
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    gap:6px;
+    background:#fff;
+    border:1px solid #eef0f6;
+    border-radius:18px;
+    padding:.85rem;
+    box-shadow:0 6px 24px rgba(15,23,42,.05);
+    margin-bottom:2rem;
+  }
+  .cal-dow {
+    font-size:.72rem;
+    font-weight:800;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    color:#64748b;
+    text-align:center;
+    padding:.4rem 0;
+  }
+  .cal-cell {
+    aspect-ratio: 1 / 1;
+    padding:.5rem;
+    border-radius:12px;
+    background:#f8fafc;
+    border:1.5px solid transparent;
+    font-size:.82rem;
+    position:relative;
+    overflow:hidden;
+    transition:all .15s;
+    cursor:pointer;
+  }
+  .cal-cell:hover { background:#eef2ff; border-color:#c7d2fe; }
+  .cal-cell.empty { background:transparent; cursor:default; }
+  .cal-cell.empty:hover { background:transparent; border-color:transparent; }
+  .cal-cell.today { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; }
+  .cal-cell.today .cal-day-num { color:#fff; opacity:1; }
+  .cal-cell.has-events { background:#fff; border-color:#e2e8f0; }
+  .cal-cell.has-events:hover { background:#eef2ff; }
+
+  .cal-day-num { font-weight:800; color:#0f172a; font-size:.9rem; line-height:1; margin-bottom:.3rem; }
+  .cal-dots { display:flex; gap:3px; flex-wrap:wrap; position:absolute; bottom:.4rem; left:.5rem; right:.5rem; }
+  .cal-dot { width:7px; height:7px; border-radius:50%; }
+  .cal-dot.assignment   { background:#ef4444; }
+  .cal-dot.quiz         { background:#8b5cf6; }
+  .cal-dot.announcement { background:#06b6d4; }
+
+  .cal-cell.today .cal-dot { box-shadow: 0 0 0 2px rgba(255,255,255,.4); }
+
+  .event-list { display:flex; flex-direction:column; gap:.65rem; }
+  .event-item {
+    display:flex; gap:1rem; align-items:center;
+    background:#fff; padding:.95rem 1.15rem;
+    border-radius:14px; border:1px solid #eef0f6;
+    text-decoration:none; color:inherit;
+    transition:all .15s;
+    border-left:4px solid #cbd5e1;
+  }
+  .event-item:hover { transform:translateX(4px); box-shadow:0 6px 20px rgba(15,23,42,.07); }
+  .event-item.assignment   { border-left-color:#ef4444; }
+  .event-item.quiz         { border-left-color:#8b5cf6; }
+  .event-item.announcement { border-left-color:#06b6d4; }
+
+  .event-date {
+    flex-shrink:0;
+    width:60px;
+    text-align:center;
+    padding:.5rem 0;
+    background:#f8fafc;
+    border-radius:10px;
+  }
+  .event-date .d { font-size:1.25rem; font-weight:800; color:#0f172a; line-height:1; }
+  .event-date .m { font-size:.65rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#64748b; margin-top:.15rem; }
+
+  .event-info { flex:1; min-width:0; }
+  .event-title { font-weight:700; color:#0f172a; font-size:.96rem; }
+  .event-meta { font-size:.78rem; color:#64748b; margin-top:.2rem; }
+</style>
+
+<!-- ============ NAV ============ -->
+<div class="cal-nav">
+  <a class="btn outline" href="/calendar?year=<%= prevY %>&month=<%= prevM %>">← <%= monthNames[prevM] %></a>
+  <div class="cal-title"><%= monthNames[month] %> <%= year %></div>
+  <a class="btn outline" href="/calendar?year=<%= nextY %>&month=<%= nextM %>"><%= monthNames[nextM] %> →</a>
+</div>
+
+<!-- ============ MONTH GRID ============ -->
+<div class="cal-grid">
+  <% ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d => { %>
+    <div class="cal-dow"><%= d %></div>
+  <% }) %>
+
+  <% for (let i = 0; i < startWeekday; i++) { %>
+    <div class="cal-cell empty"></div>
+  <% } %>
+
+  <% for (let day = 1; day <= lastDay; day++) {
+       const key = year + '-' + String(month+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+       const dayEvents = byDay[key] || [];
+       const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
+       const hasEvents = dayEvents.length > 0;
+  %>
+    <div class="cal-cell <%= isToday ? 'today' : (hasEvents ? 'has-events' : '') %>"
+         title="<%= dayEvents.map(e => e.title).join(' · ') %>">
+      <div class="cal-day-num"><%= day %></div>
+      <% if (hasEvents) { %>
+        <div class="cal-dots">
+          <% dayEvents.slice(0, 5).forEach(e => { %>
+            <span class="cal-dot <%= e.type %>"></span>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  <% } %>
+</div>
+
+<!-- ============ LEGEND ============ -->
+<div style="display:flex;gap:1.25rem;flex-wrap:wrap;margin-bottom:1.75rem;font-size:.82rem;color:#475569;font-weight:600;">
+  <span style="display:flex;align-items:center;gap:.4rem;"><span class="cal-dot assignment" style="width:9px;height:9px;"></span> Assignment</span>
+  <span style="display:flex;align-items:center;gap:.4rem;"><span class="cal-dot quiz" style="width:9px;height:9px;"></span> Quiz release</span>
+  <span style="display:flex;align-items:center;gap:.4rem;"><span class="cal-dot announcement" style="width:9px;height:9px;"></span> Announcement</span>
+</div>
+
+<!-- ============ UPCOMING ============ -->
+<div class="section-head">
+  <h2><span class="dot"></span> Upcoming Events</h2>
+</div>
+
+<% if (events.length === 0) { %>
+  <div class="empty">📭 Nothing scheduled yet.</div>
+<% } else { %>
+  <div class="event-list">
+    <% events.slice(0, 30).forEach(e => {
+         const d = new Date(e.when);
+         const isPast = d < today;
+    %>
+      <a class="event-item <%= e.type %>" href="<%= e.link %>" style="<%= isPast ? 'opacity:.6;' : '' %>">
+        <div class="event-date">
+          <div class="d"><%= d.getDate() %></div>
+          <div class="m"><%= monthNames[d.getMonth()].slice(0,3) %></div>
+        </div>
+        <div class="event-info">
+          <div class="event-title"><%= e.title %></div>
+          <div class="event-meta">
+            <%= e.course %> · <%= e.meta %> · <%= d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) %>
+            <% if (isPast) { %>· <em>past</em><% } %>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

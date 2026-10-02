@@ -1,0 +1,84 @@
+<%- include('../partials/head', { 
+  title: 'Assignments',
+  heading: 'Assignments',
+  subtitle: 'Create assignments and grade submissions.'
+}) %>
+
+<div class="card animate" style="margin-bottom:1.5rem;">
+  <div style="font-weight:700;color:#0f172a;margin-bottom:1rem;">📝 Create Assignment</div>
+
+  <% if (courses.length === 0) { %>
+    <div class="empty">You need a course first.</div>
+  <% } else { %>
+    <form method="POST" action="/teacher/assignments">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Course</label>
+          <select name="course_id" required
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+            <option value="">Select course</option>
+            <% courses.forEach(c => { %>
+              <option value="<%= c.id %>"><%= c.title %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Title</label>
+          <input name="title" required placeholder="e.g. Essay 1"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Deadline</label>
+          <input type="datetime-local" name="deadline"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+        </div>
+        <div>
+          <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Max points</label>
+          <input type="number" name="max_points" value="100" min="1"
+            style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;">
+        </div>
+      </div>
+
+      <label style="display:block;font-weight:600;color:#334155;margin:1rem 0 .4rem;">Description</label>
+      <textarea name="description" rows="3" placeholder="What should students do?"
+        style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;background:#f8fafc;font-size:.95rem;font-family:inherit;resize:vertical;margin-bottom:1rem;"></textarea>
+
+      <button class="btn" type="submit">+ Create Assignment</button>
+    </form>
+  <% } %>
+</div>
+
+<div class="section-head"><h2><span class="dot"></span> My Assignments</h2></div>
+
+<% if (assignments.length === 0) { %>
+  <div class="empty">📭 No assignments yet.</div>
+<% } else { %>
+  <% assignments.forEach(a => { %>
+    <div class="card animate" style="margin-bottom:.85rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:240px;">
+          <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.5rem;flex-wrap:wrap;">
+            <span class="badge info"><%= a.course_title %></span>
+            <% if (a.pending > 0) { %>
+              <span class="badge err"><%= a.pending %> to grade</span>
+            <% } %>
+            <span class="badge purple"><%= a.subs %> submissions</span>
+          </div>
+          <div style="font-weight:700;color:#0f172a;font-size:1.05rem;"><%= a.title %></div>
+          <div class="muted" style="font-size:.82rem;margin-top:.2rem;">
+            📅 <%= a.deadline ? new Date(a.deadline).toLocaleString() : 'No deadline' %>
+            · 💯 <%= a.max_points %> pts
+          </div>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <a class="btn" href="/teacher/assignments/<%= a.id %>" style="padding:.5rem 1rem;font-size:.85rem;">View →</a>
+          <form method="POST" action="/teacher/assignments/<%= a.id %>/delete" onsubmit="return confirm('Delete?');">
+            <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:.5rem .9rem;font-size:.85rem;" type="submit">✕</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

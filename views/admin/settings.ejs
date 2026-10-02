@@ -1,0 +1,28 @@
+<%- include('../partials/head', { 
+  title: 'Site Settings',
+  heading: 'Site Settings',
+  subtitle: 'Configure LuxMind.'
+}) %>
+
+<div class="card animate" style="max-width:640px;">
+  <form method="POST" action="/admin/settings">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Site name</label>
+    <input name="site_name" value="<%= settings.site_name %>"
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Tagline</label>
+    <input name="site_tagline" value="<%= settings.site_tagline %>"
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.5rem;background:#f8fafc;">
+
+    <label style="display:flex;align-items:center;gap:.6rem;font-weight:600;color:#334155;margin-bottom:1.5rem;cursor:pointer;">
+      <input type="checkbox" name="allow_registration" <%= settings.allow_registration === 'true' ? 'checked' : '' %>
+        style="width:20px;height:20px;accent-color:#6366f1;">
+      Allow new users to register
+    </label>
+
+    <button class="btn" type="submit">💾 Save Settings</button>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

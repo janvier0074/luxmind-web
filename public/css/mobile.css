@@ -1,0 +1,73 @@
+/* LuxMind — Mobile responsive overrides */
+
+@media (max-width: 900px) {
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    z-index: 999;
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 8px 0 40px rgba(0,0,0,.4);
+  }
+  .main { margin-left: 0 !important; padding: 1.25rem !important; }
+
+  .topbar { flex-wrap: wrap; gap: .75rem; }
+  .topbar h1 { font-size: 1.4rem; }
+  .topbar form[action="/search"] { order: 3; width: 100%; max-width: 100%; margin: 0; }
+
+  .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  .stat .num { font-size: 1.8rem; }
+
+  .course-grid { grid-template-columns: 1fr !important; }
+
+  .table-wrap { overflow-x: auto; }
+  table { min-width: 520px; }
+
+  .viewer-body iframe { height: 480px !important; min-height: 380px !important; }
+
+  .lesson-title-hero { font-size: 1.35rem; }
+
+  .file-tabs { overflow-x: auto; flex-wrap: nowrap; }
+  .file-tab { flex-shrink: 0; }
+
+  .action-bar { flex-direction: column; }
+  .action-bar > div { width: 100%; }
+  .action-bar .btn,
+  .action-bar .btn-complete { width: 100%; justify-content: center; }
+
+  .topbar .who .name { display: none; }
+  .topbar .who { padding: .4rem; }
+
+  /* Mobile menu button */
+  .mobile-menu-btn {
+    display: flex !important;
+    position: fixed;
+    bottom: 20px; right: 20px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    color: #fff;
+    align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    border: none; cursor: pointer;
+    box-shadow: 0 10px 30px rgba(99,102,241,.5);
+    z-index: 1000;
+  }
+}
+
+@media (max-width: 500px) {
+  .stat-grid { grid-template-columns: 1fr !important; }
+  .main { padding: 1rem !important; }
+}
+
+.mobile-menu-btn { display: none; }
+
+/* Backdrop when menu open on mobile */
+.sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(15,23,42,.5);
+  z-index: 998;
+}
+.sidebar-backdrop.show { display: block; }

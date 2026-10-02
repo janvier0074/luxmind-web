@@ -1,0 +1,49 @@
+<%- include('../partials/head', { 
+  title: 'Grading Queue',
+  heading: 'Grading Queue',
+  subtitle: 'Auto-graded submissions — override, feedback, and release.'
+}) %>
+
+<% if (submissions.length === 0) { %>
+  <div class="empty">✅ No submissions yet.</div>
+<% } else { %>
+  <% submissions.forEach((s, i) => {
+       const pct = s.max_score ? Math.round(((s.override_score ?? s.score) / s.max_score) * 100) : 0;
+       const gradeColor = pct >= 80 ? 'emerald' : pct >= 50 ? 'blue' : 'pink';
+  %>
+    <div class="card animate" style="margin-bottom:1rem;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:1rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700;color:#0f172a;font-size:1.05rem;"><%= s.student_name %></div>
+          <div class="muted"><%= s.quiz_title %> · Submitted <%= new Date(s.submitted_at).toLocaleString() %></div>
+        </div>
+        <div style="display:flex;gap:1rem;align-items:center;">
+          <div style="text-align:right;">
+            <div style="font-size:1.4rem;font-weight:800;color:#0f172a;">
+              <%= s.override_score ?? s.score %> / <%= s.max_score %>
+            </div>
+            <div class="badge <%= gradeColor === 'emerald' ? 'ok' : gradeColor === 'pink' ? 'err' : 'info' %>">
+              <%= pct %>%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form method="POST" action="/teacher/attempt/<%= s.id %>/grade" style="margin-top:1rem;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;">
+        <input type="number" name="override_score" min="0" max="<%= s.max_score %>"
+          value="<%= s.override_score ?? s.score %>"
+          style="width:100px;padding:.6rem .8rem;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:.9rem;">
+        <input type="text" name="feedback" placeholder="Feedback (optional)"
+          value="<%= s.feedback || '' %>"
+          style="flex:1;min-width:200px;padding:.6rem .8rem;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:.9rem;">
+        <button class="btn" type="submit" style="padding:.6rem 1.2rem;font-size:.85rem;">💾 Save</button>
+      </form>
+
+      <div class="muted" style="font-size:.78rem;margin-top:.5rem;">
+        🔒 Release scheduled: <strong><%= s.release_at ? new Date(s.release_at).toLocaleString() : 'not set' %></strong>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

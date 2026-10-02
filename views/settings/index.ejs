@@ -1,0 +1,164 @@
+<%- include('../partials/head', { 
+  title: 'Settings',
+  heading: 'Settings',
+  subtitle: 'Customize how LuxMind works for you.'
+}) %>
+
+<style>
+  .tabs { display:flex; gap:.5rem; margin-bottom:1.8rem; flex-wrap:wrap; border-bottom:1px solid #eef0f6; padding-bottom:.5rem; }
+  .tabs a {
+    padding:.65rem 1.15rem;
+    border-radius:12px;
+    font-weight:600;
+    font-size:.9rem;
+    color:#64748b;
+    transition:all .15s;
+  }
+  .tabs a:hover { background:#f1f5f9; color:#334155; }
+  .tabs a.active {
+    background:linear-gradient(135deg,#6366f1,#8b5cf6);
+    color:#fff;
+    box-shadow:0 6px 18px rgba(99,102,241,.35);
+  }
+  .field { margin-bottom:1.5rem; }
+  .field label { display:flex; align-items:center; gap:.75rem; font-weight:600; color:#334155; cursor:pointer; }
+  .field input[type="checkbox"] { width:20px; height:20px; accent-color:#6366f1; cursor:pointer; }
+  .field select, .field input[type="text"] {
+    width:100%; padding:12px 16px; border:1.5px solid #e2e8f0; border-radius:12px;
+    font-size:1rem; background:#f8fafc; margin-top:.5rem;
+  }
+  .panel { background:#fff; border:1px solid #eef0f6; border-radius:20px; padding:1.75rem 2rem; box-shadow:0 2px 12px rgba(15,23,42,.05); max-width:720px; }
+  .panel h3 { font-size:1.05rem; font-weight:700; margin-bottom:1.25rem; color:#0f172a; }
+  .theme-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin-top:.75rem; }
+  .theme-opt { position:relative; padding:1rem; border:2px solid #e2e8f0; border-radius:14px; cursor:pointer; transition:all .15s; text-align:center; }
+  .theme-opt:hover { border-color:#a5b4fc; }
+  .theme-opt input { position:absolute; opacity:0; }
+  .theme-opt.checked { border-color:#6366f1; background:#f5f3ff; box-shadow:0 6px 18px rgba(99,102,241,.2); }
+  .theme-opt .preview { height:50px; border-radius:8px; margin-bottom:.6rem; }
+  .danger { background:linear-gradient(135deg,#fef2f2,#fff1f2); border-color:#fecaca; }
+  .danger h3 { color:#991b1b; }
+</style>
+
+<div class="tabs">
+  <a href="/settings?tab=general" class="<%= tab === 'general' ? 'active' : '' %>">⚙️ General</a>
+  <a href="/settings?tab=notifications" class="<%= tab === 'notifications' ? 'active' : '' %>">🔔 Notifications</a>
+  <a href="/settings?tab=appearance" class="<%= tab === 'appearance' ? 'active' : '' %>">🎨 Appearance</a>
+  <a href="/settings?tab=privacy" class="<%= tab === 'privacy' ? 'active' : '' %>">🔐 Privacy</a>
+  <a href="/settings?tab=account" class="<%= tab === 'account' ? 'active' : '' %>">👤 Account</a>
+</div>
+
+<% if (tab === 'general') { %>
+  <div class="panel animate">
+    <h3>General preferences</h3>
+    <form method="POST" action="/settings/general">
+      <div class="field">
+        <label>🌐 Language</label>
+        <select name="language">
+          <option value="en" <%= settings.language === 'en' ? 'selected' : '' %>>English</option>
+          <option value="tr" <%= settings.language === 'tr' ? 'selected' : '' %>>Türkçe</option>
+          <option value="de" <%= settings.language === 'de' ? 'selected' : '' %>>Deutsch</option>
+          <option value="fr" <%= settings.language === 'fr' ? 'selected' : '' %>>Français</option>
+          <option value="es" <%= settings.language === 'es' ? 'selected' : '' %>>Español</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">💾 Save</button>
+    </form>
+  </div>
+<% } %>
+
+<% if (tab === 'notifications') { %>
+  <div class="panel animate">
+    <h3>Notification preferences</h3>
+    <form method="POST" action="/settings/notifications">
+      <div class="field">
+        <label><input type="checkbox" name="email_notifications" <%= settings.email_notifications === 'true' ? 'checked' : '' %>> Receive email notifications</label>
+      </div>
+      <div class="field">
+        <label><input type="checkbox" name="push_notifications" <%= settings.push_notifications === 'true' ? 'checked' : '' %>> Browser push notifications</label>
+      </div>
+      <div class="field">
+        <label><input type="checkbox" name="course_updates" <%= settings.course_updates === 'true' ? 'checked' : '' %>> Course updates & new lessons</label>
+      </div>
+      <div class="field">
+        <label><input type="checkbox" name="quiz_releases" <%= settings.quiz_releases === 'true' ? 'checked' : '' %>> Quiz grades released</label>
+      </div>
+      <div class="field">
+        <label><input type="checkbox" name="messages" <%= settings.messages === 'true' ? 'checked' : '' %>> New messages</label>
+      </div>
+      <button class="btn" type="submit">💾 Save preferences</button>
+    </form>
+  </div>
+<% } %>
+
+<% if (tab === 'appearance') { %>
+  <div class="panel animate">
+    <h3>Appearance</h3>
+    <form method="POST" action="/settings/appearance">
+      <div class="theme-grid">
+        <label class="theme-opt <%= settings.theme === 'light' ? 'checked' : '' %>">
+          <input type="radio" name="theme" value="light" <%= settings.theme === 'light' ? 'checked' : '' %>>
+          <div class="preview" style="background:linear-gradient(135deg,#f8fafc,#e2e8f0);"></div>
+          ☀️ Light
+        </label>
+        <label class="theme-opt <%= settings.theme === 'dark' ? 'checked' : '' %>">
+          <input type="radio" name="theme" value="dark" <%= settings.theme === 'dark' ? 'checked' : '' %>>
+          <div class="preview" style="background:linear-gradient(135deg,#0f172a,#1e1b4b);"></div>
+          🌙 Dark
+        </label>
+        <label class="theme-opt <%= settings.theme === 'auto' ? 'checked' : '' %>">
+          <input type="radio" name="theme" value="auto" <%= settings.theme === 'auto' ? 'checked' : '' %>>
+          <div class="preview" style="background:linear-gradient(135deg,#f8fafc 50%,#1e1b4b 50%);"></div>
+          🌗 Auto
+        </label>
+      </div>
+      <div style="margin-top:1.5rem;">
+        <button class="btn" type="submit">💾 Save appearance</button>
+      </div>
+    </form>
+  </div>
+  <script>
+    document.querySelectorAll('.theme-opt input').forEach(input => {
+      input.addEventListener('change', () => {
+        document.querySelectorAll('.theme-opt').forEach(el => el.classList.remove('checked'));
+        input.closest('.theme-opt').classList.add('checked');
+      });
+    });
+  </script>
+<% } %>
+
+<% if (tab === 'privacy') { %>
+  <div class="panel animate">
+    <h3>Privacy</h3>
+    <form method="POST" action="/settings/privacy">
+      <div class="field">
+        <label>Who can see my profile?</label>
+        <select name="profile_visibility">
+          <option value="everyone" <%= settings.profile_visibility === 'everyone' ? 'selected' : '' %>>Everyone</option>
+          <option value="classmates" <%= settings.profile_visibility === 'classmates' ? 'selected' : '' %>>Classmates only</option>
+          <option value="teachers" <%= settings.profile_visibility === 'teachers' ? 'selected' : '' %>>Teachers only</option>
+          <option value="private" <%= settings.profile_visibility === 'private' ? 'selected' : '' %>>Private (only me)</option>
+        </select>
+      </div>
+      <button class="btn" type="submit">💾 Save privacy</button>
+    </form>
+  </div>
+<% } %>
+
+<% if (tab === 'account') { %>
+  <div class="panel danger animate">
+    <h3>⚠️ Danger zone</h3>
+    <p class="muted" style="margin-bottom:1rem;">
+      Deleting your account is permanent. All your data, progress, and messages will be removed.
+    </p>
+    <form method="POST" action="/settings/delete" onsubmit="return confirm('This cannot be undone. Continue?');">
+      <label style="display:block;font-weight:600;color:#991b1b;margin-bottom:.5rem;">Type DELETE to confirm</label>
+      <input name="confirm" placeholder="DELETE" required
+        style="width:100%;max-width:280px;padding:12px 16px;border:1.5px solid #fecaca;border-radius:12px;font-size:1rem;background:#fff;">
+      <div style="margin-top:1rem;">
+        <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);" type="submit">🗑️ Delete My Account</button>
+      </div>
+    </form>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

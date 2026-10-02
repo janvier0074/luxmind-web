@@ -1,0 +1,52 @@
+<%- include('../partials/head', { 
+  title: 'Assignments',
+  heading: 'Assignments',
+  subtitle: 'Your tasks and submissions.'
+}) %>
+
+<% if (assignments.length === 0) { %>
+  <div class="empty">📭 No assignments yet.</div>
+<% } else { %>
+  <% assignments.forEach(a => {
+       const submitted = !!a.submission_id;
+       const graded = a.score !== null && a.score !== undefined;
+       let border = '#e2e8f0';
+       if (graded) border = '#10b981';
+       else if (submitted) border = '#6366f1';
+       else if (a.isOverdue) border = '#ef4444';
+       else if (a.isDueSoon) border = '#f59e0b';
+  %>
+    <a href="/student/assignments/<%= a.id %>" style="text-decoration:none;color:inherit;">
+      <div class="card animate" style="margin-bottom:.85rem;border-left:4px solid <%= border %>;">
+        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+          <div style="flex:1;min-width:240px;">
+            <div style="display:flex;gap:.5rem;align-items:center;margin-bottom:.4rem;flex-wrap:wrap;">
+              <span class="badge info"><%= a.course_title %></span>
+              <% if (graded) { %><span class="badge ok">✓ Graded</span>
+              <% } else if (submitted) { %><span class="badge purple">Submitted</span>
+              <% } else if (a.isOverdue) { %><span class="badge err">Overdue</span>
+              <% } else if (a.isDueSoon) { %><span class="badge warn">Due soon</span>
+              <% } else { %><span class="badge">Not started</span><% } %>
+            </div>
+            <div style="font-weight:700;color:#0f172a;font-size:1.05rem;"><%= a.title %></div>
+            <div class="muted" style="font-size:.82rem;margin-top:.2rem;">
+              📅 <%= a.deadline ? new Date(a.deadline).toLocaleString() : 'No deadline' %>
+              · 💯 <%= a.max_points %> pts
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <% if (graded) { %>
+              <div style="font-size:1.5rem;font-weight:800;color:<%= a.score / a.max_points >= 0.5 ? '#047857' : '#b91c1c' %>;">
+                <%= a.score %>/<%= a.max_points %>
+              </div>
+            <% } else { %>
+              <span class="muted" style="font-size:.85rem;">Open →</span>
+            <% } %>
+          </div>
+        </div>
+      </div>
+    </a>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

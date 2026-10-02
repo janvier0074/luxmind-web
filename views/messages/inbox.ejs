@@ -1,0 +1,59 @@
+<%- include('../partials/head', { 
+  title: 'Messages',
+  heading: 'Messages',
+  subtitle: 'Your conversations.'
+}) %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:.6rem;">
+  <div>
+    <% if (unread > 0) { %>
+      <span class="badge err"><%= unread %> unread</span>
+    <% } else { %>
+      <span class="badge ok">All caught up</span>
+    <% } %>
+  </div>
+  <a class="btn" href="/messages/new">+ New Message</a>
+</div>
+
+<div class="section-head"><h2><span class="dot"></span> Inbox</h2></div>
+
+<% if (inbox.length === 0) { %>
+  <div class="empty">📭 No messages yet.</div>
+<% } else { %>
+  <% inbox.forEach(m => { %>
+    <div class="card animate" style="margin-bottom:.75rem;border-left:4px solid <%= m.is_read ? '#e2e8f0' : '#6366f1' %>;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;flex-wrap:wrap;">
+        <div style="flex:1;min-width:240px;">
+          <div style="font-weight:700;color:#0f172a;">
+            <%= m.sender_name || m.sender_username %>
+            <% if (!m.is_read) { %><span class="badge err" style="margin-left:.5rem;">NEW</span><% } %>
+          </div>
+          <div class="muted" style="font-size:.78rem;"><%= new Date(m.created_at).toLocaleString() %></div>
+          <p style="margin-top:.6rem;color:#334155;line-height:1.55;"><%= m.body %></p>
+        </div>
+        <div style="display:flex;gap:.4rem;">
+          <a class="btn outline" href="/messages/new?to=<%= m.sender_id %>" style="padding:.4rem .8rem;font-size:.78rem;">↩ Reply</a>
+          <form method="POST" action="/messages/<%= m.id %>/delete" onsubmit="return confirm('Delete?');">
+            <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:.4rem .8rem;font-size:.78rem;" type="submit">✕</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<div class="section-head" style="margin-top:2rem;"><h2><span class="dot"></span> Sent</h2></div>
+
+<% if (sent.length === 0) { %>
+  <div class="empty">No sent messages.</div>
+<% } else { %>
+  <% sent.forEach(m => { %>
+    <div class="card animate" style="margin-bottom:.75rem;">
+      <div style="font-weight:700;color:#0f172a;">To: <%= m.receiver_name || m.receiver_username %></div>
+      <div class="muted" style="font-size:.78rem;"><%= new Date(m.created_at).toLocaleString() %></div>
+      <p style="margin-top:.6rem;color:#334155;line-height:1.55;"><%= m.body %></p>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>

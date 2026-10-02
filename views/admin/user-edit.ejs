@@ -1,0 +1,53 @@
+<%- include('../partials/head', { 
+  title: editUser ? 'Edit User' : 'New User',
+  heading: editUser ? 'Edit User' : 'Create User',
+  subtitle: editUser ? editUser.username : 'Add a new account'
+}) %>
+
+<div class="card animate" style="max-width:640px;">
+  <form method="POST" action="<%= editUser ? '/admin/users/'+editUser.id+'/edit' : '/admin/users/new' %>">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Username</label>
+    <input name="username" value="<%= editUser ? editUser.username : '' %>" <%= editUser ? 'disabled' : 'required' %>
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:<%= editUser ? '#f1f5f9' : '#f8fafc' %>;">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Full name</label>
+    <input name="full_name" value="<%= editUser ? (editUser.full_name||'') : '' %>"
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Email</label>
+    <input name="email" type="email" value="<%= editUser ? (editUser.email||'') : '' %>"
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+
+    <% if (!editUser) { %>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Password</label>
+      <input name="password" type="password" required minlength="6"
+        style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+    <% } else { %>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">New password (leave blank to keep current)</label>
+      <input name="new_password" type="password" minlength="6" placeholder="••••••"
+        style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+    <% } %>
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Role</label>
+    <select name="role" style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+      <option value="student" <%= editUser && editUser.role==='student'?'selected':'' %>>Student</option>
+      <option value="teacher" <%= editUser && editUser.role==='teacher'?'selected':'' %>>Teacher</option>
+      <option value="admin" <%= editUser && editUser.role==='admin'?'selected':'' %>>Admin</option>
+    </select>
+
+    <% if (editUser) { %>
+      <label style="display:flex;align-items:center;gap:.6rem;font-weight:600;color:#334155;margin-bottom:1.5rem;cursor:pointer;">
+        <input type="checkbox" name="is_active" <%= editUser.is_active ? 'checked' : '' %> style="width:20px;height:20px;accent-color:#6366f1;">
+        Account is active
+      </label>
+    <% } %>
+
+    <div style="display:flex;gap:.6rem;">
+      <button class="btn" type="submit">💾 <%= editUser ? 'Save Changes' : 'Create User' %></button>
+      <a class="btn outline" href="/admin/users">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

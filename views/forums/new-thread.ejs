@@ -1,0 +1,24 @@
+<%- include('../partials/head', { 
+  title: 'New Thread',
+  heading: 'Start a new discussion',
+  subtitle: course.title
+}) %>
+
+<div class="card animate" style="max-width:780px;">
+  <form method="POST" action="/forums/<%= course.id %>/new">
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Title</label>
+    <input name="title" required placeholder="e.g. Help with lesson 3 exercise"
+      style="width:100%;padding:14px 18px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;margin-bottom:1.2rem;background:#f8fafc;">
+
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;">Message</label>
+    <textarea name="body" rows="8" required placeholder="Describe your question or idea..."
+      style="width:100%;padding:14px 18px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:1rem;font-family:inherit;resize:vertical;margin-bottom:1.5rem;background:#f8fafc;"></textarea>
+
+    <div style="display:flex;gap:.6rem;">
+      <button class="btn" type="submit">📢 Post Thread</button>
+      <a class="btn outline" href="/forums/<%= course.id %>">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

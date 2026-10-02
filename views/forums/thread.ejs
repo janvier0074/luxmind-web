@@ -1,0 +1,72 @@
+<%- include('../partials/head', { 
+  title: thread.title,
+  heading: thread.title,
+  subtitle: thread.course_title
+}) %>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;gap:.6rem;">
+  <a class="btn outline" href="/forums/<%= thread.course_id %>">← Back to forum</a>
+  <% if (canDelete) { %>
+    <form method="POST" action="/forums/thread/<%= thread.id %>/delete" onsubmit="return confirm('Delete this entire thread?');">
+      <button class="btn" style="background:linear-gradient(135deg,#dc2626,#b91c1c);" type="submit">🗑️ Delete thread</button>
+    </form>
+  <% } %>
+</div>
+
+<!-- Original post -->
+<div class="card animate" style="border-left:4px solid #6366f1;margin-bottom:1.5rem;">
+  <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1rem;">
+    <div class="avatar" style="width:44px;height:44px;font-size:1.1rem;"><%= (thread.author_name || thread.author_username).charAt(0).toUpperCase() %></div>
+    <div>
+      <div style="font-weight:700;color:#0f172a;">
+        <%= thread.author_name || thread.author_username %>
+        <% if (thread.author_role === 'teacher') { %><span class="badge purple" style="margin-left:.4rem;">Teacher</span><% } %>
+        <% if (thread.author_role === 'admin') { %><span class="badge err" style="margin-left:.4rem;">Admin</span><% } %>
+      </div>
+      <div class="muted" style="font-size:.78rem;"><%= new Date(thread.created_at).toLocaleString() %></div>
+    </div>
+  </div>
+  <div style="white-space:pre-wrap;color:#334155;line-height:1.65;font-size:.98rem;"><%= thread.body %></div>
+</div>
+
+<!-- Replies -->
+<% if (posts.length > 0) { %>
+  <div class="section-head">
+    <h2><span class="dot"></span> <%= posts.length %> Repl<%= posts.length === 1 ? 'y' : 'ies' %></h2>
+  </div>
+  <% posts.forEach(p => { %>
+    <div class="card animate" style="margin-left:2rem;margin-bottom:.85rem;border-left:3px solid #e2e8f0;">
+      <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;">
+        <div style="display:flex;gap:.85rem;align-items:center;flex:1;min-width:200px;">
+          <div class="avatar" style="width:36px;height:36px;font-size:.9rem;"><%= (p.author_name || p.author_username).charAt(0).toUpperCase() %></div>
+          <div>
+            <div style="font-weight:700;color:#0f172a;font-size:.92rem;">
+              <%= p.author_name || p.author_username %>
+              <% if (p.author_role === 'teacher') { %><span class="badge purple" style="margin-left:.4rem;font-size:.65rem;">Teacher</span><% } %>
+              <% if (p.author_role === 'admin') { %><span class="badge err" style="margin-left:.4rem;font-size:.65rem;">Admin</span><% } %>
+            </div>
+            <div class="muted" style="font-size:.75rem;"><%= new Date(p.created_at).toLocaleString() %></div>
+          </div>
+        </div>
+        <% if (user.role === 'admin' || p.author_id === user.id) { %>
+          <form method="POST" action="/forums/post/<%= p.id %>/delete" onsubmit="return confirm('Delete this reply?');">
+            <button class="btn outline" style="padding:.3rem .65rem;font-size:.72rem;border-color:#fecaca;color:#dc2626;" type="submit">Delete</button>
+          </form>
+        <% } %>
+      </div>
+      <div style="white-space:pre-wrap;color:#334155;line-height:1.6;font-size:.94rem;margin-top:.85rem;"><%= p.body %></div>
+    </div>
+  <% }) %>
+<% } %>
+
+<!-- Reply form -->
+<div class="card animate" style="margin-top:1.5rem;border-left:4px solid #10b981;">
+  <div style="font-weight:700;color:#0f172a;margin-bottom:.85rem;">✍️ Post a reply</div>
+  <form method="POST" action="/forums/thread/<%= thread.id %>/reply">
+    <textarea name="body" rows="4" required placeholder="Type your reply..."
+      style="width:100%;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:12px;font-size:.95rem;font-family:inherit;resize:vertical;margin-bottom:1rem;background:#f8fafc;"></textarea>
+    <button class="btn" type="submit">📨 Reply</button>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

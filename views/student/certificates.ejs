@@ -1,0 +1,33 @@
+<%- include('../partials/head', { 
+  title: 'My Certificates',
+  heading: 'My Certificates',
+  subtitle: 'Your achievements on LuxMind.'
+}) %>
+
+<% if (certificates.length === 0) { %>
+  <div class="empty">
+    <div style="font-size:3rem;margin-bottom:.75rem;">🏆</div>
+    <div style="font-weight:700;color:#0f172a;font-size:1.1rem;margin-bottom:.3rem;">No certificates yet</div>
+    <p>Complete a course to earn your first certificate.</p>
+    <a class="btn" href="/student/courses" style="margin-top:1rem;">Browse courses</a>
+  </div>
+<% } else { %>
+  <div class="course-grid animate">
+    <% certificates.forEach(c => { %>
+      <div class="course-card" style="background:linear-gradient(135deg,#f0f9ff,#fef3c7);border:1px solid #fde68a;">
+        <div style="font-size:2.5rem;margin-bottom:.5rem;">🏆</div>
+        <h3><%= c.course_title %></h3>
+        <p class="muted" style="margin:.4rem 0 .75rem;">
+          Issued <%= new Date(c.issued_at).toLocaleDateString() %><br>
+          ID: <code style="font-size:.72rem;background:#fff;padding:2px 6px;border-radius:4px;color:#6366f1;"><%= c.code %></code>
+        </p>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+          <a class="btn" href="/certificates/<%= c.course_id %>" target="_blank">📄 View PDF</a>
+          <a class="btn outline" href="/verify/<%= c.code %>" target="_blank">🔍 Verify</a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

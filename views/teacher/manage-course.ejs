@@ -1,0 +1,187 @@
+<%- include('../partials/head', {
+  title: 'Manage: ' + course.title,
+  heading: 'Manage Course',
+  subtitle: course.title
+}) %>
+
+<style>
+  .add-lesson-box {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    border-radius: 20px;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    margin-bottom: 2rem;
+    box-shadow: 0 16px 40px rgba(99,102,241,.3);
+  }
+  .add-lesson-box h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: .85rem; }
+  .add-lesson-form { display: flex; gap: .6rem; flex-wrap: wrap; }
+  .add-lesson-form input {
+    flex: 1; min-width: 220px;
+    padding: 12px 16px; border: 0; border-radius: 12px;
+    background: rgba(255,255,255,.95);
+    font-size: .95rem; color: #0f172a;
+  }
+  .add-lesson-form button {
+    padding: 12px 24px;
+    background: #fff; color: #4f46e5;
+    border: 0; border-radius: 12px;
+    font-weight: 800; font-size: .95rem; cursor: pointer;
+    transition: all .15s;
+  }
+  .add-lesson-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.15); }
+
+  .lesson-block {
+    background: #fff; border-radius: 20px;
+    border: 1px solid #eef0f6;
+    margin-bottom: 1.25rem; overflow: hidden;
+    box-shadow: 0 4px 16px rgba(15,23,42,.04);
+  }
+  .lesson-head {
+    padding: 1.25rem 1.5rem;
+    background: #fafbff;
+    border-bottom: 1px solid #eef0f6;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+  }
+  .lesson-title-row { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; }
+  .lesson-num {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; flex-shrink: 0;
+  }
+  .lesson-title-row h4 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin: 0; }
+  .lesson-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  .drop-zone {
+    margin: 1.25rem;
+    padding: 2rem;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    text-align: center;
+    background: #f8fafc;
+    transition: all .2s;
+    cursor: pointer;
+    display: block;
+  }
+  .drop-zone:hover, .drop-zone.drag {
+    border-color: #6366f1;
+    background: #eef2ff;
+  }
+  .drop-zone .icon { font-size: 2.5rem; margin-bottom: .5rem; }
+  .drop-zone .txt { font-weight: 700; color: #334155; margin-bottom: .25rem; }
+  .drop-zone .sub { font-size: .82rem; color: #64748b; }
+  .drop-zone input[type="file"] { display: none; }
+
+  .file-list { padding: 0 1.25rem 1.25rem; }
+  .file-row {
+    display: flex; align-items: center; gap: .85rem;
+    padding: .75rem 1rem; border-radius: 12px;
+    background: #fafbff; margin-bottom: .4rem;
+  }
+  .file-row .fi {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .file-row .fn {
+    font-weight: 600; color: #0f172a; font-size: .9rem;
+    flex: 1; min-width: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file-row .fs { font-size: .75rem; color: #94a3b8; }
+  .file-row .fa { display: flex; gap: .35rem; }
+
+  .btn-mini {
+    padding: .35rem .75rem; border-radius: 8px;
+    border: none; font-size: .78rem; font-weight: 600;
+    cursor: pointer; text-decoration: none;
+    display: inline-flex; align-items: center; gap: .3rem;
+  }
+  .btn-mini.view { background: #eff6ff; color: #1d4ed8; }
+  .btn-mini.del { background: #fef2f2; color: #dc2626; }
+  .btn-mini.rename { background: #f5f3ff; color: #6d28d9; }
+</style>
+
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.6rem;">
+  <a class="btn outline" href="/teacher/courses">← All my courses</a>
+  <a class="btn outline" href="/courses/<%= course.id %>" target="_blank">👁️ Preview as student</a>
+</div>
+
+<div class="add-lesson-box">
+  <h3>➕ Create a new lesson</h3>
+  <form method="POST" action="/teacher/courses/<%= course.id %>/lesson" class="add-lesson-form">
+    <input name="title" placeholder="e.g. Introduction to HTML" required maxlength="100">
+    <button type="submit">Create Lesson</button>
+  </form>
+</div>
+
+<% if (lessons.length === 0) { %>
+  <div class="empty">📭 No lessons yet. Create your first one above.</div>
+<% } else { %>
+  <% lessons.forEach((lesson, i) => { %>
+    <div class="lesson-block">
+      <div class="lesson-head">
+        <div class="lesson-title-row">
+          <div class="lesson-num"><%= i + 1 %></div>
+          <div>
+            <h4><%= lesson.title %></h4>
+            <div class="muted" style="font-size:.78rem;">
+              <%= lesson.resources.length %> file<%= lesson.resources.length === 1 ? '' : 's' %>
+            </div>
+          </div>
+        </div>
+        <div class="lesson-actions">
+          <form method="POST" action="/teacher/lessons/<%= lesson.id %>/rename" style="display:flex;gap:.35rem;">
+            <input name="title" value="<%= lesson.title %>" required
+              style="padding:.4rem .7rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#fff;">
+            <button class="btn-mini rename" type="submit">✏️ Rename</button>
+          </form>
+          <form method="POST" action="/teacher/lessons/<%= lesson.id %>/delete"
+                onsubmit="return confirm('Delete lesson AND all its files? Cannot be undone.');">
+            <button class="btn-mini del" type="submit">🗑️ Delete</button>
+          </form>
+        </div>
+      </div>
+
+      <form method="POST" action="/teacher/lessons/<%= lesson.id %>/upload"
+            enctype="multipart/form-data" class="upload-form">
+        <label class="drop-zone">
+          <input type="file" name="files" multiple
+                 onchange="this.form.querySelector('.txt').textContent = this.files.length + ' file(s) — uploading...'; this.form.submit();">
+          <div class="icon">📁</div>
+          <div class="txt">Click or drag files to upload</div>
+          <div class="sub">PDF · Video · Images · Word · PowerPoint · ZIP — up to 500 MB each</div>
+        </label>
+      </form>
+
+      <% if (lesson.resources.length > 0) { %>
+        <div class="file-list">
+          <% lesson.resources.forEach(r => {
+               const size = r.size_bytes > 1024 * 1024
+                 ? (r.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
+                 : Math.round(r.size_bytes / 1024) + ' KB';
+               const icons = { pdf: '📄', video: '🎥', image: '🖼️', audio: '🎵', html: '🌐', slide: '📊', doc: '📝', archive: '📦', markdown: '📝', other: '📎' };
+               const icon = icons[r.type] || '📎';
+          %>
+            <div class="file-row">
+              <div class="fi"><%= icon %></div>
+              <div class="fn"><%= r.filename %></div>
+              <div class="fs"><%= size %></div>
+              <div class="fa">
+                <a class="btn-mini view" href="/files/resource/<%= r.id %>" target="_blank">View</a>
+                <form method="POST" action="/teacher/resources/<%= r.id %>/delete"
+                      onsubmit="return confirm('Delete this file?');" style="display:inline;">
+                  <button class="btn-mini del" type="submit">Delete</button>
+                </form>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  <% }) %>
+<% } %>
+
+<%- include('../partials/foot') %>
