@@ -3,8 +3,11 @@ const path = require('path');
 const { getDB } = require('../config/database');
 const { FILE_TYPE_MAP, RESOURCE_TYPES } = require('../config/constants');
 
-const CONTENT_ROOT = path.resolve(process.env.CONTENT_ROOT || './content');
-
+const CONTENT_ROOT = process.env.CONTENT_ROOT
+  ? path.resolve(process.env.CONTENT_ROOT)
+  : (process.env.NODE_ENV === 'production'
+      ? '/data/content'
+      : path.resolve('./content'));
 function cleanName(n) {
   return n.replace(/^\d+\s*[-._)]\s*/, '').replace(/[-_]+/g,' ').replace(/\s+/g,' ').trim() || n;
 }

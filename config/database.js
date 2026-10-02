@@ -8,9 +8,15 @@ let db = null;
 
 async function connectDB() {
   if (db) return db;
-  const dbFile = process.env.DB_FILE || './database/luxmind.db';
+
+  // Production (Zeabur): use persistent volume
+  // Development: local file
+  const dbFile = process.env.DB_FILE ||
+    (process.env.NODE_ENV === 'production' ? '/data/luxmind.db' : './database/luxmind.db');
+
   const dbDir = path.dirname(dbFile);
   if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+
   db = await open({ filename: dbFile, driver: sqlite3.Database });
   await db.run('PRAGMA foreign_keys = ON;');
   console.log('DB connected -> ' + dbFile);
