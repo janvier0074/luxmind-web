@@ -19,14 +19,14 @@ router.get('/lessons/:id', requireLogin, async (req, res) => {
     SELECT l.*, c.title AS course_title, c.id AS course_id
     FROM lessons l
     JOIN courses c ON c.id = l.course_id
-    WHERE l.id = ?
+    WHERE l.id = $1
   `, [lessonId]);
 
   if (!lesson) return res.status(404).send('Lesson not found');
 
   // all resources on disk
   const allResources = await db.all(
-    'SELECT * FROM resources WHERE lesson_id = ? ORDER BY position, id',
+    'SELECT * FROM resources WHERE lesson_id = $1 ORDER BY position, id',
     [lessonId]
   );
 
@@ -37,15 +37,15 @@ router.get('/lessons/:id', requireLogin, async (req, res) => {
   if (primary.length === 0) primary = allResources.slice(0, 3);
 
   const progress = await db.get(
-    'SELECT completed FROM progress WHERE user_id = ? AND lesson_id = ?',
-    [uid, lessonId]
-  );
+  'SELECT completed FROM progress WHERE user_id = $1 AND lesson_id = $2',
+  [uid, lessonId]
+);
   const completed = progress ? progress.completed : 0;
 
-  const siblings = await db.all(
-    'SELECT id, title, position FROM lessons WHERE course_id = ? ORDER BY position, id',
-    [lesson.course_id]
-  );
+ const siblings = await db.all(
+  'SELECT id, title, position FROM lessons WHERE course_id = $1 ORDER BY position, id',
+  [lesson.course_id]
+);
   const idx = siblings.findIndex(s => s.id === lesson.id);
   const prev = idx > 0 ? siblings[idx - 1] : null;
   const next = idx < siblings.length - 1 ? siblings[idx + 1] : null;
@@ -70,18 +70,18 @@ router.post('/lessons/:id/complete', requireLogin, async (req, res) => {
   const lessonId = req.params.id;
 
   const existing = await db.get(
-    'SELECT * FROM progress WHERE user_id = ? AND lesson_id = ?',
+    'SELECT * FROM progress WHERE user_id = $1 AND lesson_id = $2',
     [uid, lessonId]
   );
 
   if (existing) {
     await db.run(
-      'UPDATE progress SET completed = ?, completed_at = ? WHERE id = ?',
+      'UPDATE progress SET completed = $1, completed_at = $2 WHERE id = $3',
       [existing.completed ? 0 : 1, existing.completed ? null : new Date().toISOString(), existing.id]
     );
   } else {
     await db.run(
-      'INSERT INTO progress (user_id, lesson_id, completed, completed_at) VALUES (?, ?, 1, ?)',
+      'INSERT INTO progress (user_id, lesson_id, completed, completed_at) VALUES ($1, $2, 1, $3)',
       [uid, lessonId, new Date().toISOString()]
     );
   }
@@ -92,7 +92,7 @@ router.post('/lessons/:id/complete', requireLogin, async (req, res) => {
 // ---------- DOWNLOAD ----------
 router.get('/files/resource/:id', requireLogin, async (req, res) => {
   const db = getDB();
-  const resource = await db.get('SELECT * FROM resources WHERE id = ?', [req.params.id]);
+  const resource = await db.get('SELECT * FROM resources WHERE id = $1', [req.params.id]);
   if (!resource) return res.status(404).send('File not found');
   const absolute = path.resolve(resource.file_path);
   if (!fs.existsSync(absolute)) return res.status(404).send('File missing on disk');
@@ -102,7 +102,7 @@ router.get('/files/resource/:id', requireLogin, async (req, res) => {
 // ---------- SERVE ANY FILE INSIDE LESSON FOLDER (assets too) ----------
 router.get('/lesson-files/:lessonId/:file(*)', requireLogin, async (req, res) => {
   const db = getDB();
-  const lesson = await db.get('SELECT * FROM lessons WHERE id = ?', [req.params.lessonId]);
+  const lesson = await db.get('SELECT * FROM lessons WHERE id = $1', [req.params.lessonId]);
   if (!lesson) return res.status(404).send('Lesson not found');
 
   const wanted = req.params.file || '';

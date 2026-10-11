@@ -1,0 +1,133 @@
+<%- include('../partials/head', {
+  title: 'Import Students',
+  heading: 'Import Students',
+  subtitle: 'Upload a CSV to create accounts in bulk.'
+}) %>
+
+<style>
+  .imp-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0891b2 100%);
+    border-radius: 20px;
+    padding: 1.75rem 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 16px 40px rgba(8,145,178,.25);
+  }
+  .imp-hero h3 { font-size: 1.2rem; font-weight: 800; margin-bottom: .4rem; }
+  .imp-hero p { color: rgba(255,255,255,.75); font-size: .9rem; line-height: 1.55; }
+  .imp-hero a { color: #a5f3fc; font-weight: 700; text-decoration: none; }
+  .imp-hero a:hover { text-decoration: underline; }
+
+  .imp-card {
+    background: #fff;
+    border: 1px solid #eef0f6;
+    border-radius: 18px;
+    padding: 1.75rem 2rem;
+    box-shadow: 0 6px 24px rgba(15,23,42,.05);
+    max-width: 720px;
+  }
+
+  .imp-label { display: block; font-size: .85rem; font-weight: 700; color: #334155; margin-bottom: .5rem; }
+
+  .imp-select, .imp-input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: .95rem;
+    background: #f8fafc;
+    margin-bottom: 1.25rem;
+  }
+  .imp-select:focus, .imp-input:focus {
+    outline: none; border-color: #0891b2; box-shadow: 0 0 0 4px rgba(8,145,178,.12); background: #fff;
+  }
+
+  .drop {
+    display: block;
+    padding: 2.5rem 1.5rem;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    text-align: center;
+    background: #f8fafc;
+    cursor: pointer;
+    transition: all .2s;
+    margin-bottom: 1.25rem;
+  }
+  .drop:hover { border-color: #0891b2; background: #ecfeff; }
+  .drop .ico { font-size: 2.5rem; margin-bottom: .5rem; }
+  .drop .txt { font-weight: 700; color: #334155; margin-bottom: .25rem; }
+  .drop .sub { font-size: .82rem; color: #64748b; }
+  .drop input[type="file"] { display: none; }
+
+  .file-picked {
+    margin-top: .6rem; font-weight: 700; color: #0891b2; font-size: .85rem;
+  }
+
+  .tip {
+    background: #fffbeb;
+    border-left: 4px solid #f59e0b;
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    margin-top: 1.25rem;
+    font-size: .85rem;
+    color: #78350f;
+    line-height: 1.6;
+  }
+  .tip code {
+    background: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: .82rem;
+  }
+</style>
+
+<div class="imp-hero animate">
+  <h3>📥 Bulk Import Students</h3>
+  <p>
+    Upload a CSV file with multiple students at once.
+    Accounts are created instantly as <strong>students</strong>.
+    Optionally enroll them in a course.
+    <br><a href="/teacher/import-students/template">Download CSV template →</a>
+  </p>
+</div>
+
+<div class="imp-card animate">
+  <form method="POST" action="/teacher/import-students" enctype="multipart/form-data">
+
+    <label class="imp-label">Course to enroll them in (optional)</label>
+    <select name="course_id" class="imp-select">
+      <option value="">— Don't enroll anyone —</option>
+      <% courses.forEach(c => { %>
+        <option value="<%= c.id %>"><%= c.title %></option>
+      <% }) %>
+    </select>
+
+    <label class="imp-label">CSV File</label>
+    <label class="drop">
+      <input type="file" name="csvfile" accept=".csv" required
+             onchange="document.getElementById('picked').textContent = '✓ ' + this.files[0].name;">
+      <div class="ico">📄</div>
+      <div class="txt">Click or drop your CSV here</div>
+      <div class="sub">Max 5 MB · Only .csv files</div>
+      <div id="picked" class="file-picked"></div>
+    </label>
+
+    <button class="btn" type="submit" style="background:linear-gradient(135deg,#0891b2,#06b6d4);">
+      📥 Import Students
+    </button>
+    <a class="btn outline" href="/teacher/students" style="margin-left:.5rem;">Cancel</a>
+  </form>
+
+  <div class="tip">
+    <strong>📋 CSV format:</strong> Must have a <code>email</code> column.
+    Optional: <code>full_name</code>, <code>username</code>.<br>
+    Example:<br>
+    <code>full_name,email,username</code><br>
+    <code>John Smith,john@example.com,john</code><br>
+    <code>Jane Doe,jane@example.com,</code><br>
+    Existing emails are skipped (not duplicated).
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

@@ -32,18 +32,18 @@ async function scanContent() {
     const cTitle = cleanName(cd.name);
     const slug = toSlug(cTitle);
 
-    let course = await db.get('SELECT * FROM courses WHERE slug=?', [slug]);
+       let course = await db.get('SELECT * FROM courses WHERE slug=$1', [slug]);
     if (!course) {
-  const teacherRow = await db.get("SELECT id FROM users WHERE role='teacher' ORDER BY id LIMIT 1");
-const teacherId = teacherRow ? teacherRow.id : null;
-const r = await db.run(
-  `INSERT INTO courses (title, slug, folder_path, teacher_id) VALUES (?, ?, ?, ?)`,
-  [courseTitle, slug, coursePath, teacherId]
+      const teacherRow = await db.get("SELECT id FROM users WHERE role='teacher' ORDER BY id LIMIT 1");
+      const teacherId = teacherRow ? teacherRow.id : null;
+      const r = await db.run(
+  `INSERT INTO courses (title, slug, folder_path, teacher_id) VALUES ($1, $2, $3, $4) RETURNING id`,
+  [cTitle, slug, cPath, teacherId]
 );
       course = { id: r.lastID };
       counts.courses++;
     } else {
-      await db.run('UPDATE courses SET folder_path=?, title=? WHERE id=?', [cPath, cTitle, course.id]);
+      await db.run('UPDATE courses SET folder_path=$1, title=$2 WHERE id=$3', [cPath, cTitle, course.id]);
     }
 
     const lessons = fs.readdirSync(cPath, { withFileTypes: true })
@@ -55,14 +55,14 @@ const r = await db.run(
       const lPath = path.join(cPath, ld.name);
       const lTitle = cleanName(ld.name);
 
-      let lesson = await db.get('SELECT * FROM lessons WHERE course_id=? AND folder_path=?', [course.id, lPath]);
+      let lesson = await db.get('SELECT * FROM lessons WHERE course_id=$1 AND folder_path=$2', [course.id, lPath]);
       if (!lesson) {
-        const r = await db.run('INSERT INTO lessons (course_id,title,position,folder_path) VALUES (?,?,?,?)', [course.id, lTitle, pos, lPath]);
+       const r = await db.run('INSERT INTO lessons (course_id,title,position,folder_path) VALUES ($1,$2,$3,$4) RETURNING id', [course.id, lTitle, pos, lPath]);
         lesson = { id: r.lastID };
         counts.lessons++;
       }
 
-      await db.run('DELETE FROM resources WHERE lesson_id=?', [lesson.id]);
+      await db.run('DELETE FROM resources WHERE lesson_id=$1', [lesson.id]);
 
       const files = fs.readdirSync(lPath, { withFileTypes: true })
         .filter(f => f.isFile() && !f.name.startsWith('.'));
@@ -73,7 +73,7 @@ const r = await db.run(
         const stat = fs.statSync(full);
         const ext = path.extname(f.name).toLowerCase();
         const type = FILE_TYPE_MAP[ext] || RESOURCE_TYPES.OTHER;
-        await db.run('INSERT INTO resources (lesson_id,filename,file_path,type,size_bytes,position) VALUES (?,?,?,?,?,?)',
+        await db.run('INSERT INTO resources (lesson_id,filename,file_path,type,size_bytes,position) VALUES ($1,$2,$3,$4,$5,$6)',
           [lesson.id, f.name, full, type, stat.size, rp]);
         counts.resources++;
         rp++;

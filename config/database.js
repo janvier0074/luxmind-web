@@ -1,31 +1,55 @@
-const sqlite3 = require('sqlite3').verbose();
-const { open } = require('sqlite');
-const fs = require('fs');
-const path = require('path');
+const { Pool } = require('pg');
 require('dotenv').config();
 
-let db = null;
+let pool = null;
 
 async function connectDB() {
-  if (db) return db;
+  if (pool) return pool;
 
-  // Production (Zeabur): use persistent volume
-  // Development: local file
-  const dbFile = process.env.DB_FILE ||
-    (process.env.NODE_ENV === 'production' ? '/data/luxmind.db' : './database/luxmind.db');
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    console.error('❌ DATABASE_URL not set');
+    process.exit(1);
+  }
 
-  const dbDir = path.dirname(dbFile);
-  if (!fs.existsSync(dbDir)) fs.mkdirSync(dbDir, { recursive: true });
+  pool = new Pool({
+    connectionString,
+    ssl: { rejectUnauthorized: false },
+    max: 10,
+  });
 
-  db = await open({ filename: dbFile, driver: sqlite3.Database });
-  await db.run('PRAGMA foreign_keys = ON;');
-  console.log('DB connected -> ' + dbFile);
-  return db;
+  try {
+    await pool.query('SELECT 1');
+    console.log('✅ Postgres connected');
+  } catch (e) {
+    console.error('❌ Postgres failed:', e.message);
+    process.exit(1);
+  }
+
+  return pool;
 }
 
 function getDB() {
-  if (!db) throw new Error('DB not initialized');
-  return db;
+  if (!pool) throw new Error('DB not initialized');
+  return {
+    get: async (sql, params = []) => {
+      const r = await pool.query(sql, params);
+      return r.rows[0];
+    },
+    all: async (sql, params = []) => {
+      const r = await pool.query(sql, params);
+      return r.rows;
+    },
+       run: async (sql, params = []) => {
+      const r = await pool.query(sql, params);
+      return {
+        lastID: r.rows && r.rows[0] && r.rows[0].id !== undefined ? r.rows[0].id : null,
+        changes: r.rowCount,
+        rows: r.rows,
+      };
+    },
+    query: (sql, params = []) => pool.query(sql, params),
+  };
 }
 
 module.exports = { connectDB, getDB };

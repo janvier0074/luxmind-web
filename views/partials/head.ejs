@@ -8,6 +8,38 @@
   <link rel="stylesheet" href="/static/css/mobile.css">
 </head>
 <body>
+<style>
+  @keyframes pulseBadge {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50%      { transform: translateY(-50%) scale(1.15); }
+  }
+</style>
+<style>
+  @keyframes pulseBadge {
+    0%, 100% { transform: translateY(-50%) scale(1); }
+    50%      { transform: translateY(-50%) scale(1.15); }
+  }
+  .badge-pulse-red {
+    position: absolute;
+    top: 50%;
+    right: 1.5rem;
+    transform: translateY(-50%);
+    background: #ef4444;
+    color: #fff;
+    font-size: .68rem;
+    font-weight: 800;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 3px rgba(239,68,68,.25), 0 4px 10px rgba(239,68,68,.5);
+    animation: pulseBadge 1.8s ease-in-out infinite;
+  }
+</style>
+
 <div class="layout">
 
   <aside class="sidebar">
@@ -27,9 +59,37 @@
 
 
 
-        <div class="section-label">Social</div>
-        <a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>"><span class="icon">💬</span> Messages</a>
-        <a href="/student/announcements" class="<%= currentPath === '/student/announcements' ? 'active' : '' %>"><span class="icon">📢</span> Announcements</a>
+        <div class="section-label">Social</div><a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>" style="position:relative;">
+  <span class="icon">💬</span> Messages
+  <% if (typeof unreadMessages !== 'undefined' && unreadMessages > 0) { %>
+    <span class="badge-pulse-red"><%= unreadMessages %></span>
+  <% } %>
+</a>
+  <a href="/student/announcements" class="<%= currentPath === '/student/announcements' ? 'active' : '' %>" style="position:relative;">
+  <span class="icon">📢</span> Announcements
+  <% if (typeof unreadAnnouncements !== 'undefined' && unreadAnnouncements > 0) { %>
+    <span style="
+      position:absolute;
+      top:50%;
+      right:1.5rem;
+      transform:translateY(-50%);
+      background:#ef4444;
+      color:#fff;
+      font-size:.68rem;
+      font-weight:800;
+      min-width:20px;
+      height:20px;
+      padding:0 6px;
+      border-radius:100px;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow:0 0 0 3px rgba(239,68,68,.25), 0 4px 10px rgba(239,68,68,.5);
+      animation:pulseBadge 1.8s ease-in-out infinite;
+    "><%= unreadAnnouncements %></span>
+  <% } %>
+</a>
+
         <a href="/notifications" class="<%= currentPath === '/notifications' ? 'active' : '' %>"><span class="icon">🔔</span> Notifications</a>
 
         <div class="section-label">Account</div>
@@ -47,10 +107,16 @@
 
         <div class="section-label">Students</div>
         <a href="/teacher/students" class="<%= currentPath === '/teacher/students' ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+<a href="/teacher/import-students" class="<%= currentPath === '/teacher/import-students' ? 'active' : '' %>"><span class="icon">📥</span> Import Students</a>
+
         <a href="/teacher/announcements" class="<%= currentPath === '/teacher/announcements' ? 'active' : '' %>"><span class="icon">📢</span> Announcements</a>
 
-        <div class="section-label">Account</div>
-        <a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>"><span class="icon">💬</span> Messages</a>
+        <div class="section-label">Account</div><a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>" style="position:relative;">
+  <span class="icon">💬</span> Messages
+  <% if (typeof unreadMessages !== 'undefined' && unreadMessages > 0) { %>
+    <span class="badge-pulse-red"><%= unreadMessages %></span>
+  <% } %>
+</a>
         <a href="/notifications" class="<%= currentPath === '/notifications' ? 'active' : '' %>"><span class="icon">🔔</span> Notifications</a>
         <a href="/profile" class="<%= currentPath === '/profile' ? 'active' : '' %>"><span class="icon">👤</span> Profile</a>
         <a href="/settings" class="<%= currentPath === '/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>

@@ -25,8 +25,8 @@ router.get('/student/quizzes', requireLogin, async (req, res) => {
       m.override_score, m.feedback
     FROM quizzes q
     JOIN courses c ON c.id = q.course_id
-    JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-    LEFT JOIN attempts a ON a.quiz_id = q.id AND a.user_id = ?
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    LEFT JOIN attempts a ON a.quiz_id = q.id AND a.user_id = $2
     LEFT JOIN manual_grades m ON m.attempt_id = a.id
     ORDER BY q.created_at DESC
   `, [uid, uid]);
@@ -55,18 +55,18 @@ router.get('/student/quiz/:id', requireLogin, async (req, res) => {
   const quiz = await db.get(`
     SELECT q.*, c.title AS course_title
     FROM quizzes q JOIN courses c ON c.id = q.course_id
-    WHERE q.id = ?
+    WHERE q.id = $1
   `, [req.params.id]);
   if (!quiz) return res.status(404).send('Quiz not found');
 
   const existing = await db.get(
-    'SELECT * FROM attempts WHERE quiz_id = ? AND user_id = ?',
+    'SELECT * FROM attempts WHERE quiz_id = $1 AND user_id = $2',
     [quiz.id, uid]
   );
   if (existing) return res.redirect(`/student/quiz/${quiz.id}/result`);
 
   const questions = await db.all(
-    'SELECT * FROM questions WHERE quiz_id = ? ORDER BY position, id',
+    'SELECT * FROM questions WHERE quiz_id = $1 ORDER BY position, id',
     [quiz.id]
   );
 
@@ -92,12 +92,12 @@ router.post('/student/quiz/:id', requireLogin, async (req, res) => {
   const quizId = req.params.id;
 
   const existing = await db.get(
-    'SELECT id FROM attempts WHERE quiz_id = ? AND user_id = ?',
+    'SELECT id FROM attempts WHERE quiz_id = $1 AND user_id = $2',
     [quizId, uid]
   );
   if (existing) return res.redirect(`/student/quiz/${quizId}/result`);
 
-  const questions = await db.all('SELECT * FROM questions WHERE quiz_id = ?', [quizId]);
+  const questions = await db.all('SELECT * FROM questions WHERE quiz_id = $1', [quizId]);
 
   let score = 0, max = 0;
   const answers = {};
@@ -110,7 +110,7 @@ router.post('/student/quiz/:id', requireLogin, async (req, res) => {
   }
 
   await db.run(
-    'INSERT INTO attempts (quiz_id, user_id, score, max_score, answers) VALUES (?,?,?,?,?)',
+    'INSERT INTO attempts (quiz_id, user_id, score, max_score, answers) VALUES ($1,$2,$3,$4,$5)',
     [quizId, uid, score, max, JSON.stringify(answers)]
   );
 
@@ -126,23 +126,23 @@ router.get('/student/quiz/:id/result', requireLogin, async (req, res) => {
   const uid = req.session.user.id;
 
   const quiz = await db.get(
-    'SELECT q.*, c.title AS course_title FROM quizzes q JOIN courses c ON c.id = q.course_id WHERE q.id = ?',
+    'SELECT q.*, c.title AS course_title FROM quizzes q JOIN courses c ON c.id = q.course_id WHERE q.id = $1',
     [quizId]
   );
   const attempt = await db.get(
-    'SELECT * FROM attempts WHERE quiz_id = ? AND user_id = ?',
+    'SELECT * FROM attempts WHERE quiz_id = $1 AND user_id = $2',
     [quizId, uid]
   );
   if (!attempt) return res.redirect(`/student/quiz/${quizId}`);
 
-  const manual = await db.get('SELECT * FROM manual_grades WHERE attempt_id = ?', [attempt.id]);
+  const manual = await db.get('SELECT * FROM manual_grades WHERE attempt_id = $1', [attempt.id]);
   const released = isReleased(quiz);
   const finalScore = (manual && manual.override_score !== null && manual.override_score !== undefined)
     ? manual.override_score : attempt.score;
   const feedback = manual ? manual.feedback : null;
 
   const questions = await db.all(
-    'SELECT * FROM questions WHERE quiz_id = ? ORDER BY position, id', [quizId]
+    'SELECT * FROM questions WHERE quiz_id = $1 ORDER BY position, id', [quizId]
   );
   const answers = JSON.parse(attempt.answers || '{}');
 
@@ -164,7 +164,7 @@ router.get('/teacher/quizzes', requireLogin, async (req, res) => {
   const db = getDB();
   const tid = req.session.user.id;
 
-  const courses = await db.all('SELECT * FROM courses WHERE teacher_id = ?', [tid]);
+  const courses = await db.all('SELECT * FROM courses WHERE teacher_id = $1', [tid]);
 
   const quizzes = await db.all(`
     SELECT q.*, c.title AS course_title,
@@ -172,7 +172,7 @@ router.get('/teacher/quizzes', requireLogin, async (req, res) => {
       (SELECT COUNT(*) FROM attempts WHERE quiz_id = q.id) AS attempts
     FROM quizzes q
     JOIN courses c ON c.id = q.course_id
-    WHERE c.teacher_id = ?
+    WHERE c.teacher_id = $1
     ORDER BY q.created_at DESC
   `, [tid]);
 
@@ -188,7 +188,7 @@ router.get('/teacher/quizzes', requireLogin, async (req, res) => {
 // ---------- QUIZ BUILDER ----------
 router.get('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
-  const course = await getDB().get('SELECT * FROM courses WHERE id = ?', [req.params.courseId]);
+  const course = await getDB().get('SELECT * FROM courses WHERE id = $1', [req.params.courseId]);
   if (!course) return res.status(404).send('Course not found');
 
   res.render('teacher/quiz-builder', {
@@ -208,7 +208,7 @@ router.post('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   const releaseISO = release_at ? new Date(release_at).toISOString() : null;
 
   const r = await db.run(
-    'INSERT INTO quizzes (course_id, title, release_at, duration_min) VALUES (?,?,?,?)',
+    'INSERT INTO quizzes (course_id, title, release_at, duration_min) VALUES ($1,$2,$3,$4)',
     [courseId, title, releaseISO, Number(duration_min) || 15]
   );
   const quizId = r.lastID;
@@ -220,7 +220,7 @@ router.post('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   for (const q of parsed) {
     await db.run(
       `INSERT INTO questions (quiz_id, text, option_a, option_b, option_c, option_d, correct, points, position)
-       VALUES (?,?,?,?,?,?,?,?,?)`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
       [quizId, q.text, q.a, q.b, q.c, q.d, q.correct, Number(q.points) || 1, pos]
     );
     pos++;
@@ -235,7 +235,7 @@ router.post('/teacher/quiz/:id/release', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const { release_at } = req.body;
   const iso = release_at ? new Date(release_at).toISOString() : null;
-  await getDB().run('UPDATE quizzes SET release_at = ? WHERE id = ?', [iso, req.params.id]);
+  await getDB().run('UPDATE quizzes SET release_at = $1 WHERE id = $2', [iso, req.params.id]);
   req.flash('success', 'Release time updated.');
   res.redirect('/teacher/quizzes');
 });
@@ -254,7 +254,7 @@ router.get('/teacher/grading', requireLogin, async (req, res) => {
     JOIN quizzes q ON q.id = a.quiz_id
     JOIN courses c ON c.id = q.course_id
     LEFT JOIN manual_grades m ON m.attempt_id = a.id
-    WHERE c.teacher_id = ?
+    WHERE c.teacher_id = $1
     ORDER BY a.submitted_at DESC
   `, [tid]);
 
@@ -273,15 +273,15 @@ router.post('/teacher/attempt/:id/grade', requireLogin, async (req, res) => {
   const { override_score, feedback } = req.body;
   const attemptId = req.params.id;
 
-  const existing = await db.get('SELECT * FROM manual_grades WHERE attempt_id = ?', [attemptId]);
+  const existing = await db.get('SELECT * FROM manual_grades WHERE attempt_id = $1', [attemptId]);
   if (existing) {
     await db.run(
-      'UPDATE manual_grades SET override_score = ?, feedback = ?, graded_by = ?, graded_at = CURRENT_TIMESTAMP WHERE attempt_id = ?',
+      'UPDATE manual_grades SET override_score = $1, feedback = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP WHERE attempt_id = $4',
       [Number(override_score), feedback || null, req.session.user.id, attemptId]
     );
   } else {
     await db.run(
-      'INSERT INTO manual_grades (attempt_id, override_score, feedback, graded_by) VALUES (?,?,?,?)',
+      'INSERT INTO manual_grades (attempt_id, override_score, feedback, graded_by) VALUES ($1,$2,$3,$4)',
       [attemptId, Number(override_score), feedback || null, req.session.user.id]
     );
   }

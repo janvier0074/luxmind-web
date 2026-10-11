@@ -11,11 +11,11 @@ async function getEventsForUser(db, user) {
     // assignments
     const assignments = await db.all(`
       SELECT a.id, a.title, a.deadline AS event_at, c.title AS course,
-        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id AND user_id = ?) AS submitted
+        (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id AND user_id = $1) AS submitted
       FROM assignments a
       JOIN courses c ON c.id = a.course_id
       JOIN enrollments e ON e.course_id = c.id
-      WHERE e.user_id = ? AND a.deadline IS NOT NULL
+      WHERE e.user_id = $2 AND a.deadline IS NOT NULL
     `, [uid, uid]);
 
     assignments.forEach(a => events.push({
@@ -33,7 +33,7 @@ async function getEventsForUser(db, user) {
       FROM quizzes q
       JOIN courses c ON c.id = q.course_id
       JOIN enrollments e ON e.course_id = c.id
-      WHERE e.user_id = ? AND q.release_at IS NOT NULL
+      WHERE e.user_id = $1 AND q.release_at IS NOT NULL
     `, [uid]);
 
     quizzes.forEach(q => events.push({
@@ -51,7 +51,7 @@ async function getEventsForUser(db, user) {
       FROM announcements a
       JOIN courses c ON c.id = a.course_id
       JOIN enrollments e ON e.course_id = c.id
-      WHERE e.user_id = ?
+      WHERE e.user_id = $1
     `, [uid]);
 
     ann.forEach(a => events.push({
@@ -68,7 +68,7 @@ async function getEventsForUser(db, user) {
       SELECT a.id, a.title, a.deadline AS event_at, c.title AS course
       FROM assignments a
       JOIN courses c ON c.id = a.course_id
-      WHERE c.teacher_id = ? AND a.deadline IS NOT NULL
+      WHERE c.teacher_id = $1 AND a.deadline IS NOT NULL
     `, [uid]);
 
     assignments.forEach(a => events.push({
@@ -84,7 +84,7 @@ async function getEventsForUser(db, user) {
       SELECT q.id, q.title, q.release_at AS event_at, c.title AS course
       FROM quizzes q
       JOIN courses c ON c.id = q.course_id
-      WHERE c.teacher_id = ? AND q.release_at IS NOT NULL
+      WHERE c.teacher_id = $1 AND q.release_at IS NOT NULL
     `, [uid]);
 
     quizzes.forEach(q => events.push({

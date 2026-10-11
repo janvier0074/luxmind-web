@@ -15,7 +15,7 @@ router.get('/teacher/courses', requireLogin, requireRole('teacher'), async (req,
       (SELECT COUNT(*) FROM quizzes WHERE course_id = c.id) AS quiz_count,
       (SELECT COUNT(*) FROM assignments WHERE course_id = c.id) AS assignment_count
     FROM courses c
-    WHERE c.teacher_id = ?
+    WHERE c.teacher_id = $1
     ORDER BY c.title
   `, [tid]);
 
@@ -36,15 +36,15 @@ router.get('/teacher/students', requireLogin, requireRole('teacher'), async (req
     SELECT DISTINCT u.id, u.username, u.full_name, u.email, u.created_at, u.last_seen,
       (SELECT COUNT(*) FROM enrollments e2
         JOIN courses c2 ON c2.id = e2.course_id
-        WHERE e2.user_id = u.id AND c2.teacher_id = ?) AS course_count,
+        WHERE e2.user_id = u.id AND c2.teacher_id = $1) AS course_count,
       (SELECT COUNT(*) FROM progress p
         JOIN lessons l ON l.id = p.lesson_id
         JOIN courses c3 ON c3.id = l.course_id
-        WHERE p.user_id = u.id AND c3.teacher_id = ? AND p.completed = 1) AS lessons_done
+        WHERE p.user_id = u.id AND c3.teacher_id = $2 AND p.completed = 1) AS lessons_done
     FROM users u
     JOIN enrollments e ON e.user_id = u.id
     JOIN courses c ON c.id = e.course_id
-    WHERE c.teacher_id = ? AND u.role = 'student'
+    WHERE c.teacher_id = $3 AND u.role = 'student'
     ORDER BY u.full_name
   `, [tid, tid, tid]);
 

@@ -8,7 +8,8 @@ database/*.db-journal
 storage/logs/*.log
 storage/exports/*
 storage/backups/*
-content/
+
 uploads/
+content/
 .DS_Store
 Thumbs.db

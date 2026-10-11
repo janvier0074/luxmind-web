@@ -58,7 +58,7 @@ router.post('/admin/users/new', guard, async (req, res) => {
   try {
     const hash = await bcrypt.hash(password, 10);
     await db.run(
-      'INSERT INTO users (username, email, password, role, full_name) VALUES (?,?,?,?,?)',
+      'INSERT INTO users (username, email, password, role, full_name) VALUES ($1,$2,$3,$4,$5)',
       [username, email || null, hash, role || 'student', full_name || null]
     );
     req.flash('success', 'User created.');
@@ -72,7 +72,7 @@ router.post('/admin/users/new', guard, async (req, res) => {
 router.get('/admin/users/:id/edit', guard, async (req, res) => {
   const db = getDB();
   const editUser = await db.get(
-    'SELECT id, username, email, role, full_name, is_active, created_at FROM users WHERE id = ?',
+    'SELECT id, username, email, role, full_name, is_active, created_at FROM users WHERE id = $1',
     [req.params.id]
   );
   if (!editUser) return res.status(404).send('User not found');
@@ -90,13 +90,13 @@ router.post('/admin/users/:id/edit', guard, async (req, res) => {
   const id = req.params.id;
 
   await db.run(
-    'UPDATE users SET email = ?, role = ?, full_name = ?, is_active = ? WHERE id = ?',
+    'UPDATE users SET email = $1, role = $2, full_name = $3, is_active = $4 WHERE id = $5',
     [email || null, role || 'student', full_name || null, is_active ? 1 : 0, id]
   );
 
   if (new_password && new_password.length >= 6) {
     const hash = await bcrypt.hash(new_password, 10);
-    await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, id]);
+    await db.run('UPDATE users SET password = $1 WHERE id = $2', [hash, id]);
   }
 
   req.flash('success', 'User updated.');
@@ -110,7 +110,7 @@ router.post('/admin/users/:id/delete', guard, async (req, res) => {
     req.flash('error', 'You cannot delete your own account.');
     return res.redirect('/admin/users');
   }
-  await db.run('DELETE FROM users WHERE id = ?', [id]);
+  await db.run('DELETE FROM users WHERE id = $1', [id]);
   req.flash('success', 'User deleted.');
   res.redirect('/admin/users');
 });
@@ -123,7 +123,7 @@ router.post('/admin/users/:id/role', guard, async (req, res) => {
     req.flash('error', 'Invalid role.');
     return res.redirect('/admin/users');
   }
-  await db.run('UPDATE users SET role = ? WHERE id = ?', [role, id]);
+  await db.run('UPDATE users SET role = $1 WHERE id = $2', [role, id]);
   req.flash('success', 'Role updated.');
   res.redirect('/admin/users');
 });
@@ -159,14 +159,14 @@ router.get('/admin/courses', guard, async (req, res) => {
 router.post('/admin/courses/:id/teacher', guard, async (req, res) => {
   const db = getDB();
   const teacherId = req.body.teacher_id ? Number(req.body.teacher_id) : null;
-  await db.run('UPDATE courses SET teacher_id = ? WHERE id = ?', [teacherId, req.params.id]);
+  await db.run('UPDATE courses SET teacher_id = $1 WHERE id = $2', [teacherId, req.params.id]);
   req.flash('success', 'Teacher assigned.');
   res.redirect('/admin/courses');
 });
 
 router.post('/admin/courses/:id/delete', guard, async (req, res) => {
   const db = getDB();
-  await db.run('DELETE FROM courses WHERE id = ?', [req.params.id]);
+  await db.run('DELETE FROM courses WHERE id = $1', [req.params.id]);
   req.flash('success', 'Course deleted.');
   res.redirect('/admin/courses');
 });
@@ -253,9 +253,9 @@ router.post('/admin/settings', guard, async (req, res) => {
     allow_registration: req.body.allow_registration ? 'true' : 'false',
   };
   for (const [k, v] of Object.entries(pairs)) {
-    const existing = await db.get("SELECT id FROM settings WHERE user_id = 0 AND key = ?", [k]);
-    if (existing) await db.run("UPDATE settings SET value = ? WHERE id = ?", [v, existing.id]);
-    else await db.run("INSERT INTO settings (user_id, key, value) VALUES (0, ?, ?)", [k, v]);
+    const existing = await db.get("SELECT id FROM settings WHERE user_id = 0 AND key = $1", [k]);
+    if (existing) await db.run("UPDATE settings SET value = $1 WHERE id = $2", [v, existing.id]);
+    else await db.run("INSERT INTO settings (user_id, key, value) VALUES (0, $1, $2)", [k, v]);
   }
   req.flash('success', 'Settings saved.');
   res.redirect('/admin/settings');

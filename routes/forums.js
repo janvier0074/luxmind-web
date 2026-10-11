@@ -11,20 +11,20 @@ router.get('/forums/:courseId', requireLogin, async (req, res) => {
   const uid = req.session.user.id;
   const courseId = req.params.courseId;
 
-  const course = await db.get('SELECT * FROM courses WHERE id = ?', [courseId]);
+  const course = await db.get('SELECT * FROM courses WHERE id = $1', [courseId]);
   if (!course) return res.status(404).send('Course not found');
 
   // access check: student must be enrolled, teacher must own it, admin sees all
   const role = req.session.user.role;
   if (role === 'student') {
     const enrolled = await db.get(
-      'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
+      'SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2',
       [uid, courseId]
     );
     if (!enrolled) return res.status(403).send('Not enrolled in this course.');
   } else if (role === 'teacher') {
     const owns = await db.get(
-      'SELECT id FROM courses WHERE id = ? AND teacher_id = ?',
+      'SELECT id FROM courses WHERE id = $1 AND teacher_id = $2',
       [courseId, uid]
     );
     if (!owns) return res.status(403).send('Not your course.');
@@ -36,7 +36,7 @@ router.get('/forums/:courseId', requireLogin, async (req, res) => {
       (SELECT MAX(created_at) FROM forum_posts WHERE thread_id = t.id) AS last_reply_at
     FROM forum_threads t
     JOIN users u ON u.id = t.author_id
-    WHERE t.course_id = ?
+    WHERE t.course_id = $1
     ORDER BY (SELECT MAX(created_at) FROM forum_posts WHERE thread_id = t.id) DESC NULLS LAST, t.created_at DESC
   `, [courseId]);
 
@@ -53,7 +53,7 @@ router.get('/forums/:courseId', requireLogin, async (req, res) => {
 // ============================================================
 router.get('/forums/:courseId/new', requireLogin, async (req, res) => {
   const db = getDB();
-  const course = await db.get('SELECT * FROM courses WHERE id = ?', [req.params.courseId]);
+  const course = await db.get('SELECT * FROM courses WHERE id = $1', [req.params.courseId]);
   if (!course) return res.status(404).send('Course not found');
   res.render('forums/new-thread', {
     title: 'New Thread',
@@ -75,7 +75,7 @@ router.post('/forums/:courseId/new', requireLogin, async (req, res) => {
   }
 
   const r = await db.run(
-    'INSERT INTO forum_threads (course_id, author_id, title, body) VALUES (?,?,?,?)',
+    'INSERT INTO forum_threads (course_id, author_id, title, body) VALUES ($1,$2,$3,$4)',
     [courseId, uid, title.trim(), body.trim()]
   );
 
@@ -97,7 +97,7 @@ router.get('/forums/thread/:id', requireLogin, async (req, res) => {
     FROM forum_threads t
     JOIN courses c ON c.id = t.course_id
     JOIN users u ON u.id = t.author_id
-    WHERE t.id = ?
+    WHERE t.id = $1
   `, [req.params.id]);
 
   if (!thread) return res.status(404).send('Thread not found');
@@ -106,7 +106,7 @@ router.get('/forums/thread/:id', requireLogin, async (req, res) => {
     SELECT p.*, u.full_name AS author_name, u.username AS author_username, u.role AS author_role
     FROM forum_posts p
     JOIN users u ON u.id = p.author_id
-    WHERE p.thread_id = ?
+    WHERE p.thread_id = $1
     ORDER BY p.created_at ASC
   `, [thread.id]);
 
@@ -129,16 +129,16 @@ router.post('/forums/thread/:id/reply', requireLogin, async (req, res) => {
   }
 
   await db.run(
-    'INSERT INTO forum_posts (thread_id, author_id, body) VALUES (?,?,?)',
+    'INSERT INTO forum_posts (thread_id, author_id, body) VALUES ($1,$2,$3)',
     [req.params.id, req.session.user.id, body.trim()]
   );
 
   // notify thread author
-  const thread = await db.get('SELECT author_id, title, id FROM forum_threads WHERE id = ?', [req.params.id]);
+  const thread = await db.get('SELECT author_id, title, id FROM forum_threads WHERE id = $1', [req.params.id]);
   if (thread && thread.author_id !== req.session.user.id) {
-    const sender = await db.get('SELECT full_name, username FROM users WHERE id = ?', [req.session.user.id]);
+    const sender = await db.get('SELECT full_name, username FROM users WHERE id = $1', [req.session.user.id]);
     await db.run(
-      'INSERT INTO notifications (user_id, title, body, link) VALUES (?,?,?,?)',
+      'INSERT INTO notifications (user_id, title, body, link) VALUES ($1,$2,$3,$4)',
       [
         thread.author_id,
         'New reply in "' + thread.title + '"',
@@ -155,27 +155,27 @@ router.post('/forums/thread/:id/reply', requireLogin, async (req, res) => {
 // ---------- DELETE ----------
 router.post('/forums/thread/:id/delete', requireLogin, async (req, res) => {
   const db = getDB();
-  const thread = await db.get('SELECT * FROM forum_threads WHERE id = ?', [req.params.id]);
+  const thread = await db.get('SELECT * FROM forum_threads WHERE id = $1', [req.params.id]);
   if (!thread) { req.flash('error', 'Not found.'); return res.redirect('/dashboard'); }
 
   const canDelete = req.session.user.role === 'admin' || thread.author_id === req.session.user.id;
   if (!canDelete) { req.flash('error', 'Not allowed.'); return res.redirect('/forums/thread/' + thread.id); }
 
   const courseId = thread.course_id;
-  await db.run('DELETE FROM forum_threads WHERE id = ?', [thread.id]);
+  await db.run('DELETE FROM forum_threads WHERE id = $1', [thread.id]);
   req.flash('success', 'Thread deleted.');
   res.redirect('/forums/' + courseId);
 });
 
 router.post('/forums/post/:id/delete', requireLogin, async (req, res) => {
   const db = getDB();
-  const post = await db.get('SELECT * FROM forum_posts WHERE id = ?', [req.params.id]);
+  const post = await db.get('SELECT * FROM forum_posts WHERE id = $1', [req.params.id]);
   if (!post) { req.flash('error', 'Not found.'); return res.redirect('/dashboard'); }
 
   const canDelete = req.session.user.role === 'admin' || post.author_id === req.session.user.id;
   if (!canDelete) { req.flash('error', 'Not allowed.'); return res.redirect('/forums/thread/' + post.thread_id); }
 
-  await db.run('DELETE FROM forum_posts WHERE id = ?', [post.id]);
+  await db.run('DELETE FROM forum_posts WHERE id = $1', [post.id]);
   req.flash('success', 'Reply deleted.');
   res.redirect('/forums/thread/' + post.thread_id);
 });

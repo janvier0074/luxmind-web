@@ -24,21 +24,21 @@ router.post('/login', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email missing in token.' });
 
     const db = getDB();
-    let user = await db.get('SELECT * FROM users WHERE LOWER(email) = ?', [email]);
+    let user = await db.get('SELECT * FROM users WHERE LOWER(email) = $1', [email]);
 
     // AUTO-CREATE if not in SQLite yet
     if (!user) {
       let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
       let username = baseUsername;
       let counter = 1;
-      while (await db.get('SELECT id FROM users WHERE username = ?', [username])) {
+      while (await db.get('SELECT id FROM users WHERE username = $1', [username])) {
         username = baseUsername + counter++;
       }
 
       const fullName = decoded.name || username;
 
       const result = await db.run(
-        'INSERT INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)',
+        'INSERT INTO users (username, email, password, role, full_name) VALUES ($1, $2, $3, $4, $5)',
         [username, email, 'FIREBASE_AUTH', 'student', fullName]
       );
 
@@ -47,7 +47,7 @@ router.post('/login', async (req, res) => {
         const { DEFAULT_SETTINGS } = require('../config/constants');
         for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
           await db.run(
-            'INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)',
+            'INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)',
             [result.lastID, k, v]
           );
         }
@@ -96,7 +96,7 @@ router.post('/register', async (req, res) => {
     if (!email) return res.status(400).json({ error: 'Email missing.' });
 
     const db = getDB();
-    let existing = await db.get('SELECT * FROM users WHERE LOWER(email) = ?', [email]);
+    let existing = await db.get('SELECT * FROM users WHERE LOWER(email) = $1', [email]);
 
     if (existing) {
       req.session.user = {
@@ -113,12 +113,12 @@ router.post('/register', async (req, res) => {
     let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
     let username = baseUsername;
     let counter = 1;
-    while (await db.get('SELECT id FROM users WHERE username = ?', [username])) {
+    while (await db.get('SELECT id FROM users WHERE username = $1', [username])) {
       username = baseUsername + counter++;
     }
 
     const result = await db.run(
-      'INSERT INTO users (username, email, password, role, full_name) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO users (username, email, password, role, full_name) VALUES ($1, $2, $3, $4, $5)',
       [username, email, 'FIREBASE_AUTH', 'student', full_name || username]
     );
 
@@ -126,7 +126,7 @@ router.post('/register', async (req, res) => {
       const { DEFAULT_SETTINGS } = require('../config/constants');
       for (const [k, v] of Object.entries(DEFAULT_SETTINGS)) {
         await db.run(
-          'INSERT INTO settings (user_id, key, value) VALUES (?, ?, ?)',
+          'INSERT INTO settings (user_id, key, value) VALUES ($1, $2, $3)',
           [result.lastID, k, v]
         );
       }
