@@ -5,7 +5,7 @@ async function touchLastSeen(req) {
   try {
     const db = getDB();
     await db.run(
-      'UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?',
+      'UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = $1',
       [req.session.user.id]
     );
   } catch (e) { /* ignore */ }
@@ -26,7 +26,7 @@ async function requireLogin(req, res, next) {
 
     // Unread messages — for every role
     const msgRow = await db.get(
-      'SELECT COUNT(*) AS c FROM messages WHERE receiver_id = ? AND is_read = 0',
+      'SELECT COUNT(*) AS c FROM messages WHERE receiver_id = $1 AND is_read = 0',
       [uid]
     );
     res.locals.unreadMessages = msgRow.c || 0;
@@ -37,16 +37,16 @@ async function requireLogin(req, res, next) {
         SELECT COUNT(*) AS c
         FROM announcements a
         JOIN courses c ON c.id = a.course_id
-        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
         WHERE a.created_at > COALESCE(
-          (SELECT announcements_seen_at FROM users WHERE id = ?),
+          (SELECT announcements_seen_at FROM users WHERE id = $2),
           '1970-01-01'
         )
       `, [uid, uid]);
       res.locals.unreadAnnouncements = annRow.c || 0;
     }
   } catch (e) {
-    // silently ignore — badge just won't show
+    console.error('Badge count error:', e.message);
   }
 
   next();
