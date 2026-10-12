@@ -233,6 +233,16 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
   const continueCourse = courses.find(c => Number(c.done_lessons) < Number(c.total_lessons)) || courses[0] || null;
 
 
+  const achievements = [];
+  if (doneLessons >= 1)    achievements.push({ name: 'First Steps',     icon: '👣', desc: 'Completed your first lesson' });
+  if (doneLessons >= 5)    achievements.push({ name: 'Getting Started', icon: '📖', desc: 'Completed 5 lessons' });
+  if (doneLessons >= 20)   achievements.push({ name: 'Bookworm',        icon: '📚', desc: 'Completed 20 lessons' });
+  if (overallPct >= 50)    achievements.push({ name: 'Halfway There',   icon: '⛰️', desc: 'Reached 50% overall progress' });
+  if (overallPct >= 100)   achievements.push({ name: 'Course Complete', icon: '🏆', desc: 'Finished every lesson' });
+  if (streak >= 3)         achievements.push({ name: 'On a Roll',       icon: '🔥', desc: '3-day learning streak' });
+  if (streak >= 7)         achievements.push({ name: 'Unstoppable',     icon: '⚡', desc: '7-day learning streak' });
+  if (totalPoints >= 100)  achievements.push({ name: 'Point Collector', icon: '⭐', desc: 'Earned 100+ points' });
+  if (totalPoints >= 1000) achievements.push({ name: 'High Scorer',     icon: '💎', desc: 'Earned 1000+ points' });
 
 
 
@@ -241,7 +251,8 @@ res.render('student/dashboard', {
     heading: 'Welcome, ' + (user.full_name || user.username),
     subtitle: 'Here is your learning snapshot.',
 
-         continueCourse,
+             continueCourse,
+    achievements,
     courses, announcements,
     deadlines, recentActivity,
     stats: {
