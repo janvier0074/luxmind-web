@@ -59,6 +59,7 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.flash = { success: req.flash('success'), error: req.flash('error') };
   res.locals.currentPath = req.path;
+  res.locals.isOnline = (ts) => !!ts && (Date.now() - new Date(ts).getTime() < 5 * 60 * 1000);
   next();
 });
 
@@ -227,12 +228,7 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
     ORDER BY a.created_at DESC LIMIT 3
   `, [uid]);
 
-  
-
-
   const continueCourse = courses.find(c => Number(c.done_lessons) < Number(c.total_lessons)) || courses[0] || null;
-
-
 
   const QUOTES = [
     { text: 'The beautiful thing about learning is that no one can take it away from you.', author: 'B.B. King' },
@@ -242,10 +238,6 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
     { text: 'The more that you read, the more things you will know.', author: 'Dr. Seuss' },
   ];
   const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
-
-
-
-
 
   const achievements = [];
   if (doneLessons >= 1)    achievements.push({ name: 'First Steps',     icon: '👣', desc: 'Completed your first lesson' });
@@ -258,14 +250,11 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
   if (totalPoints >= 100)  achievements.push({ name: 'Point Collector', icon: '⭐', desc: 'Earned 100+ points' });
   if (totalPoints >= 1000) achievements.push({ name: 'High Scorer',     icon: '💎', desc: 'Earned 1000+ points' });
 
-
-
-res.render('student/dashboard', {
+  res.render('student/dashboard', {
     title: 'Dashboard',
     heading: 'Welcome, ' + (user.full_name || user.username),
     subtitle: 'Here is your learning snapshot.',
-
-                continueCourse,
+    continueCourse,
     achievements,
     quote,
     courses, announcements,
