@@ -8,16 +8,16 @@ router.get('/notifications', requireLogin, async (req, res) => {
   const uid = req.session.user.id;
 
   const list = await db.all(
-    'SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 60',
+    'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 60',
     [uid]
   );
 
   const unread = await db.get(
-    'SELECT COUNT(*) c FROM notifications WHERE user_id = ? AND is_read = 0',
+    'SELECT COUNT(*) c FROM notifications WHERE user_id = $1 AND is_read = 0',
     [uid]
   );
 
-  await db.run('UPDATE notifications SET is_read = 1 WHERE user_id = ?', [uid]);
+  await db.run('UPDATE notifications SET is_read = 1 WHERE user_id = $1', [uid]);
 
   res.render('notifications/list', {
     title: 'Notifications',
@@ -29,7 +29,7 @@ router.get('/notifications', requireLogin, async (req, res) => {
 });
 
 router.post('/notifications/clear', requireLogin, async (req, res) => {
-  await getDB().run('DELETE FROM notifications WHERE user_id = ?', [req.session.user.id]);
+  await getDB().run('DELETE FROM notifications WHERE user_id = $1', [req.session.user.id]);
   req.flash('success', 'Notifications cleared.');
   res.redirect('/notifications');
 });

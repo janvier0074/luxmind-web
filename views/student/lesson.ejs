@@ -7,141 +7,234 @@
 <style>
   .lesson-hero {
     background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4c1d95 100%);
-    border-radius: 22px; padding: 1.85rem 2.15rem; color: #fff;
-    position: relative; overflow: hidden; margin-bottom: 1.75rem;
-    box-shadow: 0 18px 45px rgba(30,27,75,.3);
+    border-radius: 22px;
+    padding: 1.5rem 2rem;
+    color: #fff;
+    margin-bottom: 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+    box-shadow: 0 16px 40px rgba(30,27,75,.3);
   }
-  .lesson-hero::before {
-    content:''; position:absolute; right:-60px; top:-60px;
-    width:240px; height:240px; border-radius:50%;
-    background: radial-gradient(circle, rgba(236,72,153,.35), transparent 70%);
+  .lesson-hero h2 { font-size: 1.4rem; font-weight: 800; margin-bottom: .25rem; }
+  .lesson-hero p { color: rgba(255,255,255,.7); font-size: .88rem; }
+  .lesson-hero .btn-focus {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .65rem 1.2rem; border-radius: 12px;
+    background: rgba(255,255,255,.15); color: #fff;
+    border: 1px solid rgba(255,255,255,.3);
+    font-weight: 700; font-size: .85rem;
+    cursor: pointer; transition: all .15s;
+    backdrop-filter: blur(10px);
   }
-  .lesson-hero::after {
-    content:''; position:absolute; left:-80px; bottom:-80px;
-    width:220px; height:220px; border-radius:50%;
-    background: radial-gradient(circle, rgba(99,102,241,.4), transparent 70%);
-  }
-  .lesson-hero > * { position: relative; z-index: 1; }
+  .lesson-hero .btn-focus:hover { background: rgba(255,255,255,.25); transform: translateY(-2px); }
 
-  .lesson-title-hero { font-size:1.85rem; font-weight:800; letter-spacing:-.025em; line-height:1.15; margin-bottom:.8rem; }
-  .breadcrumb { font-size:.78rem; text-transform:uppercase; letter-spacing:.12em; font-weight:700; opacity:.7; margin-bottom:.5rem; }
-  .hero-stats { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:.88rem; opacity:.9; }
-
-  .file-tabs { display:flex; gap:.5rem; margin-bottom:1.25rem; flex-wrap:wrap; }
+  .file-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1rem; flex-wrap: wrap;
+  }
   .file-tab {
-    padding:.55rem 1rem; border-radius:12px;
-    background:#fff; border:1.5px solid #eef0f6;
-    font-size:.85rem; font-weight:600; color:#334155;
-    cursor:pointer; transition:all .15s;
+    padding: .6rem 1rem;
+    border-radius: 12px;
+    background: #fff; border: 1.5px solid #eef0f6;
+    font-size: .85rem; font-weight: 600; color: #334155;
+    cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .45rem;
   }
-  .file-tab:hover { border-color:#a5b4fc; background:#f8fafc; }
-  .file-tab.active { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; border-color:transparent; box-shadow:0 6px 18px rgba(99,102,241,.35); }
+  .file-tab:hover { border-color: #a5b4fc; background: #f8fafc; }
+  .file-tab.active { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-color: transparent; box-shadow: 0 6px 18px rgba(99,102,241,.35); }
+  .file-tab .ftype {
+    font-size: .65rem; font-weight: 800; padding: .1rem .45rem;
+    border-radius: 5px; background: rgba(99,102,241,.12); color: #4f46e5;
+  }
+  .file-tab.active .ftype { background: rgba(255,255,255,.2); color: #fff; }
 
-  .viewer-card { background:#fff; border-radius:20px; border:1px solid #eef0f6; box-shadow:0 6px 24px rgba(15,23,42,.06); overflow:hidden; margin-bottom:1.25rem; }
-  .viewer-header { padding:1rem 1.5rem; border-bottom:1px solid #eef0f6; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; background:#fafbff; }
-  .viewer-filename { font-weight:700; color:#0f172a; }
-  .viewer-meta { font-size:.78rem; color:#64748b; margin-top:.15rem; }
-  .viewer-actions { display:flex; gap:.4rem; flex-wrap:wrap; }
+  /* viewer */
+  .viewer-card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #eef0f6;
+    box-shadow: 0 6px 24px rgba(15,23,42,.06);
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
 
-  .viewer-body { padding:0; }
-  .viewer-body iframe { width:100%; height: calc(100vh - 340px); min-height: 620px; border:0; display:block; background:#fff; }
-  .viewer-body video { width:100%; max-height: 78vh; display:block; background:#000; }
-  .viewer-body audio { width:100%; display:block; padding:1.25rem; }
-  .viewer-body img { max-width:100%; display:block; margin:0 auto; padding:1.25rem; }
-
+  /* Minimal top bar — smaller than before */
+  .viewer-bar {
+    padding: .7rem 1.25rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+    background: #fafbff;
+  }
+  .viewer-bar .file-info {
+    display: flex; align-items: center; gap: .65rem;
+    font-weight: 700; color: #0f172a; font-size: .9rem;
+  }
+  .viewer-bar .file-info .meta {
+    font-size: .72rem; color: #94a3b8; font-weight: 500;
+  }
+  .viewer-bar .actions { display: flex; gap: .4rem; flex-wrap: wrap; }
   .icon-btn {
-    display:inline-flex; align-items:center; gap:.4rem;
-    padding:.55rem .9rem; border-radius:10px;
-    background:#fff; border:1.5px solid #eef0f6;
-    font-size:.82rem; font-weight:600; color:#334155;
-    cursor:pointer; text-decoration:none; transition:all .15s;
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .45rem .85rem; border-radius: 9px;
+    background: #fff; border: 1.5px solid #eef0f6;
+    font-size: .78rem; font-weight: 600; color: #334155;
+    cursor: pointer; text-decoration: none; transition: all .15s;
   }
-  .icon-btn:hover { border-color:#6366f1; color:#4f46e5; background:#f5f3ff; }
+  .icon-btn:hover { border-color: #6366f1; color: #4f46e5; background: #f5f3ff; }
+  .icon-btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; border-color: transparent; }
+  .icon-btn.primary:hover { box-shadow: 0 6px 18px rgba(99,102,241,.35); transform: translateY(-1px); }
 
-  .action-bar { background:#fff; border:1px solid #eef0f6; border-radius:20px; padding:1.15rem 1.5rem; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; box-shadow:0 6px 24px rgba(15,23,42,.05); }
-  .btn-complete { padding:.75rem 1.35rem; border-radius:12px; border:none; font-weight:700; font-size:.9rem; cursor:pointer; transition:all .15s; }
-  .btn-complete.todo { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 8px 20px rgba(99,102,241,.35); }
-  .btn-complete.done { background:linear-gradient(135deg,#10b981,#14b8a6); color:#fff; box-shadow:0 8px 20px rgba(16,185,129,.35); }
+  /* body */
+  .viewer-body { padding: 0; }
+  .viewer-body iframe {
+    width: 100%;
+    height: calc(100vh - 260px);
+    min-height: 620px;
+    border: 0;
+    display: block;
+    background: #fff;
+  }
+  .viewer-body video { width: 100%; max-height: 78vh; display: block; background: #000; }
+  .viewer-body audio { width: 100%; display: block; padding: 1.5rem; }
+  .viewer-body img { max-width: 100%; display: block; margin: 0 auto; padding: 1.25rem; }
+
+  .action-bar {
+    background: #fff; border: 1px solid #eef0f6; border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+    box-shadow: 0 6px 24px rgba(15,23,42,.05);
+  }
+  .btn-complete {
+    padding: .75rem 1.35rem; border-radius: 12px; border: none;
+    font-weight: 700; font-size: .9rem; cursor: pointer; transition: all .15s;
+    display: inline-flex; align-items: center; gap: .45rem;
+  }
+  .btn-complete.todo { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; box-shadow: 0 8px 20px rgba(99,102,241,.35); }
+  .btn-complete.todo:hover { transform: translateY(-2px); }
+  .btn-complete.done { background: linear-gradient(135deg, #10b981, #14b8a6); color: #fff; }
 
   .hidden { display: none; }
+
+  /* ============ FOCUS MODE ============ */
+  body.focus-mode {
+    background: #fff !important;
+  }
+  body.focus-mode .sidebar,
+  body.focus-mode .topbar,
+  body.focus-mode .sidebar-backdrop,
+  body.focus-mode .mobile-menu-btn { display: none !important; }
+
+  body.focus-mode .main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  body.focus-mode .lesson-hero,
+  body.focus-mode .file-tabs,
+  body.focus-mode .action-bar,
+  body.focus-mode .viewer-bar,
+  body.focus-mode .flash { display: none !important; }
+
+  body.focus-mode .viewer-card {
+    border-radius: 0; margin: 0; border: 0; box-shadow: none;
+  }
+  body.focus-mode .viewer-body iframe {
+    height: 100vh !important;
+    min-height: 100vh !important;
+  }
+
+  .exit-focus-btn {
+    display: none;
+    position: fixed; top: 16px; right: 16px; z-index: 99999;
+    background: rgba(15,23,42,.9); color: #fff;
+    border: 0; padding: .7rem 1.25rem; border-radius: 12px;
+    font-weight: 700; font-size: .85rem; cursor: pointer;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 30px rgba(0,0,0,.35);
+    transition: all .15s;
+  }
+  .exit-focus-btn:hover { background: rgba(15,23,42,1); transform: translateY(-2px); }
+  body.focus-mode .exit-focus-btn { display: inline-flex; align-items: center; gap: .5rem; }
 </style>
 
+<button class="exit-focus-btn" onclick="toggleFocus()">✕ Exit Focus Mode</button>
+
+<!-- HERO -->
 <div class="lesson-hero animate">
-  <div class="breadcrumb">Lesson</div>
-  <div class="lesson-title-hero"><%= lesson.title %></div>
-  <div class="hero-stats">
-    <span>📚 <%= lesson.course_title %></span>
-    <span>📎 <%= resources.length %> file<%= resources.length === 1 ? '' : 's' %></span>
-    <% if (completed) { %><span style="color:#6ee7b7;">✓ Completed</span><% } %>
+  <div>
+    <h2><%= lesson.title %></h2>
+    <p>📚 <%= lesson.course_title %> · 📎 <%= resources.length %> file<%= resources.length === 1 ? '' : 's' %><% if (completed) { %> · ✅ Completed<% } %></p>
+  </div>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <% if (resources.length > 0) { %>
+      <button class="btn-focus" onclick="toggleFocus()">⛶ Focus Mode</button>
+    <% } %>
   </div>
 </div>
 
+<!-- TABS -->
 <% if (resources.length > 1) { %>
   <div class="file-tabs">
-    <% for (let i = 0; i < resources.length; i++) {
-         const r = resources[i];
+    <% resources.forEach((r, i) => {
          const ext = r.filename.split('.').pop().slice(0,4).toUpperCase();
     %>
       <button class="file-tab <%= i === 0 ? 'active' : '' %>" data-target="file-<%= r.id %>">
-        [<%= ext %>] <%= r.filename %>
+        <span class="ftype"><%= ext %></span>
+        <%= r.filename.length > 30 ? r.filename.slice(0,28) + '…' : r.filename %>
       </button>
-    <% } %>
+    <% }) %>
   </div>
 <% } %>
 
+<!-- VIEWERS -->
 <% if (resources.length === 0) { %>
   <div class="empty">📭 No viewable files in this lesson.</div>
 <% } else { %>
-  <% for (let i = 0; i < resources.length; i++) {
-       const r = resources[i];
+  <% resources.forEach((r, i) => {
        const fileUrl = '/lesson-files/' + lesson.id + '/' + encodeURIComponent(r.filename);
+       const sizeText = r.size_bytes > 1024 * 1024
+         ? (r.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
+         : Math.round(r.size_bytes / 1024) + ' KB';
   %>
     <div class="viewer-card file-viewer <%= i === 0 ? '' : 'hidden' %>" id="file-<%= r.id %>">
-      <div class="viewer-header">
-        <div>
-          <div class="viewer-filename">📄 <%= r.filename %></div>
-          <div class="viewer-meta">
-            <%= r.type %> · <%= (r.size_bytes / 1024).toFixed(0) %> KB
-          </div>
+
+      <!-- Minimal bar -->
+      <div class="viewer-bar">
+        <div class="file-info">
+          📄 <%= r.filename %>
+          <span class="meta"><%= r.type %> · <%= sizeText %></span>
         </div>
-        <div class="viewer-actions">
-          <a class="icon-btn" href="/files/resource/<%= r.id %>" download>⬇️ Download</a>
+        <div class="actions">
+          <% if (r.type === 'html' || r.type === 'pdf') { %>
+            <button class="icon-btn primary" onclick="toggleFocus()">⛶ Focus</button>
+          <% } %>
           <a class="icon-btn" href="<%= fileUrl %>" target="_blank">🔗 New tab</a>
+          <a class="icon-btn" href="/files/resource/<%= r.id %>" download>⬇️ Download</a>
         </div>
       </div>
 
-      <% if (r.type === 'pdf' || r.type === 'html') { %>
-        <div class="viewer-body">
+      <div class="viewer-body">
+        <% if (r.type === 'pdf' || r.type === 'html') { %>
           <iframe src="<%= fileUrl %>"></iframe>
-        </div>
-      <% } else if (r.type === 'video') { %>
-        <div class="viewer-body">
+        <% } else if (r.type === 'video') { %>
           <video controls><source src="<%= fileUrl %>"></video>
-        </div>
-      <% } else if (r.type === 'audio') { %>
-        <div class="viewer-body">
+        <% } else if (r.type === 'audio') { %>
           <audio controls><source src="<%= fileUrl %>"></audio>
-        </div>
-      <% } else if (r.type === 'image') { %>
-        <div class="viewer-body">
+        <% } else if (r.type === 'image') { %>
           <img src="<%= fileUrl %>" alt="<%= r.filename %>">
-        </div>
-      <% } else { %>
-        <div class="viewer-body" style="padding:1.5rem;">
-          <div class="empty">📥 Not previewable here. Use Download or New tab.</div>
-        </div>
-      <% } %>
+        <% } else { %>
+          <div style="padding:2rem;">
+            <div class="empty">📥 Not previewable. Use Download or New tab.</div>
+          </div>
+        <% } %>
+      </div>
     </div>
-  <% } %>
+  <% }) %>
 <% } %>
 
-<% if (hiddenCount && hiddenCount > 0) { %>
-  <div class="empty" style="margin-bottom:1rem;">
-    🔒 <%= hiddenCount %> asset file<%= hiddenCount === 1 ? '' : 's' %> (images, CSS, JS) hidden — they still load inside the HTML above.
-  </div>
-<% } %>
-
-<div class="action-bar animate" style="margin-top:1.25rem;">
+<!-- ACTIONS -->
+<div class="action-bar animate">
   <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
     <% if (prev) { %><a class="btn outline" href="/lessons/<%= prev.id %>">← Previous</a><% } %>
     <a class="btn outline" href="/courses/<%= lesson.course_id %>">📚 All lessons</a>
@@ -157,6 +250,7 @@
 </div>
 
 <script>
+  // File tab switching
   document.querySelectorAll('.file-tab').forEach(tab => {
     tab.addEventListener('click', () => {
       document.querySelectorAll('.file-tab').forEach(t => t.classList.remove('active'));
@@ -165,6 +259,31 @@
       const t = document.getElementById(tab.dataset.target);
       if (t) t.classList.remove('hidden');
     });
+  });
+
+  // Focus mode
+  function toggleFocus() {
+    document.body.classList.toggle('focus-mode');
+    // optional: also enter native fullscreen
+    if (document.body.classList.contains('focus-mode')) {
+      // small delay so layout settles
+      setTimeout(() => {
+        if (document.documentElement.requestFullscreen) {
+          document.documentElement.requestFullscreen().catch(()=>{});
+        }
+      }, 150);
+    } else {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(()=>{});
+      }
+    }
+  }
+
+  // ESC also exits focus mode
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.body.classList.contains('focus-mode')) {
+      toggleFocus();
+    }
   });
 </script>
 

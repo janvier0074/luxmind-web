@@ -15,19 +15,19 @@ router.get('/search', requireLogin, async (req, res) => {
     if (user.role === 'student') {
       courses = await db.all(`
         SELECT c.* FROM courses c
-        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-        WHERE c.title LIKE ? OR c.description LIKE ?
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+        WHERE c.title LIKE $2 OR c.description LIKE $3
         LIMIT 20
       `, [user.id, '%'+q+'%', '%'+q+'%']);
     } else if (user.role === 'teacher') {
       courses = await db.all(`
-        SELECT c.* FROM courses c WHERE c.teacher_id = ?
-          AND (c.title LIKE ? OR c.description LIKE ?)
+        SELECT c.* FROM courses c WHERE c.teacher_id = $1
+          AND (c.title LIKE $2 OR c.description LIKE $3)
         LIMIT 20
       `, [user.id, '%'+q+'%', '%'+q+'%']);
     } else {
       courses = await db.all(`
-        SELECT * FROM courses WHERE title LIKE ? OR description LIKE ? LIMIT 20
+        SELECT * FROM courses WHERE title LIKE $1 OR description LIKE $2 LIMIT 20
       `, ['%'+q+'%', '%'+q+'%']);
     }
 
@@ -37,8 +37,8 @@ router.get('/search', requireLogin, async (req, res) => {
         SELECT l.*, c.title AS course_title, c.id AS course_id
         FROM lessons l
         JOIN courses c ON c.id = l.course_id
-        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-        WHERE l.title LIKE ?
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+        WHERE l.title LIKE $2
         LIMIT 30
       `, [user.id, '%'+q+'%']);
     } else if (user.role === 'teacher') {
@@ -46,14 +46,14 @@ router.get('/search', requireLogin, async (req, res) => {
         SELECT l.*, c.title AS course_title, c.id AS course_id
         FROM lessons l
         JOIN courses c ON c.id = l.course_id
-        WHERE c.teacher_id = ? AND l.title LIKE ?
+        WHERE c.teacher_id = $1 AND l.title LIKE $2
         LIMIT 30
       `, [user.id, '%'+q+'%']);
     } else {
       lessons = await db.all(`
         SELECT l.*, c.title AS course_title, c.id AS course_id
         FROM lessons l JOIN courses c ON c.id = l.course_id
-        WHERE l.title LIKE ? LIMIT 30
+        WHERE l.title LIKE $1 LIMIT 30
       `, ['%'+q+'%']);
     }
 
@@ -63,8 +63,8 @@ router.get('/search', requireLogin, async (req, res) => {
         SELECT q.*, c.title AS course_title
         FROM quizzes q
         JOIN courses c ON c.id = q.course_id
-        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-        WHERE q.title LIKE ?
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+        WHERE q.title LIKE $2
         LIMIT 20
       `, [user.id, '%'+q+'%']);
     } else if (user.role === 'teacher') {
@@ -72,7 +72,7 @@ router.get('/search', requireLogin, async (req, res) => {
         SELECT q.*, c.title AS course_title
         FROM quizzes q
         JOIN courses c ON c.id = q.course_id
-        WHERE c.teacher_id = ? AND q.title LIKE ?
+        WHERE c.teacher_id = $1 AND q.title LIKE $2
         LIMIT 20
       `, [user.id, '%'+q+'%']);
     }

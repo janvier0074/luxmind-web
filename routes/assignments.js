@@ -32,7 +32,7 @@ router.get('/teacher/assignments', requireLogin, async (req, res) => {
   const db = getDB();
   const tid = req.session.user.id;
 
-  const courses = await db.all('SELECT * FROM courses WHERE teacher_id = ?', [tid]);
+  const courses = await db.all('SELECT * FROM courses WHERE teacher_id = $1', [tid]);
 
   const assignments = await db.all(`
     SELECT a.*, c.title AS course_title,
@@ -40,7 +40,7 @@ router.get('/teacher/assignments', requireLogin, async (req, res) => {
       (SELECT COUNT(*) FROM submissions WHERE assignment_id = a.id AND score IS NULL) AS pending
     FROM assignments a
     JOIN courses c ON c.id = a.course_id
-    WHERE c.teacher_id = ?
+    WHERE c.teacher_id = $1
     ORDER BY a.created_at DESC
   `, [tid]);
 
@@ -58,7 +58,7 @@ router.post('/teacher/assignments', requireLogin, async (req, res) => {
   const { course_id, title, description, deadline, max_points } = req.body;
 
   const course = await db.get(
-    'SELECT * FROM courses WHERE id = ? AND teacher_id = ?',
+    'SELECT * FROM courses WHERE id = $1 AND teacher_id = $2',
     [course_id, req.session.user.id]
   );
   if (!course) {
@@ -69,7 +69,7 @@ router.post('/teacher/assignments', requireLogin, async (req, res) => {
   const iso = deadline ? new Date(deadline).toISOString() : null;
 
   await db.run(
-    'INSERT INTO assignments (course_id, title, description, deadline, max_points) VALUES (?,?,?,?,?)',
+    'INSERT INTO assignments (course_id, title, description, deadline, max_points) VALUES ($1,$2,$3,$4,$5)',
     [course_id, title, description || null, iso, Number(max_points) || 100]
   );
 
@@ -83,10 +83,10 @@ router.post('/teacher/assignments/:id/delete', requireLogin, async (req, res) =>
   const a = await db.get(`
     SELECT a.id FROM assignments a
     JOIN courses c ON c.id = a.course_id
-    WHERE a.id = ? AND c.teacher_id = ?
+    WHERE a.id = $1 AND c.teacher_id = $2
   `, [req.params.id, req.session.user.id]);
   if (!a) { req.flash('error', 'Not found.'); return res.redirect('/teacher/assignments'); }
-  await db.run('DELETE FROM assignments WHERE id = ?', [a.id]);
+  await db.run('DELETE FROM assignments WHERE id = $1', [a.id]);
   req.flash('success', 'Assignment deleted.');
   res.redirect('/teacher/assignments');
 });
@@ -100,7 +100,7 @@ router.get('/teacher/assignments/:id', requireLogin, async (req, res) => {
     SELECT a.*, c.title AS course_title
     FROM assignments a
     JOIN courses c ON c.id = a.course_id
-    WHERE a.id = ? AND c.teacher_id = ?
+    WHERE a.id = $1 AND c.teacher_id = $2
   `, [req.params.id, tid]);
 
   if (!assignment) return res.status(404).send('Not found');
@@ -109,7 +109,7 @@ router.get('/teacher/assignments/:id', requireLogin, async (req, res) => {
     SELECT s.*, u.full_name AS student_name, u.username AS student_username
     FROM submissions s
     JOIN users u ON u.id = s.user_id
-    WHERE s.assignment_id = ?
+    WHERE s.assignment_id = $1
     ORDER BY s.submitted_at DESC
   `, [assignment.id]);
 
@@ -118,8 +118,8 @@ router.get('/teacher/assignments/:id', requireLogin, async (req, res) => {
     SELECT u.id, u.full_name, u.username
     FROM enrollments e
     JOIN users u ON u.id = e.user_id
-    WHERE e.course_id = ?
-      AND u.id NOT IN (SELECT user_id FROM submissions WHERE assignment_id = ?)
+    WHERE e.course_id = $1
+      AND u.id NOT IN (SELECT user_id FROM submissions WHERE assignment_id = $2)
   `, [assignment.course_id, assignment.id]);
 
   res.render('teacher/assignment-detail', {
@@ -140,13 +140,13 @@ router.post('/teacher/submissions/:id/grade', requireLogin, async (req, res) => 
     SELECT s.id, s.assignment_id FROM submissions s
     JOIN assignments a ON a.id = s.assignment_id
     JOIN courses c ON c.id = a.course_id
-    WHERE s.id = ? AND c.teacher_id = ?
+    WHERE s.id = $1 AND c.teacher_id = $2
   `, [subId, req.session.user.id]);
 
   if (!sub) { req.flash('error', 'Not found.'); return res.redirect('/teacher/assignments'); }
 
   await db.run(
-    'UPDATE submissions SET score = ?, feedback = ?, graded_by = ?, graded_at = CURRENT_TIMESTAMP WHERE id = ?',
+    'UPDATE submissions SET score = $1, feedback = $2, graded_by = $3, graded_at = CURRENT_TIMESTAMP WHERE id = $4',
     [Number(score), feedback || null, req.session.user.id, subId]
   );
 
@@ -168,8 +168,8 @@ router.get('/student/assignments', requireLogin, async (req, res) => {
       s.submitted_at, s.score, s.feedback, s.file_name
     FROM assignments a
     JOIN courses c ON c.id = a.course_id
-    JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-    LEFT JOIN submissions s ON s.assignment_id = a.id AND s.user_id = ?
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    LEFT JOIN submissions s ON s.assignment_id = a.id AND s.user_id = $2
     ORDER BY a.deadline IS NULL, a.deadline ASC, a.created_at DESC
   `, [uid, uid]);
 
@@ -196,14 +196,14 @@ router.get('/student/assignments/:id', requireLogin, async (req, res) => {
     SELECT a.*, c.title AS course_title
     FROM assignments a
     JOIN courses c ON c.id = a.course_id
-    JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
-    WHERE a.id = ?
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    WHERE a.id = $2
   `, [uid, req.params.id]);
 
   if (!assignment) return res.status(404).send('Not found');
 
   const submission = await db.get(
-    'SELECT * FROM submissions WHERE assignment_id = ? AND user_id = ?',
+    'SELECT * FROM submissions WHERE assignment_id = $1 AND user_id = $2',
     [assignment.id, uid]
   );
 
@@ -226,12 +226,12 @@ router.post('/student/assignments/:id/submit', requireLogin,
   const assignmentId = req.params.id;
 
   const assignment = await db.get(
-    'SELECT * FROM assignments WHERE id = ?', [assignmentId]
+    'SELECT * FROM assignments WHERE id = $1', [assignmentId]
   );
   if (!assignment) return res.status(404).send('Not found');
 
   const existing = await db.get(
-    'SELECT * FROM submissions WHERE assignment_id = ? AND user_id = ?',
+    'SELECT * FROM submissions WHERE assignment_id = $1 AND user_id = $2',
     [assignmentId, uid]
   );
 
@@ -247,15 +247,15 @@ router.post('/student/assignments/:id/submit', requireLogin,
 
   if (existing) {
     await db.run(`
-      UPDATE submissions SET file_path = ?, file_name = ?, text_content = ?,
+      UPDATE submissions SET file_path = $1, file_name = $2, text_content = $3,
         submitted_at = CURRENT_TIMESTAMP, score = NULL, feedback = NULL, graded_at = NULL
-      WHERE id = ?
+      WHERE id = $4
     `, [relPath, fileName, textContent, existing.id]);
     req.flash('success', isLate ? 'Resubmitted (late).' : 'Resubmitted.');
   } else {
     await db.run(`
       INSERT INTO submissions (assignment_id, user_id, file_path, file_name, text_content)
-      VALUES (?,?,?,?,?)
+      VALUES ($1,$2,$3,$4,$5)
     `, [assignmentId, uid, relPath, fileName, textContent]);
     req.flash('success', isLate ? 'Submitted (late).' : 'Submitted.');
   }

@@ -31,10 +31,10 @@ const upload = multer({
 // Load lesson + verify teacher owns the course
 async function loadLesson(req, res, next) {
   const db = getDB();
-  const lesson = await db.get('SELECT * FROM lessons WHERE id = ?', [req.params.lessonId]);
+  const lesson = await db.get('SELECT * FROM lessons WHERE id = $1', [req.params.lessonId]);
   if (!lesson) return res.status(404).send('Lesson not found');
   const course = await db.get(
-    'SELECT * FROM courses WHERE id = ? AND teacher_id = ?',
+    'SELECT * FROM courses WHERE id = $1 AND teacher_id = $2',
     [lesson.course_id, req.session.user.id]
   );
   if (!course) return res.status(403).send('Not your course');
@@ -52,7 +52,7 @@ router.get('/teacher/courses/:courseId/manage', requireLogin, requireRole('teach
   const tid = req.session.user.id;
 
   const course = await db.get(
-    'SELECT * FROM courses WHERE id = ? AND teacher_id = ?',
+    'SELECT * FROM courses WHERE id = $1 AND teacher_id = $2',
     [courseId, tid]
   );
   if (!course) return res.status(404).send('Course not found or not yours');
@@ -61,13 +61,13 @@ router.get('/teacher/courses/:courseId/manage', requireLogin, requireRole('teach
     SELECT l.*,
       (SELECT COUNT(*) FROM resources WHERE lesson_id = l.id) AS resource_count
     FROM lessons l
-    WHERE l.course_id = ?
+    WHERE l.course_id = $1
     ORDER BY l.position, l.id
   `, [courseId]);
 
   for (const lesson of lessons) {
     lesson.resources = await db.all(
-      'SELECT * FROM resources WHERE lesson_id = ? ORDER BY position, id',
+      'SELECT * FROM resources WHERE lesson_id = $1 ORDER BY position, id',
       [lesson.id]
     );
   }
@@ -90,7 +90,7 @@ router.post('/teacher/courses/:courseId/lesson', requireLogin, requireRole('teac
   const tid = req.session.user.id;
 
   const course = await db.get(
-    'SELECT * FROM courses WHERE id = ? AND teacher_id = ?',
+    'SELECT * FROM courses WHERE id = $1 AND teacher_id = $2',
     [courseId, tid]
   );
   if (!course) return res.status(404).send('Not found');
@@ -102,7 +102,7 @@ router.post('/teacher/courses/:courseId/lesson', requireLogin, requireRole('teac
   }
 
   const max = await db.get(
-    'SELECT COALESCE(MAX(position), 0) AS m FROM lessons WHERE course_id = ?',
+    'SELECT COALESCE(MAX(position), 0) AS m FROM lessons WHERE course_id = $1',
     [courseId]
   );
   const position = max.m + 1;
@@ -112,7 +112,7 @@ router.post('/teacher/courses/:courseId/lesson', requireLogin, requireRole('teac
   fs.mkdirSync(folderPath, { recursive: true });
 
   await db.run(
-    'INSERT INTO lessons (course_id, title, position, folder_path) VALUES (?,?,?,?)',
+    'INSERT INTO lessons (course_id, title, position, folder_path) VALUES ($1,$2,$3,$4)',
     [courseId, title, position, folderPath]
   );
 
@@ -138,7 +138,7 @@ router.post('/teacher/lessons/:lessonId/upload',
     }
 
     const max = await db.get(
-      'SELECT COALESCE(MAX(position), 0) AS m FROM resources WHERE lesson_id = ?',
+      'SELECT COALESCE(MAX(position), 0) AS m FROM resources WHERE lesson_id = $1',
       [lesson.id]
     );
     let pos = max.m + 1;
@@ -151,7 +151,7 @@ router.post('/teacher/lessons/:lessonId/upload',
 
       await db.run(
         `INSERT INTO resources (lesson_id, filename, file_path, type, size_bytes, position)
-         VALUES (?,?,?,?,?,?)`,
+         VALUES ($1,$2,$3,$4,$5,$6)`,
         [lesson.id, file.filename, fullPath, type, stat.size, pos]
       );
       pos++;
@@ -172,7 +172,7 @@ router.post('/teacher/resources/:resourceId/delete', requireLogin, requireRole('
     FROM resources r
     JOIN lessons l ON l.id = r.lesson_id
     JOIN courses c ON c.id = l.course_id
-    WHERE r.id = ?
+    WHERE r.id = $1
   `, [req.params.resourceId]);
 
   if (!r || r.teacher_id !== req.session.user.id) {
@@ -182,7 +182,7 @@ router.post('/teacher/resources/:resourceId/delete', requireLogin, requireRole('
 
   try { if (fs.existsSync(r.file_path)) fs.unlinkSync(r.file_path); } catch (e) {}
 
-  await db.run('DELETE FROM resources WHERE id = ?', [r.id]);
+  await db.run('DELETE FROM resources WHERE id = $1', [r.id]);
   req.flash('success', 'File deleted.');
   res.redirect('/teacher/courses/' + r.course_id + '/manage');
 });
@@ -195,7 +195,7 @@ router.post('/teacher/lessons/:lessonId/delete', requireLogin, requireRole('teac
   const lesson = await db.get(`
     SELECT l.*, c.teacher_id FROM lessons l
     JOIN courses c ON c.id = l.course_id
-    WHERE l.id = ?
+    WHERE l.id = $1
   `, [req.params.lessonId]);
 
   if (!lesson || lesson.teacher_id !== req.session.user.id) {
@@ -209,7 +209,7 @@ router.post('/teacher/lessons/:lessonId/delete', requireLogin, requireRole('teac
     }
   } catch (e) { console.error(e); }
 
-  await db.run('DELETE FROM lessons WHERE id = ?', [lesson.id]);
+  await db.run('DELETE FROM lessons WHERE id = $1', [lesson.id]);
   req.flash('success', 'Lesson deleted.');
   res.redirect('/teacher/courses/' + lesson.course_id + '/manage');
 });
@@ -222,7 +222,7 @@ router.post('/teacher/lessons/:lessonId/rename', requireLogin, requireRole('teac
   const lesson = await db.get(`
     SELECT l.*, c.teacher_id FROM lessons l
     JOIN courses c ON c.id = l.course_id
-    WHERE l.id = ?
+    WHERE l.id = $1
   `, [req.params.lessonId]);
 
   if (!lesson || lesson.teacher_id !== req.session.user.id) {
@@ -236,9 +236,45 @@ router.post('/teacher/lessons/:lessonId/rename', requireLogin, requireRole('teac
     return res.redirect('/teacher/courses/' + lesson.course_id + '/manage');
   }
 
-  await db.run('UPDATE lessons SET title = ? WHERE id = ?', [newTitle, lesson.id]);
+  await db.run('UPDATE lessons SET title = $1 WHERE id = $2', [newTitle, lesson.id]);
   req.flash('success', 'Lesson renamed.');
   res.redirect('/teacher/courses/' + lesson.course_id + '/manage');
 });
 
+
+// ============================================================
+//  REORDER LESSONS
+// ============================================================
+router.post('/teacher/courses/:courseId/reorder', requireLogin, requireRole('teacher'), async (req, res) => {
+  const db = getDB();
+  const courseId = req.params.courseId;
+  const tid = req.session.user.id;
+
+  // verify ownership
+  const course = await db.get(
+    'SELECT id FROM courses WHERE id = $1 AND teacher_id = $2',
+    [courseId, tid]
+  );
+  if (!course) return res.status(403).json({ error: 'Not your course' });
+
+  const { order } = req.body; // array of lesson IDs in new order
+  if (!Array.isArray(order)) {
+    return res.status(400).json({ error: 'Invalid order' });
+  }
+
+  try {
+    let pos = 1;
+    for (const lessonId of order) {
+      await db.run(
+        'UPDATE lessons SET position = $1 WHERE id = $2 AND course_id = $3',
+        [pos, Number(lessonId), courseId]
+      );
+      pos++;
+    }
+    res.json({ success: true });
+  } catch (e) {
+    console.error('Reorder error:', e);
+    res.status(500).json({ error: 'Reorder failed' });
+  }
+});
 module.exports = router;

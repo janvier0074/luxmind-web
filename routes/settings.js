@@ -6,7 +6,7 @@ const router = express.Router();
 
 // helper: get all settings for a user as an object
 async function getSettings(db, userId) {
-  const rows = await db.all('SELECT key, value FROM settings WHERE user_id = ?', [userId]);
+  const rows = await db.all('SELECT key, value FROM settings WHERE user_id = $1', [userId]);
   const map = { ...DEFAULT_SETTINGS };
   rows.forEach(r => { map[r.key] = r.value; });
   return map;
@@ -15,14 +15,14 @@ async function getSettings(db, userId) {
 // helper: upsert one setting
 async function setSetting(db, userId, key, value) {
   const existing = await db.get(
-    'SELECT id FROM settings WHERE user_id = ? AND key = ?',
+    'SELECT id FROM settings WHERE user_id = $1 AND key = $2',
     [userId, key]
   );
   if (existing) {
-    await db.run('UPDATE settings SET value = ? WHERE id = ?', [String(value), existing.id]);
+    await db.run('UPDATE settings SET value = $1 WHERE id = $2', [String(value), existing.id]);
   } else {
     await db.run(
-      'INSERT INTO settings (user_id, key, value) VALUES (?,?,?)',
+      'INSERT INTO settings (user_id, key, value) VALUES ($1,$2,$3)',
       [userId, key, String(value)]
     );
   }
@@ -87,7 +87,7 @@ router.post('/settings/delete', requireLogin, async (req, res) => {
   }
   const db = getDB();
   const uid = req.session.user.id;
-  await db.run('DELETE FROM users WHERE id = ?', [uid]);
+  await db.run('DELETE FROM users WHERE id = $1', [uid]);
   req.session.destroy(() => res.redirect('/login'));
 });
 

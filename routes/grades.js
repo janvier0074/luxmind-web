@@ -15,7 +15,7 @@ router.get('/student/grades', requireLogin, async (req, res) => {
     JOIN quizzes q ON q.id = a.quiz_id
     JOIN courses c ON c.id = q.course_id
     LEFT JOIN manual_grades m ON m.attempt_id = a.id
-    WHERE a.user_id = ?
+    WHERE a.user_id = $1
     ORDER BY a.submitted_at DESC
   `, [uid]);
 
@@ -31,7 +31,7 @@ router.get('/student/grades', requireLogin, async (req, res) => {
     FROM submissions s
     JOIN assignments a ON a.id = s.assignment_id
     JOIN courses c ON c.id = a.course_id
-    WHERE s.user_id = ?
+    WHERE s.user_id = $1
     ORDER BY s.submitted_at DESC
   `, [uid]);
 
@@ -39,9 +39,9 @@ router.get('/student/grades', requireLogin, async (req, res) => {
     SELECT c.id AS course_id, c.title AS course_title,
       (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS total_lessons,
       (SELECT COUNT(*) FROM progress p JOIN lessons l ON l.id = p.lesson_id
-        WHERE l.course_id = c.id AND p.user_id = ? AND p.completed = 1) AS done_lessons
+        WHERE l.course_id = c.id AND p.user_id = $1 AND p.completed = 1) AS done_lessons
     FROM courses c
-    JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $2
   `, [uid, uid]);
 
   let quizScore = 0, quizMax = 0, released = 0;

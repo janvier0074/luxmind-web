@@ -1,6 +1,5 @@
 const { getDB } = require('../config/database');
 
-// Middleware: update last_seen timestamp on every authenticated request
 async function touchLastSeen(req) {
   if (!req.session || !req.session.user) return;
   try {
@@ -14,8 +13,42 @@ async function touchLastSeen(req) {
 
 async function requireLogin(req, res, next) {
   if (!req.session.user) return res.redirect('/login');
-  // fire-and-forget update
+
   touchLastSeen(req);
+
+  // Defaults so views don't crash
+  res.locals.unreadAnnouncements = 0;
+  res.locals.unreadMessages = 0;
+
+  try {
+    const db = getDB();
+    const uid = req.session.user.id;
+
+    // Unread messages — for every role
+    const msgRow = await db.get(
+      'SELECT COUNT(*) AS c FROM messages WHERE receiver_id = ? AND is_read = 0',
+      [uid]
+    );
+    res.locals.unreadMessages = msgRow.c || 0;
+
+    // Unread announcements — students only
+    if (req.session.user.role === 'student') {
+      const annRow = await db.get(`
+        SELECT COUNT(*) AS c
+        FROM announcements a
+        JOIN courses c ON c.id = a.course_id
+        JOIN enrollments e ON e.course_id = c.id AND e.user_id = ?
+        WHERE a.created_at > COALESCE(
+          (SELECT announcements_seen_at FROM users WHERE id = ?),
+          '1970-01-01'
+        )
+      `, [uid, uid]);
+      res.locals.unreadAnnouncements = annRow.c || 0;
+    }
+  } catch (e) {
+    // silently ignore — badge just won't show
+  }
+
   next();
 }
 

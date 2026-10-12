@@ -30,12 +30,59 @@
   }
   .add-lesson-form button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.15); }
 
+  /* reorder toolbar */
+  .reorder-bar {
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+    background: #fff;
+    border: 1px solid #eef0f6;
+    border-radius: 16px;
+    padding: .9rem 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 3px 12px rgba(15,23,42,.04);
+  }
+  .reorder-bar .hint {
+    display: flex; align-items: center; gap: .55rem;
+    font-size: .88rem; color: #64748b; font-weight: 500;
+  }
+  .reorder-bar .hint .ic {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: #eef2ff; color: #4f46e5;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .reorder-bar .actions { display: flex; gap: .5rem; }
+
+  .btn-save-order {
+    display: inline-flex; align-items: center; gap: .5rem;
+    padding: .65rem 1.25rem; border-radius: 10px;
+    background: linear-gradient(135deg, #10b981, #14b8a6);
+    color: #fff; border: 0; font-weight: 700; font-size: .86rem;
+    cursor: pointer; box-shadow: 0 6px 16px rgba(16,185,129,.3);
+    transition: all .15s;
+  }
+  .btn-save-order:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(16,185,129,.4); }
+  .btn-save-order:disabled { opacity: .5; cursor: not-allowed; }
+
   .lesson-block {
     background: #fff; border-radius: 20px;
     border: 1px solid #eef0f6;
     margin-bottom: 1.25rem; overflow: hidden;
     box-shadow: 0 4px 16px rgba(15,23,42,.04);
+    transition: all .2s;
   }
+  .lesson-block.dragging {
+    opacity: .5;
+    border-style: dashed;
+    border-color: #6366f1;
+    background: #eef2ff;
+  }
+  .lesson-block.drag-over {
+    border-color: #6366f1;
+    background: #f0f4ff;
+    transform: scale(1.01);
+  }
+
   .lesson-head {
     padding: 1.25rem 1.5rem;
     background: #fafbff;
@@ -43,7 +90,22 @@
     display: flex; justify-content: space-between; align-items: center;
     gap: 1rem; flex-wrap: wrap;
   }
-  .lesson-title-row { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; }
+  .lesson-title-row { display: flex; align-items: center; gap: .85rem; flex-wrap: wrap; flex: 1; min-width: 0; }
+
+  .drag-handle {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    display: flex; align-items: center; justify-content: center;
+    color: #94a3b8; font-size: 1rem;
+    cursor: grab;
+    flex-shrink: 0;
+    transition: all .15s;
+    user-select: none;
+  }
+  .drag-handle:hover { background: #e0e7ff; color: #4f46e5; }
+  .drag-handle:active { cursor: grabbing; }
+
   .lesson-num {
     width: 40px; height: 40px; border-radius: 12px;
     background: linear-gradient(135deg, #6366f1, #ec4899);
@@ -102,11 +164,29 @@
   .btn-mini.view { background: #eff6ff; color: #1d4ed8; }
   .btn-mini.del { background: #fef2f2; color: #dc2626; }
   .btn-mini.rename { background: #f5f3ff; color: #6d28d9; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #0f172a; color: #fff;
+    padding: .85rem 1.35rem;
+    border-radius: 12px;
+    font-weight: 600; font-size: .9rem;
+    box-shadow: 0 12px 30px rgba(0,0,0,.3);
+    opacity: 0; transform: translateY(20px);
+    transition: all .25s;
+    z-index: 9999;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: linear-gradient(135deg, #10b981, #14b8a6); }
+  .toast.error   { background: linear-gradient(135deg, #ef4444, #dc2626); }
 </style>
 
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:.6rem;">
   <a class="btn outline" href="/teacher/courses">← All my courses</a>
-  <a class="btn outline" href="/courses/<%= course.id %>" target="_blank">👁️ Preview as student</a>
+  <div style="display:flex;gap:.5rem;flex-wrap:wrap;">
+    <a class="btn outline" href="/teacher/courses/<%= course.id %>/gradebook">📊 Gradebook</a>
+    <a class="btn outline" href="/courses/<%= course.id %>" target="_blank">👁️ Preview</a>
+  </div>
 </div>
 
 <div class="add-lesson-box">
@@ -120,68 +200,210 @@
 <% if (lessons.length === 0) { %>
   <div class="empty">📭 No lessons yet. Create your first one above.</div>
 <% } else { %>
-  <% lessons.forEach((lesson, i) => { %>
-    <div class="lesson-block">
-      <div class="lesson-head">
-        <div class="lesson-title-row">
-          <div class="lesson-num"><%= i + 1 %></div>
-          <div>
-            <h4><%= lesson.title %></h4>
-            <div class="muted" style="font-size:.78rem;">
-              <%= lesson.resources.length %> file<%= lesson.resources.length === 1 ? '' : 's' %>
-            </div>
-          </div>
-        </div>
-        <div class="lesson-actions">
-          <form method="POST" action="/teacher/lessons/<%= lesson.id %>/rename" style="display:flex;gap:.35rem;">
-            <input name="title" value="<%= lesson.title %>" required
-              style="padding:.4rem .7rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#fff;">
-            <button class="btn-mini rename" type="submit">✏️ Rename</button>
-          </form>
-          <form method="POST" action="/teacher/lessons/<%= lesson.id %>/delete"
-                onsubmit="return confirm('Delete lesson AND all its files? Cannot be undone.');">
-            <button class="btn-mini del" type="submit">🗑️ Delete</button>
-          </form>
-        </div>
-      </div>
 
-      <form method="POST" action="/teacher/lessons/<%= lesson.id %>/upload"
-            enctype="multipart/form-data" class="upload-form">
-        <label class="drop-zone">
-          <input type="file" name="files" multiple
-                 onchange="this.form.querySelector('.txt').textContent = this.files.length + ' file(s) — uploading...'; this.form.submit();">
-          <div class="icon">📁</div>
-          <div class="txt">Click or drag files to upload</div>
-          <div class="sub">PDF · Video · Images · Word · PowerPoint · ZIP — up to 500 MB each</div>
-        </label>
-      </form>
+  <div class="reorder-bar">
+    <div class="hint">
+      <div class="ic">✋</div>
+      Drag the <strong style="margin:0 .25rem;">☰</strong> handle to reorder lessons
+    </div>
+    <div class="actions">
+      <button type="button" id="saveOrderBtn" class="btn-save-order" disabled>
+        💾 Save Order
+      </button>
+    </div>
+  </div>
 
-      <% if (lesson.resources.length > 0) { %>
-        <div class="file-list">
-          <% lesson.resources.forEach(r => {
-               const size = r.size_bytes > 1024 * 1024
-                 ? (r.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
-                 : Math.round(r.size_bytes / 1024) + ' KB';
-               const icons = { pdf: '📄', video: '🎥', image: '🖼️', audio: '🎵', html: '🌐', slide: '📊', doc: '📝', archive: '📦', markdown: '📝', other: '📎' };
-               const icon = icons[r.type] || '📎';
-          %>
-            <div class="file-row">
-              <div class="fi"><%= icon %></div>
-              <div class="fn"><%= r.filename %></div>
-              <div class="fs"><%= size %></div>
-              <div class="fa">
-                <a class="btn-mini view" href="/files/resource/<%= r.id %>" target="_blank">View</a>
-                <form method="POST" action="/teacher/resources/<%= r.id %>/delete"
-                      onsubmit="return confirm('Delete this file?');" style="display:inline;">
-                  <button class="btn-mini del" type="submit">Delete</button>
-                </form>
+  <div id="lessonList">
+    <% lessons.forEach((lesson, i) => { %>
+      <div class="lesson-block" data-lesson-id="<%= lesson.id %>" draggable="false">
+        <div class="lesson-head">
+          <div class="lesson-title-row">
+            <div class="drag-handle" title="Drag to reorder">☰</div>
+            <div class="lesson-num"><%= i + 1 %></div>
+            <div style="min-width:0;flex:1;">
+              <h4><%= lesson.title %></h4>
+              <div class="muted" style="font-size:.78rem;">
+                <%= lesson.resources.length %> file<%= lesson.resources.length === 1 ? '' : 's' %>
               </div>
             </div>
-          <% }) %>
+          </div>
+          <div class="lesson-actions">
+            <form method="POST" action="/teacher/lessons/<%= lesson.id %>/rename" style="display:flex;gap:.35rem;">
+              <input name="title" value="<%= lesson.title %>" required
+                style="padding:.4rem .7rem;border:1.5px solid #e2e8f0;border-radius:8px;font-size:.82rem;background:#fff;">
+              <button class="btn-mini rename" type="submit">✏️ Rename</button>
+            </form>
+            <form method="POST" action="/teacher/lessons/<%= lesson.id %>/delete"
+                  onsubmit="return confirm('Delete lesson AND all its files? Cannot be undone.');">
+              <button class="btn-mini del" type="submit">🗑️ Delete</button>
+            </form>
+          </div>
         </div>
-      <% } %>
-    </div>
-  <% }) %>
+
+        <form method="POST" action="/teacher/lessons/<%= lesson.id %>/upload"
+              enctype="multipart/form-data" class="upload-form">
+          <label class="drop-zone">
+            <input type="file" name="files" multiple
+                   onchange="this.form.querySelector('.txt').textContent = this.files.length + ' file(s) — uploading...'; this.form.submit();">
+            <div class="icon">📁</div>
+            <div class="txt">Click or drag files to upload</div>
+            <div class="sub">PDF · Video · Images · Word · PowerPoint · ZIP — up to 500 MB each</div>
+          </label>
+        </form>
+
+        <% if (lesson.resources.length > 0) { %>
+          <div class="file-list">
+            <% lesson.resources.forEach(r => {
+                 const size = r.size_bytes > 1024 * 1024
+                   ? (r.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
+                   : Math.round(r.size_bytes / 1024) + ' KB';
+                 const icons = { pdf: '📄', video: '🎥', image: '🖼️', audio: '🎵', html: '🌐', slide: '📊', doc: '📝', archive: '📦', markdown: '📝', other: '📎' };
+                 const icon = icons[r.type] || '📎';
+            %>
+              <div class="file-row">
+                <div class="fi"><%= icon %></div>
+                <div class="fn"><%= r.filename %></div>
+                <div class="fs"><%= size %></div>
+                <div class="fa">
+                  <a class="btn-mini view" href="/files/resource/<%= r.id %>" target="_blank">View</a>
+                  <form method="POST" action="/teacher/resources/<%= r.id %>/delete"
+                        onsubmit="return confirm('Delete this file?');" style="display:inline;">
+                    <button class="btn-mini del" type="submit">Delete</button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
 <% } %>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  (function () {
+    const list = document.getElementById('lessonList');
+    if (!list) return;
+
+    const saveBtn = document.getElementById('saveOrderBtn');
+    let draggedEl = null;
+    let originalOrder = [];
+
+    // capture initial order
+    [...list.querySelectorAll('.lesson-block')].forEach(b => {
+      originalOrder.push(b.dataset.lessonId);
+    });
+
+    function currentOrder() {
+      return [...list.querySelectorAll('.lesson-block')].map(b => b.dataset.lessonId);
+    }
+
+    function updateNumbers() {
+      [...list.querySelectorAll('.lesson-block')].forEach((b, i) => {
+        const n = b.querySelector('.lesson-num');
+        if (n) n.textContent = i + 1;
+      });
+    }
+
+    function checkChanged() {
+      const cur = currentOrder().join(',');
+      const orig = originalOrder.join(',');
+      saveBtn.disabled = (cur === orig);
+    }
+
+    // attach drag start to each drag handle
+    list.querySelectorAll('.drag-handle').forEach(handle => {
+      handle.addEventListener('mousedown', () => {
+        handle.closest('.lesson-block').setAttribute('draggable', 'true');
+      });
+      handle.addEventListener('mouseup', () => {
+        handle.closest('.lesson-block').setAttribute('draggable', 'false');
+      });
+    });
+
+    // drag events on lesson blocks
+    list.querySelectorAll('.lesson-block').forEach(block => {
+      block.addEventListener('dragstart', (e) => {
+        draggedEl = block;
+        block.classList.add('dragging');
+        e.dataTransfer.effectAllowed = 'move';
+      });
+
+      block.addEventListener('dragend', () => {
+        block.classList.remove('dragging');
+        block.setAttribute('draggable', 'false');
+        draggedEl = null;
+        list.querySelectorAll('.lesson-block').forEach(b => b.classList.remove('drag-over'));
+        updateNumbers();
+        checkChanged();
+      });
+
+      block.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        if (!draggedEl || draggedEl === block) return;
+
+        const rect = block.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        const after = e.clientY > midpoint;
+
+        list.querySelectorAll('.lesson-block').forEach(b => b.classList.remove('drag-over'));
+        block.classList.add('drag-over');
+
+        if (after) {
+          block.parentNode.insertBefore(draggedEl, block.nextSibling);
+        } else {
+          block.parentNode.insertBefore(draggedEl, block);
+        }
+      });
+
+      block.addEventListener('dragleave', () => {
+        block.classList.remove('drag-over');
+      });
+
+      block.addEventListener('drop', (e) => {
+        e.preventDefault();
+        block.classList.remove('drag-over');
+      });
+    });
+
+    // save
+    saveBtn.addEventListener('click', async () => {
+      saveBtn.disabled = true;
+      const original = saveBtn.innerHTML;
+      saveBtn.innerHTML = '⏳ Saving...';
+
+      try {
+        const res = await fetch('/teacher/courses/<%= course.id %>/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ order: currentOrder().map(Number) })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+          toast('✓ Order saved', 'success');
+          originalOrder = currentOrder();
+          checkChanged();
+        } else {
+          toast('✗ ' + (data.error || 'Save failed'), 'error');
+        }
+      } catch (err) {
+        toast('✗ Network error', 'error');
+      } finally {
+        saveBtn.innerHTML = original;
+      }
+    });
+
+    function toast(msg, type) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast ' + type + ' show';
+      setTimeout(() => t.classList.remove('show'), 2200);
+    }
+  })();
+</script>
 
 <%- include('../partials/foot') %>

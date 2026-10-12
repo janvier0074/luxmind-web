@@ -1,0 +1,250 @@
+<%- include('../partials/head', {
+  title: 'Gradebook — ' + course.title,
+  heading: 'Gradebook',
+  subtitle: course.title
+}) %>
+
+<style>
+  .gb-hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #4c1d95 100%);
+    border-radius: 20px;
+    padding: 1.5rem 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 1rem; flex-wrap: wrap;
+    box-shadow: 0 16px 40px rgba(30,27,75,.25);
+  }
+  .gb-hero h2 { font-size: 1.3rem; font-weight: 800; margin-bottom: .3rem; }
+  .gb-hero p { color: rgba(255,255,255,.7); font-size: .88rem; }
+  .gb-hero .actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+  .gb-btn {
+    display: inline-flex; align-items: center; gap: .45rem;
+    padding: .7rem 1.25rem; border-radius: 12px;
+    font-size: .86rem; font-weight: 700;
+    border: none; cursor: pointer; text-decoration: none;
+    transition: all .15s;
+  }
+  .gb-btn.white { background: #fff; color: #4f46e5; }
+  .gb-btn.white:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+  .gb-btn.ghost { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+  .gb-btn.ghost:hover { background: rgba(255,255,255,.25); }
+
+  .gb-wrap {
+    background: #fff;
+    border-radius: 18px;
+    border: 1px solid #eef0f6;
+    box-shadow: 0 6px 24px rgba(15,23,42,.06);
+    overflow: auto;
+    max-height: 75vh;
+  }
+
+  .gb-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: .82rem;
+    min-width: 800px;
+  }
+
+  .gb-table thead th {
+    position: sticky; top: 0;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    padding: .85rem .7rem;
+    text-align: left;
+    font-weight: 700;
+    color: #475569;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    z-index: 5;
+    white-space: nowrap;
+  }
+
+  /* sticky student column */
+  .gb-table th.gb-student-head,
+  .gb-table td.gb-student-cell {
+    position: sticky; left: 0;
+    background: #f8fafc;
+    border-right: 2px solid #e2e8f0;
+    z-index: 4;
+    min-width: 220px;
+    max-width: 260px;
+  }
+  .gb-table thead th.gb-student-head { z-index: 6; }
+
+  .gb-table tbody td {
+    padding: .7rem .7rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: #334155;
+    white-space: nowrap;
+  }
+
+  .gb-table tbody tr:hover td { background: #fafbff; }
+  .gb-table tbody tr:hover td.gb-student-cell { background: #eef2ff; }
+
+  .gb-student-name {
+    font-weight: 700; color: #0f172a;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block;
+    max-width: 100%;
+  }
+  .gb-student-email {
+    font-size: .72rem; color: #94a3b8;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block;
+  }
+
+  .gb-cell {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 56px; padding: .35rem .55rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: .82rem;
+  }
+  .gb-cell.empty { color: #cbd5e1; background: transparent; font-weight: 500; }
+  .gb-cell.good  { background: #ecfdf5; color: #047857; }
+  .gb-cell.mid   { background: #fffbeb; color: #b45309; }
+  .gb-cell.bad   { background: #fef2f2; color: #b91c1c; }
+
+  .gb-total {
+    font-weight: 800;
+    color: #0f172a;
+    display: flex; flex-direction: column; align-items: flex-start;
+    gap: .15rem;
+  }
+  .gb-total .pct {
+    font-size: .72rem; padding: .15rem .5rem;
+    border-radius: 100px; font-weight: 700;
+  }
+  .gb-total .pct.good { background: #ecfdf5; color: #047857; }
+  .gb-total .pct.mid  { background: #fffbeb; color: #b45309; }
+  .gb-total .pct.bad  { background: #fef2f2; color: #b91c1c; }
+
+  .gb-empty-state {
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #64748b;
+  }
+  .gb-empty-state .ico { font-size: 3rem; margin-bottom: .75rem; }
+
+  .gb-legend {
+    display: flex; gap: 1.25rem; flex-wrap: wrap;
+    margin-top: 1rem; font-size: .78rem; color: #64748b; font-weight: 500;
+  }
+  .gb-legend span { display: flex; align-items: center; gap: .35rem; }
+  .gb-legend .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .gb-legend .dot.good { background: #10b981; }
+  .gb-legend .dot.mid  { background: #f59e0b; }
+  .gb-legend .dot.bad  { background: #ef4444; }
+</style>
+
+<!-- HERO -->
+<div class="gb-hero animate">
+  <div>
+    <h2>📊 Gradebook</h2>
+    <p>
+      <%= students.length %> student<%= students.length === 1 ? '' : 's' %>
+      · <%= quizzes.length %> quiz<%= quizzes.length === 1 ? '' : 'zes' %>
+      · <%= assignments.length %> assignment<%= assignments.length === 1 ? '' : 's' %>
+    </p>
+  </div>
+  <div class="actions">
+    <a class="gb-btn ghost" href="/teacher/courses">← Courses</a>
+    <a class="gb-btn ghost" href="/teacher/courses/<%= course.id %>/manage">⚙️ Manage</a>
+    <a class="gb-btn white" href="/teacher/courses/<%= course.id %>/gradebook.csv">⬇️ Export CSV</a>
+  </div>
+</div>
+
+<% if (students.length === 0) { %>
+  <div class="gb-wrap animate">
+    <div class="gb-empty-state">
+      <div class="ico">🎓</div>
+      <div style="font-weight:700;color:#0f172a;font-size:1.1rem;margin-bottom:.3rem;">No students yet</div>
+      <p>Once students enroll in this course, they'll appear here.</p>
+    </div>
+  </div>
+
+<% } else if (quizzes.length === 0 && assignments.length === 0) { %>
+  <div class="gb-wrap animate">
+    <div class="gb-empty-state">
+      <div class="ico">📝</div>
+      <div style="font-weight:700;color:#0f172a;font-size:1.1rem;margin-bottom:.3rem;">No assessments yet</div>
+      <p>Create at least one quiz or assignment to see grades here.</p>
+      <div style="margin-top:1rem;display:flex;gap:.6rem;justify-content:center;">
+        <a class="btn" href="/teacher/quizzes">Create Quiz</a>
+        <a class="btn outline" href="/teacher/assignments">Create Assignment</a>
+      </div>
+    </div>
+  </div>
+
+<% } else { %>
+  <div class="gb-wrap animate">
+    <table class="gb-table">
+      <thead>
+        <tr>
+          <th class="gb-student-head">Student</th>
+          <% quizzes.forEach(q => { %>
+            <th title="<%= q.title %>">📝 <%= q.title.length > 18 ? q.title.slice(0,16) + '…' : q.title %></th>
+          <% }) %>
+          <% assignments.forEach(a => { %>
+            <th title="<%= a.title %> (/<%= a.max_points %>)">📋 <%= a.title.length > 16 ? a.title.slice(0,14) + '…' : a.title %></th>
+          <% }) %>
+          <th>Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(r => { %>
+          <tr>
+            <td class="gb-student-cell">
+              <span class="gb-student-name" title="<%= r.student.full_name || r.student.username %>">
+                <%= r.student.full_name || r.student.username %>
+              </span>
+              <span class="gb-student-email"><%= r.student.email || '@' + r.student.username %></span>
+            </td>
+
+            <% r.quizScores.forEach(c => {
+                 if (c.score === null || c.max === null) { %>
+              <td><span class="gb-cell empty">—</span></td>
+            <% } else {
+                 const pct = c.max ? Math.round((c.score / c.max) * 100) : 0;
+                 const cls = pct >= 70 ? 'good' : pct >= 50 ? 'mid' : 'bad';
+            %>
+              <td><span class="gb-cell <%= cls %>" title="<%= c.score %> / <%= c.max %>"><%= c.score %>/<%= c.max %></span></td>
+            <% } }) %>
+
+            <% r.assScores.forEach(c => {
+                 if (c.score === null) { %>
+              <td><span class="gb-cell empty">—</span></td>
+            <% } else {
+                 const pct = c.max ? Math.round((c.score / c.max) * 100) : 0;
+                 const cls = pct >= 70 ? 'good' : pct >= 50 ? 'mid' : 'bad';
+            %>
+              <td><span class="gb-cell <%= cls %>" title="<%= c.score %> / <%= c.max %>"><%= c.score %>/<%= c.max %></span></td>
+            <% } }) %>
+
+            <td>
+              <div class="gb-total">
+                <span><%= r.totalEarned %>/<%= r.totalMax %></span>
+                <span class="pct <%= r.percent >= 70 ? 'good' : r.percent >= 50 ? 'mid' : 'bad' %>">
+                  <%= r.percent %>%
+                </span>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="gb-legend">
+    <span><span class="dot good"></span> 70%+ (passing)</span>
+    <span><span class="dot mid"></span> 50–69%</span>
+    <span><span class="dot bad"></span> below 50%</span>
+    <span style="margin-left:auto;">💡 Click <strong>Export CSV</strong> to download this table for Excel or Google Sheets</span>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

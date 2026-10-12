@@ -31,14 +31,14 @@ const upload = multer({
 router.get('/profile', requireLogin, async (req, res) => {
   const db = getDB();
   const user = await db.get(
-    'SELECT id, username, email, role, full_name, bio, avatar_path, created_at FROM users WHERE id = ?',
+    'SELECT id, username, email, role, full_name, bio, avatar_path, created_at FROM users WHERE id = $1',
     [req.session.user.id]
   );
 
   const stats = {
-    enrollments: (await db.get('SELECT COUNT(*) c FROM enrollments WHERE user_id = ?', [user.id])).c,
-    lessonsDone: (await db.get('SELECT COUNT(*) c FROM progress WHERE user_id = ? AND completed = 1', [user.id])).c,
-    messages: (await db.get('SELECT COUNT(*) c FROM messages WHERE receiver_id = ?', [user.id])).c,
+    enrollments: (await db.get('SELECT COUNT(*) c FROM enrollments WHERE user_id = $1', [user.id])).c,
+    lessonsDone: (await db.get('SELECT COUNT(*) c FROM progress WHERE user_id = $1 AND completed = 1', [user.id])).c,
+    messages: (await db.get('SELECT COUNT(*) c FROM messages WHERE receiver_id = $1', [user.id])).c,
   };
 
   res.render('profile/view', {
@@ -54,7 +54,7 @@ router.get('/profile', requireLogin, async (req, res) => {
 router.get('/profile/edit', requireLogin, async (req, res) => {
   const db = getDB();
   const user = await db.get(
-    'SELECT id, username, email, role, full_name, bio, avatar_path FROM users WHERE id = ?',
+    'SELECT id, username, email, role, full_name, bio, avatar_path FROM users WHERE id = $1',
     [req.session.user.id]
   );
   res.render('profile/edit', {
@@ -70,7 +70,7 @@ router.post('/profile/edit', requireLogin, upload.single('avatar'), async (req, 
   const { full_name, email, bio } = req.body;
   const uid = req.session.user.id;
 
-  const current = await db.get('SELECT avatar_path FROM users WHERE id = ?', [uid]);
+  const current = await db.get('SELECT avatar_path FROM users WHERE id = $1', [uid]);
   let avatar = current.avatar_path;
 
   if (req.file) {
@@ -84,7 +84,7 @@ router.post('/profile/edit', requireLogin, upload.single('avatar'), async (req, 
   }
 
   await db.run(
-    'UPDATE users SET full_name = ?, email = ?, bio = ?, avatar_path = ? WHERE id = ?',
+    'UPDATE users SET full_name = $1, email = $2, bio = $3, avatar_path = $4 WHERE id = $5',
     [full_name || null, email || null, bio || null, avatar, uid]
   );
 
@@ -109,7 +109,7 @@ router.post('/profile/password', requireLogin, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  const user = await db.get('SELECT password FROM users WHERE id = ?', [uid]);
+  const user = await db.get('SELECT password FROM users WHERE id = $1', [uid]);
 
   if (!(await bcrypt.compare(current, user.password))) {
     req.flash('error', 'Current password is incorrect.');
@@ -125,7 +125,7 @@ router.post('/profile/password', requireLogin, async (req, res) => {
   }
 
   const hash = await bcrypt.hash(next, 10);
-  await db.run('UPDATE users SET password = ? WHERE id = ?', [hash, uid]);
+  await db.run('UPDATE users SET password = $1 WHERE id = $2', [hash, uid]);
 
   req.flash('success', 'Password changed successfully.');
   res.redirect('/profile');

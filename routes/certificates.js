@@ -15,26 +15,26 @@ router.get('/certificates/:courseId', requireLogin, async (req, res) => {
     SELECT c.*, u.full_name AS teacher_name
     FROM courses c
     LEFT JOIN users u ON u.id = c.teacher_id
-    WHERE c.id = ?
+    WHERE c.id = $1
   `, [courseId]);
 
   if (!course) return res.status(404).send('Course not found');
 
   const enrolled = await db.get(
-    'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
+    'SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2',
     [uid, courseId]
   );
   if (!enrolled) return res.status(403).send('You are not enrolled in this course.');
 
   // compute progress
   const total = (await db.get(
-    'SELECT COUNT(*) c FROM lessons WHERE course_id = ?', [courseId]
+    'SELECT COUNT(*) c FROM lessons WHERE course_id = $1', [courseId]
   )).c;
 
   const done = (await db.get(`
     SELECT COUNT(*) c FROM progress p
     JOIN lessons l ON l.id = p.lesson_id
-    WHERE l.course_id = ? AND p.user_id = ? AND p.completed = 1
+    WHERE l.course_id = $1 AND p.user_id = $2 AND p.completed = 1
   `, [courseId, uid])).c;
 
   if (total === 0 || done < total) {
@@ -44,21 +44,21 @@ router.get('/certificates/:courseId', requireLogin, async (req, res) => {
 
   // check if already issued
   let cert = await db.get(
-    'SELECT * FROM certificates WHERE user_id = ? AND course_id = ?',
+    'SELECT * FROM certificates WHERE user_id = $1 AND course_id = $2',
     [uid, courseId]
   );
 
   if (!cert) {
     const code = generateCode();
     const r = await db.run(
-      'INSERT INTO certificates (user_id, course_id, code) VALUES (?,?,?)',
+      'INSERT INTO certificates (user_id, course_id, code) VALUES ($1,$2,$3)',
       [uid, courseId, code]
     );
-    cert = await db.get('SELECT * FROM certificates WHERE id = ?', [r.lastID]);
+    cert = await db.get('SELECT * FROM certificates WHERE id = $1', [r.lastID]);
     req.flash('success', '🎉 Certificate issued!');
   }
 
-  const user = await db.get('SELECT full_name, username FROM users WHERE id = ?', [uid]);
+  const user = await db.get('SELECT full_name, username FROM users WHERE id = $1', [uid]);
   const studentName = user.full_name || user.username;
 
   const issuedAt = new Date(cert.issued_at).toLocaleDateString('en-US', {
@@ -84,7 +84,7 @@ router.get('/my-certificates', requireLogin, async (req, res) => {
     SELECT cert.*, c.title AS course_title
     FROM certificates cert
     JOIN courses c ON c.id = cert.course_id
-    WHERE cert.user_id = ?
+    WHERE cert.user_id = $1
     ORDER BY cert.issued_at DESC
   `, [uid]);
 
@@ -104,7 +104,7 @@ router.get('/verify/:code', async (req, res) => {
     FROM certificates cert
     JOIN courses c ON c.id = cert.course_id
     JOIN users u ON u.id = cert.user_id
-    WHERE cert.code = ?
+    WHERE cert.code = $1
   `, [req.params.code]);
 
   res.render('certificate-verify', {

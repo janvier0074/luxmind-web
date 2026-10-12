@@ -8,11 +8,19 @@ router.get('/messages', requireLogin, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
+
+
+  // Mark all unread messages as read — clears the red badge
+  await db.run(
+    'UPDATE messages SET is_read = 1 WHERE receiver_id = $1 AND is_read = 0',
+    [uid]
+  );
+
   const inbox = await db.all(`
     SELECT m.*, u.full_name AS sender_name, u.username AS sender_username
     FROM messages m
     JOIN users u ON u.id = m.sender_id
-    WHERE m.receiver_id = ?
+    WHERE m.receiver_id = $1
     ORDER BY m.created_at DESC
     LIMIT 100
   `, [uid]);
@@ -21,13 +29,13 @@ router.get('/messages', requireLogin, async (req, res) => {
     SELECT m.*, u.full_name AS receiver_name, u.username AS receiver_username
     FROM messages m
     JOIN users u ON u.id = m.receiver_id
-    WHERE m.sender_id = ?
+    WHERE m.sender_id = $1
     ORDER BY m.created_at DESC
     LIMIT 100
   `, [uid]);
 
   const unread = await db.get(
-    'SELECT COUNT(*) c FROM messages WHERE receiver_id = ? AND is_read = 0',
+    'SELECT COUNT(*) c FROM messages WHERE receiver_id = $1 AND is_read = 0',
     [uid]
   );
 
@@ -77,13 +85,13 @@ router.post('/messages/new', requireLogin, async (req, res) => {
     return res.redirect('/messages/new');
   }
   await db.run(
-    'INSERT INTO messages (sender_id, receiver_id, body) VALUES (?,?,?)',
+    'INSERT INTO messages (sender_id, receiver_id, body) VALUES ($1,$2,$3)',
     [req.session.user.id, Number(receiver_id), body.trim()]
   );
   // create a notification for the recipient
-  const sender = await db.get('SELECT full_name, username FROM users WHERE id = ?', [req.session.user.id]);
+  const sender = await db.get('SELECT full_name, username FROM users WHERE id = $1', [req.session.user.id]);
   await db.run(
-    'INSERT INTO notifications (user_id, title, body, link) VALUES (?,?,?,?)',
+    'INSERT INTO notifications (user_id, title, body, link) VALUES ($1,$2,$3,$4)',
     [Number(receiver_id), 'New message from ' + (sender.full_name || sender.username), body.slice(0, 80), '/messages']
   );
 
@@ -95,7 +103,7 @@ router.post('/messages/new', requireLogin, async (req, res) => {
 router.post('/messages/:id/read', requireLogin, async (req, res) => {
   const db = getDB();
   await db.run(
-    'UPDATE messages SET is_read = 1 WHERE id = ? AND receiver_id = ?',
+    'UPDATE messages SET is_read = 1 WHERE id = $1 AND receiver_id = $2',
     [req.params.id, req.session.user.id]
   );
   res.json({ ok: true });
@@ -105,7 +113,7 @@ router.post('/messages/:id/read', requireLogin, async (req, res) => {
 router.post('/messages/:id/delete', requireLogin, async (req, res) => {
   const db = getDB();
   await db.run(
-    'DELETE FROM messages WHERE id = ? AND (sender_id = ? OR receiver_id = ?)',
+    'DELETE FROM messages WHERE id = $1 AND (sender_id = $2 OR receiver_id = $3)',
     [req.params.id, req.session.user.id, req.session.user.id]
   );
   req.flash('success', 'Message deleted.');

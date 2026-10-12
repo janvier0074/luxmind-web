@@ -13,7 +13,7 @@ router.get('/student/courses', requireLogin, async (req, res) => {
     SELECT c.*, u.full_name AS teacher_name,
       (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count,
       (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) AS student_count,
-      (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id AND user_id = ?) AS enrolled
+      (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id AND user_id = $1) AS enrolled
     FROM courses c
     LEFT JOIN users u ON u.id = c.teacher_id
     ORDER BY c.created_at DESC
@@ -36,31 +36,31 @@ router.get('/courses/:id', requireLogin, async (req, res) => {
   const course = await db.get(`
     SELECT c.*, u.full_name AS teacher_name
     FROM courses c LEFT JOIN users u ON u.id = c.teacher_id
-    WHERE c.id = ?
+    WHERE c.id = $1
   `, [courseId]);
 
   if (!course) return res.status(404).send('Course not found');
 
   const enrolled = await db.get(
-    'SELECT id FROM enrollments WHERE user_id = ? AND course_id = ?',
+    'SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2',
     [uid, courseId]
   );
 
   const lessons = await db.all(
-    'SELECT * FROM lessons WHERE course_id = ? ORDER BY position, id',
+    'SELECT * FROM lessons WHERE course_id = $1 ORDER BY position, id',
     [courseId]
   );
 
   // attach progress + resource count for each lesson
   for (const l of lessons) {
     const p = await db.get(
-      'SELECT completed FROM progress WHERE user_id = ? AND lesson_id = ?',
+      'SELECT completed FROM progress WHERE user_id = $1 AND lesson_id = $2',
       [uid, l.id]
     );
     l.completed = p ? p.completed : 0;
 
     const rc = await db.get(
-      'SELECT COUNT(*) as c FROM resources WHERE lesson_id = ?',
+      'SELECT COUNT(*) as c FROM resources WHERE lesson_id = $1',
       [l.id]
     );
     l.resource_count = rc.c;
@@ -89,7 +89,7 @@ router.post('/courses/:id/enroll', requireLogin, async (req, res) => {
   const db = getDB();
   try {
     await db.run(
-      'INSERT INTO enrollments (user_id, course_id) VALUES (?, ?)',
+      'INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2)',
       [req.session.user.id, req.params.id]
     );
     req.flash('success', 'You are now enrolled.');
@@ -103,7 +103,7 @@ router.post('/courses/:id/enroll', requireLogin, async (req, res) => {
 router.post('/courses/:id/unenroll', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'student') return res.redirect('/dashboard');
   await getDB().run(
-    'DELETE FROM enrollments WHERE user_id = ? AND course_id = ?',
+    'DELETE FROM enrollments WHERE user_id = $1 AND course_id = $2',
     [req.session.user.id, req.params.id]
   );
   req.flash('success', 'You have left the course.');
