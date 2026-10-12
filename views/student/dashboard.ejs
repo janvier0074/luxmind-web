@@ -459,7 +459,7 @@
         <div class="empty" style="padding:1.5rem;">🎉 No upcoming deadlines. You're all caught up!</div>
       <% } else { %>
         <% deadlines.forEach(d => {
-             const when = new Date(d.when);
+             const when = new Date(d.event_at);
              const hours = (when - new Date()) / 3600000;
              const cls = hours < 24 ? 'urgent' : hours < 72 ? 'soon' : 'safe';
         %>

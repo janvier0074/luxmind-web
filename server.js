@@ -233,6 +233,20 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
   const continueCourse = courses.find(c => Number(c.done_lessons) < Number(c.total_lessons)) || courses[0] || null;
 
 
+
+  const QUOTES = [
+    { text: 'The beautiful thing about learning is that no one can take it away from you.', author: 'B.B. King' },
+    { text: 'Education is the most powerful weapon you can use to change the world.', author: 'Nelson Mandela' },
+    { text: 'Live as if you were to die tomorrow. Learn as if you were to live forever.', author: 'Mahatma Gandhi' },
+    { text: 'An investment in knowledge pays the best interest.', author: 'Benjamin Franklin' },
+    { text: 'The more that you read, the more things you will know.', author: 'Dr. Seuss' },
+  ];
+  const quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+
+
+
+
+
   const achievements = [];
   if (doneLessons >= 1)    achievements.push({ name: 'First Steps',     icon: '👣', desc: 'Completed your first lesson' });
   if (doneLessons >= 5)    achievements.push({ name: 'Getting Started', icon: '📖', desc: 'Completed 5 lessons' });
@@ -251,8 +265,9 @@ res.render('student/dashboard', {
     heading: 'Welcome, ' + (user.full_name || user.username),
     subtitle: 'Here is your learning snapshot.',
 
-             continueCourse,
+                continueCourse,
     achievements,
+    quote,
     courses, announcements,
     deadlines, recentActivity,
     stats: {
