@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LuxMind — Learning that feels modern</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, 'Inter', sans-serif; }
+    html, body { height: 100%; overflow-x: hidden; }
+    body { background: #0f172a; color: #fff; }
+
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0;
+      padding: 1rem 2rem;
+      display: flex; justify-content: space-between; align-items: center;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255,255,255,.06);
+      z-index: 100;
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: .75rem;
+      font-size: 1.3rem; font-weight: 800;
+      letter-spacing: -.02em;
+      text-decoration: none; color: #fff;
+    }
+    .nav-brand-logo {
+      width: 38px; height: 38px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1.2rem;
+      box-shadow: 0 8px 20px rgba(99,102,241,.5);
+    }
+    .nav-links { display: flex; gap: 1rem; align-items: center; }
+    .nav-btn {
+      padding: .6rem 1.3rem; border-radius: 10px;
+      font-size: .9rem; font-weight: 700;
+      text-decoration: none; cursor: pointer;
+      transition: all .15s;
+      border: none;
+    }
+    .nav-btn.ghost { color: #cbd5e1; background: transparent; }
+    .nav-btn.ghost:hover { color: #fff; background: rgba(255,255,255,.08); }
+    .nav-btn.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+      box-shadow: 0 6px 18px rgba(99,102,241,.4);
+    }
+    .nav-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(99,102,241,.5); }
+
+    .hero {
+      position: relative;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 8rem 2rem 4rem;
+      overflow: hidden;
+      background: radial-gradient(circle at 20% 30%, #1e1b4b 0%, transparent 50%),
+                  radial-gradient(circle at 80% 70%, #4c1d95 0%, transparent 50%),
+                  linear-gradient(135deg, #0f172a 0%, #020617 100%);
+    }
+
+    .blob { position: absolute; border-radius: 50%; filter: blur(100px); pointer-events: none; opacity: .6; }
+    .blob.b1 { width: 500px; height: 500px; background: #6366f1; top: -100px; left: -100px; animation: float1 20s ease-in-out infinite; }
+    .blob.b2 { width: 400px; height: 400px; background: #ec4899; bottom: -100px; right: -100px; animation: float2 24s ease-in-out infinite; }
+    .blob.b3 { width: 300px; height: 300px; background: #06b6d4; top: 40%; right: 30%; animation: float3 28s ease-in-out infinite; opacity: .4; }
+    @keyframes float1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(80px,60px); } }
+    @keyframes float2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-60px,-40px); } }
+    @keyframes float3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(50px,-50px); } }
+
+    .hero-content { position: relative; z-index: 2; max-width: 1000px; text-align: center; }
+
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: .55rem;
+      padding: .55rem 1.1rem;
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius: 100px;
+      font-size: .78rem; font-weight: 700;
+      letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 2rem;
+      backdrop-filter: blur(12px);
+    }
+    .hero-badge .pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #4ade80;
+      box-shadow: 0 0 12px #4ade80;
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 900;
+      line-height: 1.05;
+      letter-spacing: -.04em;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, #a5b4fc, #f0abfc, #fda4af);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: rgba(255,255,255,.75);
+      line-height: 1.65;
+      max-width: 640px;
+      margin: 0 auto 2.5rem;
+    }
+    .hero-actions {
+      display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+      margin-bottom: 4rem;
+    }
+    .cta {
+      padding: 1rem 2rem;
+      border-radius: 14px;
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: .6rem;
+      transition: all .2s;
+      border: none; cursor: pointer;
+    }
+    .cta.primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6, #a855f7);
+      color: #fff;
+      box-shadow: 0 15px 40px rgba(99,102,241,.5);
+    }
+    .cta.primary:hover { transform: translateY(-3px); box-shadow: 0 20px 50px rgba(99,102,241,.6); }
+    .cta.ghost {
+      background: rgba(255,255,255,.08);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.2);
+      backdrop-filter: blur(12px);
+    }
+    .cta.ghost:hover { background: rgba(255,255,255,.15); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.25rem;
+      max-width: 1000px;
+      margin: 0 auto;
+      text-align: left;
+    }
+    .feature-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 1.75rem 1.5rem;
+      transition: all .25s;
+      backdrop-filter: blur(12px);
+    }
+    .feature-card:hover { background: rgba(255,255,255,.08); border-color: rgba(255,255,255,.15); transform: translateY(-4px); }
+    .feature-icon {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .fi-1 { background: linear-gradient(135deg, rgba(99,102,241,.3), rgba(139,92,246,.3)); }
+    .fi-2 { background: linear-gradient(135deg, rgba(236,72,153,.3), rgba(244,63,94,.3)); }
+    .fi-3 { background: linear-gradient(135deg, rgba(6,182,212,.3), rgba(14,165,233,.3)); }
+    .fi-4 { background: linear-gradient(135deg, rgba(16,185,129,.3), rgba(20,184,166,.3)); }
+    .feature-card h3 { font-size: 1.05rem; font-weight: 800; margin-bottom: .5rem; color: #fff; }
+    .feature-card p { font-size: .9rem; color: rgba(255,255,255,.6); line-height: 1.55; margin: 0; }
+
+    .stats-bar {
+      display: flex; justify-content: center; gap: 4rem;
+      margin-top: 4rem;
+      padding-top: 2.5rem;
+      border-top: 1px solid rgba(255,255,255,.08);
+      flex-wrap: wrap;
+    }
+    .stat-item { text-align: center; }
+    .stat-num {
+      font-size: 2rem; font-weight: 900; letter-spacing: -.02em;
+      background: linear-gradient(135deg, #a5b4fc, #f0abfc);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .stat-lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: rgba(255,255,255,.5); margin-top: .35rem; font-weight: 700; }
+
+    /* ===== FAQ SECTION ===== */
+    .faq-section {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, #020617 0%, #0f172a 100%);
+    }
+    .section-head { text-align: center; max-width: 640px; margin: 0 auto 3.5rem; }
+    .section-head h2 { font-size: 2.25rem; font-weight: 900; letter-spacing: -.03em; margin-bottom: .75rem; }
+    .section-head p { color: rgba(255,255,255,.6); font-size: 1.05rem; }
+    .faq-list { max-width: 760px; margin: 0 auto; }
+    .faq-item {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      margin-bottom: .85rem;
+      overflow: hidden;
+      transition: all .2s;
+    }
+    .faq-item[open] { background: rgba(255,255,255,.06); border-color: rgba(99,102,241,.3); }
+    .faq-item summary {
+      padding: 1.25rem 1.5rem;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      display: flex; justify-content: space-between; align-items: center;
+      list-style: none;
+      user-select: none;
+    }
+    .faq-item summary::-webkit-details-marker { display: none; }
+    .faq-item summary::after {
+      content: '+';
+      font-size: 1.5rem;
+      color: #a5b4fc;
+      font-weight: 300;
+      transition: transform .2s;
+    }
+    .faq-item[open] summary::after { transform: rotate(45deg); }
+    .faq-item .faq-body {
+      padding: 0 1.5rem 1.25rem;
+      color: rgba(255,255,255,.7);
+      line-height: 1.7;
+      font-size: .95rem;
+    }
+
+    /* ===== FOOTER ===== */
+    .footer {
+      background: #020617;
+      border-top: 1px solid rgba(255,255,255,.06);
+      padding: 4rem 2rem 2rem;
+    }
+    .footer-grid {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 3rem;
+      margin-bottom: 3rem;
+    }
+    .footer-brand { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; font-size: 1.2rem; font-weight: 800; }
+    .footer-brand-logo {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 1rem;
+    }
+    .footer p.footer-desc { color: rgba(255,255,255,.5); font-size: .88rem; line-height: 1.6; max-width: 300px; }
+    .footer-col h4 {
+      font-size: .78rem; font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: rgba(255,255,255,.5);
+      margin-bottom: 1rem;
+    }
+    .footer-col a {
+      display: block;
+      color: rgba(255,255,255,.65);
+      text-decoration: none;
+      font-size: .9rem;
+      padding: .35rem 0;
+      transition: color .15s;
+    }
+    .footer-col a:hover { color: #fff; }
+    .footer-bottom {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255,255,255,.06);
+      display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem;
+      font-size: .82rem;
+      color: rgba(255,255,255,.4);
+    }
+
+    @media (max-width: 640px) {
+      .nav { padding: .8rem 1rem; }
+      .nav-brand { font-size: 1.1rem; }
+      .nav-btn { padding: .5rem 1rem; font-size: .8rem; }
+      .hero { padding: 6rem 1.25rem 3rem; }
+      .hero-actions { flex-direction: column; align-items: stretch; }
+      .cta { justify-content: center; }
+      .stats-bar { gap: 2rem; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="nav-brand-logo">L</div>
+    LuxMind
+  </a>
+  <div class="nav-links">
+    <a href="/explore" class="nav-btn ghost">Explore courses</a>
+    <a href="/login" class="nav-btn ghost">Sign in</a>
+    <a href="/register" class="nav-btn primary">Get started →</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="blob b3"></div>
+
+  <div class="hero-content">
+    <div class="hero-badge">
+      <span class="pulse"></span>
+      Learning Management System
+    </div>
+
+    <h1>
+      Learning that<br>
+      <span>feels modern.</span>
+    </h1>
+
+    <p>
+      A complete platform for courses, quizzes, assignments, and real-time progress —
+      built for teachers and students who expect more.
+    </p>
+
+    <div class="hero-actions">
+      <a href="/register" class="cta primary">🚀 Create free account</a>
+      <a href="/explore" class="cta ghost">Explore courses →</a>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon fi-1">📚</div>
+        <h3>Smart Courses</h3>
+        <p>Auto-organized content library with lessons, PDFs, and videos.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon fi-2">⚡</div>
+        <h3>Auto-Grading</h3>
+        <p>Instant feedback on quizzes with timed grade release.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon fi-3">📊</div>
+        <h3>Live Analytics</h3>
+        <p>Track every student's progress with a real-time gradebook.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon fi-4">🏆</div>
+        <h3>Certificates</h3>
+        <p>Reward real completion with auto-generated PDF certificates.</p>
+      </div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat-item"><div class="stat-num">30+</div><div class="stat-lbl">Courses</div></div>
+      <div class="stat-item"><div class="stat-num">100%</div><div class="stat-lbl">Free</div></div>
+      <div class="stat-item"><div class="stat-num">24/7</div><div class="stat-lbl">Available</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="section-head">
+    <h2>Frequently asked questions</h2>
+    <p>Everything you need to know about LuxMind</p>
+  </div>
+  <div class="faq-list">
+    <details class="faq-item">
+      <summary>Is LuxMind free to use?</summary>
+      <div class="faq-body">Yes — LuxMind is 100% free. Create an account, enroll in any course, take quizzes, submit assignments, and earn certificates. No credit card required.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How do I create an account?</summary>
+      <div class="faq-body">Click "Get started" at the top right. Enter your name, email, and a password. Your account is created instantly — you can start learning immediately.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Can I teach courses on LuxMind?</summary>
+      <div class="faq-body">Yes. Teachers can create courses, upload lessons, build quizzes, grade students, and post announcements. Contact the admin to upgrade your account to a teacher role.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Do I get a certificate when I finish a course?</summary>
+      <div class="faq-body">Yes. Complete 100% of a course's lessons and you'll receive a downloadable PDF certificate with a unique verification code.</div>
+    </details>
+    <details class="faq-item">
+      <summary>What courses are available?</summary>
+      <div class="faq-body">Browse our full catalog on the <a href="/explore" style="color: #a5b4fc; text-decoration: underline;">Explore courses</a> page — 30+ courses covering programming, mathematics, science, and more.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How is my progress tracked?</summary>
+      <div class="faq-body">Every lesson you complete is recorded on your dashboard. You can see your progress percentage, streaks, points earned, and grades — all in real time.</div>
+    </details>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-grid">
+    <div>
+      <div class="footer-brand">
+        <div class="footer-brand-logo">L</div>
+        LuxMind
+      </div>
+      <p class="footer-desc">A modern learning management system built for teachers and students who expect more.</p>
+    </div>
+    <div class="footer-col">
+      <h4>Platform</h4>
+      <a href="/explore">Explore courses</a>
+      <a href="/register">Create account</a>
+      <a href="/login">Sign in</a>
+      <a href="/verify">Verify certificate</a>
+    </div>
+    <div class="footer-col">
+      <h4>Company</h4>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+      <a href="/blog">Blog</a>
+    </div>
+    <div class="footer-col">
+      <h4>Legal</h4>
+      <a href="/privacy">Privacy</a>
+      <a href="/terms">Terms</a>
+      <a href="/accessibility">Accessibility</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <div>© <%= new Date().getFullYear() %> LuxMind. All rights reserved.</div>
+    <div>Built with ❤️ for learners everywhere</div>
+  </div>
+</footer>
+
+</body>
+</html>
