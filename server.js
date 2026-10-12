@@ -227,10 +227,21 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
     ORDER BY a.created_at DESC LIMIT 3
   `, [uid]);
 
-  res.render('student/dashboard', {
+  
+
+
+  const continueCourse = courses.find(c => Number(c.done_lessons) < Number(c.total_lessons)) || courses[0] || null;
+
+
+
+
+
+res.render('student/dashboard', {
     title: 'Dashboard',
     heading: 'Welcome, ' + (user.full_name || user.username),
     subtitle: 'Here is your learning snapshot.',
+
+         continueCourse,
     courses, announcements,
     deadlines, recentActivity,
     stats: {
