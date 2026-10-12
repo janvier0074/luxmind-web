@@ -13,3 +13,13 @@ uploads/
 content/
 .DS_Store
 Thumbs.db
+# Local helper scripts (contain secrets)
+check-users.js
+fix-*.js
+seed-users.js
+sync-courses.js
+update-db-urls.js
+upload-to-supabase.js
+firebase-b64.txt
+db-error.txt
+*.old

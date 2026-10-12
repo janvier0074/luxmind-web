@@ -94,6 +94,13 @@ router.get('/files/resource/:id', requireLogin, async (req, res) => {
   const db = getDB();
   const resource = await db.get('SELECT * FROM resources WHERE id = $1', [req.params.id]);
   if (!resource) return res.status(404).send('File not found');
+
+  // If file_path is a cloud URL, redirect to it
+  if (resource.file_path && resource.file_path.startsWith('http')) {
+    return res.redirect(resource.file_path);
+  }
+
+  // Fallback for local files
   const absolute = path.resolve(resource.file_path);
   if (!fs.existsSync(absolute)) return res.status(404).send('File missing on disk');
   res.sendFile(absolute);
