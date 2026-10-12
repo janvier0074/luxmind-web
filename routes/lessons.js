@@ -91,7 +91,7 @@ router.post('/lessons/:id/complete', requireLogin, async (req, res) => {
 
 // ---------- DOWNLOAD ----------
 router.get('/files/resource/:id', requireLogin, async (req, res) => {
-  // Guard: ID must be numeric. If someone requests /files/resource/logo.png → 404
+  // Guard: only numeric IDs. Non-numeric requests (e.g., /files/resource/logo.png) → 404
   if (!/^\d+$/.test(req.params.id)) {
     return res.status(404).send('Not found');
   }

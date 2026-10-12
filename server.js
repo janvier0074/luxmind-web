@@ -68,9 +68,15 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.flash = { success: req.flash('success'), error: req.flash('error') };
   res.locals.currentPath = req.path;
-res.locals.timeAgo = function(dateStr) {
-  if (!dateStr) return 'Never';
-  const d = new Date(dateStr.replace(' ', 'T') + 'Z');
+res.locals.timeAgo = function(dateVal) {
+  if (!dateVal) return 'Never';
+  let d;
+  if (dateVal instanceof Date) {
+    d = dateVal;
+  } else {
+    d = new Date(String(dateVal).replace(' ', 'T') + 'Z');
+  }
+  if (isNaN(d.getTime())) return 'Never';
   const diff = (Date.now() - d.getTime()) / 1000;
   if (diff < 60) return 'just now';
   if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
@@ -79,9 +85,15 @@ res.locals.timeAgo = function(dateStr) {
   if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
   return d.toLocaleDateString();
 };
-res.locals.isOnline = function(dateStr) {
-  if (!dateStr) return false;
-  const d = new Date(dateStr.replace(' ', 'T') + 'Z');
+res.locals.isOnline = function(dateVal) {
+  if (!dateVal) return false;
+  let d;
+  if (dateVal instanceof Date) {
+    d = dateVal;
+  } else {
+    d = new Date(String(dateVal).replace(' ', 'T') + 'Z');
+  }
+  if (isNaN(d.getTime())) return false;
   return (Date.now() - d.getTime()) < 5 * 60 * 1000;
 };
 
