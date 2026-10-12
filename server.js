@@ -59,7 +59,8 @@ app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.flash = { success: req.flash('success'), error: req.flash('error') };
   res.locals.currentPath = req.path;
-  res.locals.isOnline = (ts) => !!ts && (Date.now() - new Date(ts).getTime() < 5 * 60 * 1000);
+  res.locals.isOnline     = (ts) => !!ts && (Date.now() - new Date(ts).getTime() < 5 * 60 * 1000);
+     res.locals.timeAgo = (ts) => { if (!ts) return '—'; const s = Math.floor((Date.now() - new Date(ts).getTime()) / 1000); if (s < 60) return 'just now'; if (s < 3600) return Math.floor(s/60) + 'm ago'; if (s < 86400) return Math.floor(s/3600) + 'h ago'; if (s < 604800) return Math.floor(s/86400) + 'd ago'; return new Date(ts).toLocaleDateString(); };
   next();
 });
 
