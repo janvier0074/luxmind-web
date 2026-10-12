@@ -345,6 +345,19 @@ app.use((err, req, res, next) => {
 (async () => {
   try {
     await connectDB();
+
+    // Apply question types migration
+    try {
+      const db = getDB();
+      await db.run("ALTER TABLE questions ADD COLUMN IF NOT EXISTS type TEXT DEFAULT 'mc'");
+      await db.run("ALTER TABLE questions ALTER COLUMN option_c DROP NOT NULL");
+      await db.run("ALTER TABLE questions ALTER COLUMN option_d DROP NOT NULL");
+      await db.run("ALTER TABLE questions ALTER COLUMN correct DROP NOT NULL");
+      console.log('Question types migration applied');
+    } catch (e) {
+      console.error('Migration error:', e.message);
+    }
+
     console.log('Skipping content scan (data already in Supabase)');
     app.listen(PORT, () => {
       console.log('');

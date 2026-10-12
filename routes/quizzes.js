@@ -3,7 +3,6 @@ const { getDB } = require('../config/database');
 const { requireLogin } = require('../middleware/auth');
 const router = express.Router();
 
-// helper: is grade visible?
 function isReleased(quiz) {
   if (!quiz.release_at) return false;
   return new Date(quiz.release_at) <= new Date();
@@ -13,7 +12,6 @@ function isReleased(quiz) {
 //                     STUDENT
 // ============================================================
 
-// ---------- LIST QUIZZES ----------
 router.get('/student/quizzes', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'student') return res.redirect('/dashboard');
   const db = getDB();
@@ -46,7 +44,6 @@ router.get('/student/quizzes', requireLogin, async (req, res) => {
   });
 });
 
-// ---------- TAKE QUIZ ----------
 router.get('/student/quiz/:id', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'student') return res.redirect('/dashboard');
   const db = getDB();
@@ -84,7 +81,6 @@ router.get('/student/quiz/:id', requireLogin, async (req, res) => {
   });
 });
 
-// ---------- SUBMIT + AUTO-GRADE ----------
 router.post('/student/quiz/:id', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'student') return res.redirect('/dashboard');
   const db = getDB();
@@ -106,6 +102,22 @@ router.post('/student/quiz/:id', requireLogin, async (req, res) => {
     const picked = req.body['q_' + q.id] || null;
     answers[q.id] = picked;
     max += q.points;
+
+    if (q.type === 'essay') {
+      // Essay: no auto-grade
+      continue;
+    }
+
+    if (q.type === 'short') {
+      // Short answer: case-insensitive trimmed match
+      if (picked && q.correct &&
+          String(picked).trim().toLowerCase() === String(q.correct).trim().toLowerCase()) {
+        score += q.points;
+      }
+      continue;
+    }
+
+    // MC and TF: exact match
     if (picked === q.correct) score += q.points;
   }
 
@@ -118,7 +130,6 @@ router.post('/student/quiz/:id', requireLogin, async (req, res) => {
   res.redirect(`/student/quiz/${quizId}/result`);
 });
 
-// ---------- RESULT (LOCKED / UNLOCKED) ----------
 router.get('/student/quiz/:id/result', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'student') return res.redirect('/dashboard');
   const db = getDB();
@@ -158,7 +169,6 @@ router.get('/student/quiz/:id/result', requireLogin, async (req, res) => {
 //                     TEACHER
 // ============================================================
 
-// ---------- LIST + CREATE ENTRY ----------
 router.get('/teacher/quizzes', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const db = getDB();
@@ -185,7 +195,6 @@ router.get('/teacher/quizzes', requireLogin, async (req, res) => {
   });
 });
 
-// ---------- QUIZ BUILDER ----------
 router.get('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const course = await getDB().get('SELECT * FROM courses WHERE id = $1', [req.params.courseId]);
@@ -208,7 +217,7 @@ router.post('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   const releaseISO = release_at ? new Date(release_at).toISOString() : null;
 
   const r = await db.run(
-    'INSERT INTO quizzes (course_id, title, release_at, duration_min) VALUES ($1,$2,$3,$4)',
+    'INSERT INTO quizzes (course_id, title, release_at, duration_min) VALUES ($1,$2,$3,$4) RETURNING id',
     [courseId, title, releaseISO, Number(duration_min) || 15]
   );
   const quizId = r.lastID;
@@ -218,10 +227,25 @@ router.post('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
 
   let pos = 1;
   for (const q of parsed) {
+    const type = q.type || 'mc';
+    let optA = null, optB = null, optC = null, optD = null, correct = null;
+
+    if (type === 'mc') {
+      optA = q.a; optB = q.b; optC = q.c; optD = q.d;
+      correct = q.correct;
+    } else if (type === 'tf') {
+      optA = 'True';
+      optB = 'False';
+      correct = q.correct; // 'true' or 'false'
+    } else if (type === 'short') {
+      correct = q.correct;
+    }
+    // essay: everything stays null
+
     await db.run(
-      `INSERT INTO questions (quiz_id, text, option_a, option_b, option_c, option_d, correct, points, position)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
-      [quizId, q.text, q.a, q.b, q.c, q.d, q.correct, Number(q.points) || 1, pos]
+      `INSERT INTO questions (quiz_id, text, type, option_a, option_b, option_c, option_d, correct, points, position)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+      [quizId, q.text, type, optA, optB, optC, optD, correct, Number(q.points) || 1, pos]
     );
     pos++;
   }
@@ -230,7 +254,6 @@ router.post('/teacher/quiz/new/:courseId', requireLogin, async (req, res) => {
   res.redirect('/teacher/quizzes');
 });
 
-// ---------- UPDATE RELEASE TIME ----------
 router.post('/teacher/quiz/:id/release', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const { release_at } = req.body;
@@ -240,7 +263,6 @@ router.post('/teacher/quiz/:id/release', requireLogin, async (req, res) => {
   res.redirect('/teacher/quizzes');
 });
 
-// ---------- GRADING QUEUE ----------
 router.get('/teacher/grading', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const db = getDB();
@@ -258,6 +280,25 @@ router.get('/teacher/grading', requireLogin, async (req, res) => {
     ORDER BY a.submitted_at DESC
   `, [tid]);
 
+  // Load questions + student answers for each attempt (to show essays)
+  for (const sub of submissions) {
+    const qs = await db.all(
+      'SELECT * FROM questions WHERE quiz_id = $1 ORDER BY position, id',
+      [sub.quiz_id]
+    );
+    const answers = JSON.parse(sub.answers || '{}');
+    sub.questionDetails = qs.map(q => ({
+      id: q.id,
+      text: q.text,
+      type: q.type || 'mc',
+      points: q.points,
+      correct: q.correct,
+      studentAnswer: answers[q.id] || null,
+      optionA: q.option_a,
+      optionB: q.option_b,
+    }));
+  }
+
   res.render('teacher/grading', {
     title: 'Grading Queue',
     heading: 'Grading Queue',
@@ -266,7 +307,6 @@ router.get('/teacher/grading', requireLogin, async (req, res) => {
   });
 });
 
-// ---------- OVERRIDE GRADE ----------
 router.post('/teacher/attempt/:id/grade', requireLogin, async (req, res) => {
   if (req.session.user.role !== 'teacher') return res.redirect('/dashboard');
   const db = getDB();
