@@ -40,15 +40,12 @@ app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Security headers
 app.use(helmet({
   contentSecurityPolicy: false,
   crossOriginEmbedderPolicy: false,
 }));
 
-// Global rate limit
 app.use(globalLimiter);
-
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
@@ -58,45 +55,17 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(createSessionMiddleware());
 app.use(flash());
 
-// Globals
 app.use((req, res, next) => {
   res.locals.user = req.session.user || null;
   res.locals.flash = { success: req.flash('success'), error: req.flash('error') };
   res.locals.currentPath = req.path;
-
-  res.locals.timeAgo = function(dateVal) {
-    if (!dateVal) return 'Never';
-    let d;
-    if (dateVal instanceof Date) d = dateVal;
-    else d = new Date(String(dateVal).replace(' ', 'T') + 'Z');
-    if (isNaN(d.getTime())) return 'Never';
-    const diff = (Date.now() - d.getTime()) / 1000;
-    if (diff < 60) return 'just now';
-    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
-    if (diff < 172800) return 'yesterday';
-    if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
-    return d.toLocaleDateString();
-  };
-
-  res.locals.isOnline = function(dateVal) {
-    if (!dateVal) return false;
-    let d;
-    if (dateVal instanceof Date) d = dateVal;
-    else d = new Date(String(dateVal).replace(' ', 'T') + 'Z');
-    if (isNaN(d.getTime())) return false;
-    return (Date.now() - d.getTime()) < 5 * 60 * 1000;
-  };
-
   next();
 });
 
-// Rate limited auth routes
 app.use('/login', loginLimiter);
 app.use('/register', registerLimiter);
 app.use('/forgot-password', forgotLimiter);
 
-// Routers
 app.use('/', authRoutes);
 app.use('/', profileRoutes);
 app.use('/', settingsRoutes);
@@ -118,16 +87,13 @@ app.use('/', gradebookRoutes);
 app.use('/', bulkImportRoutes);
 app.use('/', teacherUploadRoutes);
 
-// Health
 app.get('/health', (req, res) => res.json({ ok: true, app: 'LuxMind' }));
 
-// Public landing page
 app.get('/', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
   res.render('landing');
 });
 
-// Public explore page
 app.get('/explore', async (req, res) => {
   try {
     const db = getDB();
@@ -145,7 +111,6 @@ app.get('/explore', async (req, res) => {
   }
 });
 
-// Dashboard dispatcher
 app.get('/dashboard', requireLogin, (req, res) => {
   const r = req.session.user.role;
   if (r === 'admin') return res.redirect('/admin');
@@ -153,7 +118,6 @@ app.get('/dashboard', requireLogin, (req, res) => {
   return res.redirect('/student');
 });
 
-// ============ STUDENT DASHBOARD ============
 app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -263,45 +227,12 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
     ORDER BY a.created_at DESC LIMIT 3
   `, [uid]);
 
-  const achievements = [];
-  if (totalLessons > 0 && doneLessons > 0) achievements.push({ icon: '🎯', name: 'First Step', desc: 'Completed a lesson' });
-  if (doneLessons >= 10) achievements.push({ icon: '📚', name: 'Bookworm', desc: '10 lessons done' });
-  if (doneLessons >= 25) achievements.push({ icon: '🔥', name: 'On Fire', desc: '25 lessons done' });
-  if (doneLessons >= 50) achievements.push({ icon: '🧠', name: 'Scholar', desc: '50 lessons done' });
-  if (totalPoints >= 100) achievements.push({ icon: '💎', name: 'Century', desc: '100 points earned' });
-  if (streak >= 3) achievements.push({ icon: '⚡', name: 'Streak x' + streak, desc: streak + ' days in a row' });
-  if (courses.length >= 3) achievements.push({ icon: '🌟', name: 'Explorer', desc: 'Enrolled in ' + courses.length + ' courses' });
-  if (pendingQuizzes.c === 0 && courses.length > 0) achievements.push({ icon: '✅', name: 'All Caught Up', desc: 'No pending quizzes' });
-
-  const continueCourse = courses.find(c => Number(c.done_lessons) < Number(c.total_lessons)) || courses[0] || null;
-
-  const quotes = [
-    { text: 'The expert in anything was once a beginner.', author: 'Helen Hayes' },
-    { text: 'Learning never exhausts the mind.', author: 'Leonardo da Vinci' },
-    { text: 'The beautiful thing about learning is that no one can take it away from you.', author: 'B.B. King' },
-    { text: 'Success is the sum of small efforts repeated day in and day out.', author: 'Robert Collier' },
-    { text: 'Education is the most powerful weapon you can use to change the world.', author: 'Nelson Mandela' },
-    { text: 'The more that you read, the more things you will know.', author: 'Dr. Seuss' },
-    { text: "Don't watch the clock; do what it does. Keep going.", author: 'Sam Levenson' },
-    { text: "Believe you can and you're halfway there.", author: 'Theodore Roosevelt' },
-  ];
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
-
-  const hour = new Date().getHours();
-  let greeting = 'Welcome back';
-  let emoji = '👋';
-  if (hour < 12) { greeting = 'Good morning'; emoji = '☀️'; }
-  else if (hour < 18) { greeting = 'Good afternoon'; emoji = '🌤️'; }
-  else { greeting = 'Good evening'; emoji = '🌙'; }
-
   res.render('student/dashboard', {
     title: 'Dashboard',
-    heading: greeting + ', ' + (user.full_name || user.username).split(' ')[0] + ' ' + emoji,
+    heading: 'Welcome, ' + (user.full_name || user.username),
     subtitle: 'Here is your learning snapshot.',
     courses, announcements,
     deadlines, recentActivity,
-    achievements, quote,
-    continueCourse,
     stats: {
       courses: courses.length,
       lessons: totalLessons,
@@ -314,7 +245,6 @@ app.get('/student', requireLogin, requireRole('student'), async (req, res) => {
   });
 });
 
-// ============ TEACHER DASHBOARD ============
 app.get('/teacher', requireLogin, requireRole('teacher'), async (req, res) => {
   const db = getDB();
   const tid = req.session.user.id;
@@ -370,7 +300,6 @@ app.get('/teacher', requireLogin, requireRole('teacher'), async (req, res) => {
   });
 });
 
-// ============ ADMIN DASHBOARD ============
 app.get('/admin', requireLogin, requireRole('admin'), async (req, res) => {
   const db = getDB();
 
@@ -398,7 +327,6 @@ app.get('/admin', requireLogin, requireRole('admin'), async (req, res) => {
   });
 });
 
-// ============ 404 / 500 ============
 app.use((req, res) => {
   if (req.session.user) return res.status(404).render('errors/404');
   res.status(404).send('404 - Not found');
@@ -414,16 +342,12 @@ app.use((err, req, res, next) => {
   res.status(500).send('500 - Server error');
 });
 
-// ============ BOOT ============
 (async () => {
   try {
     await connectDB();
     console.log('Skipping content scan (data already in Supabase)');
-
     app.listen(PORT, () => {
       console.log('');
-      console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
-      console.log('Session secret: ' + (process.env.SESSION_SECRET ? 'set (' + process.env.SESSION_SECRET.length + ' chars)' : 'MISSING'));
       console.log('LuxMind -> http://localhost:' + PORT);
       console.log('');
     });
