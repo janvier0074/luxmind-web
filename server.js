@@ -135,7 +135,30 @@ app.use('/', teacherUploadRoutes);
 
 
 app.get('/health', (req, res) => res.json({ ok: true, app: 'LuxMind' }));
-app.get('/', (req, res) => res.redirect(req.session.user ? '/dashboard' : '/login'));
+
+// Public landing page
+app.get('/', (req, res) => {
+  if (req.session.user) return res.redirect('/dashboard');
+  res.render('landing');
+});
+
+// Public explore page — all courses, no login needed
+app.get('/explore', async (req, res) => {
+  try {
+    const db = getDB();
+    const courses = await db.all(`
+      SELECT c.*,
+        (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count,
+        (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) AS student_count
+      FROM courses c
+      ORDER BY c.title
+    `);
+    res.render('explore', { courses });
+  } catch (e) {
+    console.error('Explore error:', e);
+    res.status(500).send('Error loading courses');
+  }
+});
 
 app.get('/dashboard', requireLogin, (req, res) => {
   const r = req.session.user.role;
