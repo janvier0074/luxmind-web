@@ -90,19 +90,22 @@ router.post('/lessons/:id/complete', requireLogin, async (req, res) => {
 });
 
 // ---------- DOWNLOAD ----------
-// ---------- SERVE FILE WITH PROPER CONTENT-TYPE ----------
 router.get('/files/resource/:id', requireLogin, async (req, res) => {
+  // Guard: ID must be numeric. If someone requests /files/resource/logo.png → 404
+  if (!/^\d+$/.test(req.params.id)) {
+    return res.status(404).send('Not found');
+  }
+
   const db = getDB();
   const resource = await db.get('SELECT * FROM resources WHERE id = $1', [req.params.id]);
   if (!resource) return res.status(404).send('File not found');
 
-  // If file_path is a cloud URL (Supabase), proxy it with correct content-type
+  // Cloud URL (Supabase) — proxy with correct content-type
   if (resource.file_path && resource.file_path.startsWith('http')) {
     try {
       const upstream = await fetch(resource.file_path);
       if (!upstream.ok) return res.status(404).send('File not found in storage');
 
-      // Determine correct content type based on file extension
       const ext = (resource.filename || '').split('.').pop().toLowerCase();
       const types = {
         html: 'text/html; charset=utf-8',
@@ -129,7 +132,25 @@ router.get('/files/resource/:id', requireLogin, async (req, res) => {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=3600');
 
-      const buffer = Buffer.from(await upstream.arrayBuffer());
+      let buffer = Buffer.from(await upstream.arrayBuffer());
+
+      // For HTML files: inject <base> so relative asset paths resolve to Supabase
+      if (contentType.startsWith('text/html')) {
+        let html = buffer.toString('utf-8');
+        const folderUrl = resource.file_path.substring(0, resource.file_path.lastIndexOf('/') + 1);
+
+        // Inject <base> right after <head>
+        if (/<head[^>]*>/i.test(html)) {
+          html = html.replace(/(<head[^>]*>)/i, `$1\n<base href="${folderUrl}">`);
+        } else if (/<html[^>]*>/i.test(html)) {
+          html = html.replace(/(<html[^>]*>)/i, `$1\n<head><base href="${folderUrl}"></head>`);
+        } else {
+          html = `<base href="${folderUrl}">` + html;
+        }
+
+        return res.send(html);
+      }
+
       return res.send(buffer);
     } catch (e) {
       console.error('Proxy error:', e);
