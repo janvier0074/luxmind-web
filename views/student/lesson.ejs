@@ -192,7 +192,7 @@
   <div class="empty">📭 No viewable files in this lesson.</div>
 <% } else { %>
   <% resources.forEach((r, i) => {
-     const fileUrl = r.file_path;
+     const fileUrl = '/files/resource/' + r.id;
        const sizeText = r.size_bytes > 1024 * 1024
          ? (r.size_bytes / 1024 / 1024).toFixed(1) + ' MB'
          : Math.round(r.size_bytes / 1024) + ' KB';

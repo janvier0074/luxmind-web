@@ -90,14 +90,51 @@ router.post('/lessons/:id/complete', requireLogin, async (req, res) => {
 });
 
 // ---------- DOWNLOAD ----------
+// ---------- SERVE FILE WITH PROPER CONTENT-TYPE ----------
 router.get('/files/resource/:id', requireLogin, async (req, res) => {
   const db = getDB();
   const resource = await db.get('SELECT * FROM resources WHERE id = $1', [req.params.id]);
   if (!resource) return res.status(404).send('File not found');
 
-  // If file_path is a cloud URL, redirect to it
+  // If file_path is a cloud URL (Supabase), proxy it with correct content-type
   if (resource.file_path && resource.file_path.startsWith('http')) {
-    return res.redirect(resource.file_path);
+    try {
+      const upstream = await fetch(resource.file_path);
+      if (!upstream.ok) return res.status(404).send('File not found in storage');
+
+      // Determine correct content type based on file extension
+      const ext = (resource.filename || '').split('.').pop().toLowerCase();
+      const types = {
+        html: 'text/html; charset=utf-8',
+        htm: 'text/html; charset=utf-8',
+        css: 'text/css; charset=utf-8',
+        js: 'application/javascript; charset=utf-8',
+        json: 'application/json',
+        svg: 'image/svg+xml',
+        pdf: 'application/pdf',
+        png: 'image/png',
+        jpg: 'image/jpeg',
+        jpeg: 'image/jpeg',
+        gif: 'image/gif',
+        webp: 'image/webp',
+        avif: 'image/avif',
+        mp4: 'video/mp4',
+        webm: 'video/webm',
+        mp3: 'audio/mpeg',
+        wav: 'audio/wav',
+        zip: 'application/zip',
+      };
+      const contentType = types[ext] || 'application/octet-stream';
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+
+      const buffer = Buffer.from(await upstream.arrayBuffer());
+      return res.send(buffer);
+    } catch (e) {
+      console.error('Proxy error:', e);
+      return res.status(500).send('Error fetching file');
+    }
   }
 
   // Fallback for local files
@@ -105,7 +142,6 @@ router.get('/files/resource/:id', requireLogin, async (req, res) => {
   if (!fs.existsSync(absolute)) return res.status(404).send('File missing on disk');
   res.sendFile(absolute);
 });
-
 // ---------- SERVE ANY FILE INSIDE LESSON FOLDER (assets too) ----------
 router.get('/lesson-files/:lessonId/:file(*)', requireLogin, async (req, res) => {
   const db = getDB();
