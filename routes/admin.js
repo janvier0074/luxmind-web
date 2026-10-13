@@ -240,7 +240,7 @@ router.get('/admin/reports', guard, async (req, res) => {
   const signups = await db.all(`
     SELECT date(created_at) AS d, COUNT(*) AS c
     FROM users
-    WHERE created_at >= date('now', '-7 days')
+        WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
     GROUP BY d
     ORDER BY d
   `);
