@@ -96,7 +96,7 @@ app.get('/', (req, res) => {
   res.render('landing');
 });
 
-app.get('/explore', async (req, res) => {
+app.get('/explore', requireLogin, async (req, res) => {
   try {
     const db = getDB();
     const courses = await db.all(`
