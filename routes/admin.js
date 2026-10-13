@@ -24,12 +24,12 @@ router.get('/admin/users', guard, async (req, res) => {
 
   const users = await db.all(sql, params);
 
-  // counts
+    // counts
   const totals = {
     all: (await db.get('SELECT COUNT(*) c FROM users')).c,
-    admin: (await db.get('SELECT COUNT(*) c FROM users WHERE role="admin"')).c,
-    teacher: (await db.get('SELECT COUNT(*) c FROM users WHERE role="teacher"')).c,
-    student: (await db.get('SELECT COUNT(*) c FROM users WHERE role="student"')).c,
+    admin: (await db.get(`SELECT COUNT(*) c FROM users WHERE role='admin'`)).c,
+    teacher: (await db.get(`SELECT COUNT(*) c FROM users WHERE role='teacher'`)).c,
+    student: (await db.get(`SELECT COUNT(*) c FROM users WHERE role='student'`)).c,
   };
 
   res.render('admin/users', {
