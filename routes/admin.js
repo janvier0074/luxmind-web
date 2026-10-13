@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcrypt');
 const { getDB } = require('../config/database');
 const { requireLogin, requireRole } = require('../middleware/auth');
+const { auth: firebaseAuth } = require('../config/firebase');
 const router = express.Router();
 
 const guard = [requireLogin, requireRole('admin')];
@@ -51,20 +52,45 @@ router.get('/admin/users/new', guard, (req, res) => {
 router.post('/admin/users/new', guard, async (req, res) => {
   const db = getDB();
   const { username, email, password, role, full_name } = req.body;
-  if (!username || !password) {
-    req.flash('error', 'Username and password are required.');
+  if (!username || !email || !password) {
+    req.flash('error', 'Username, email and password are required.');
     return res.redirect('/admin/users/new');
   }
+
+  let firebaseUser = null;
   try {
+    // 1. Create the account in Firebase
+    firebaseUser = await firebaseAuth.createUser({
+      email,
+      password,
+      displayName: full_name || username,
+      emailVerified: true,
+    });
+
+    // 2. Insert the row in Postgres users
     const hash = await bcrypt.hash(password, 10);
     await db.run(
       'INSERT INTO users (username, email, password, role, full_name) VALUES ($1,$2,$3,$4,$5)',
-      [username, email || null, hash, role || 'student', full_name || null]
+      [username, email, hash, role || 'student', full_name || null]
     );
-    req.flash('success', 'User created.');
+
+    req.flash('success', 'User created: ' + email);
     res.redirect('/admin/users');
   } catch (e) {
-    req.flash('error', 'Username already taken.');
+    console.error('Create user error:', e);
+
+    // If Firebase succeeded but Postgres failed, roll back the Firebase account
+    if (firebaseUser) {
+      try { await firebaseAuth.deleteUser(firebaseUser.uid); } catch (_) {}
+    }
+
+    let msg = 'Could not create user.';
+    if (e.code === 'auth/email-already-exists') msg = 'That email is already registered in Firebase.';
+    else if (e.code === 'auth/invalid-password')  msg = 'Password must be at least 6 characters.';
+    else if (e.code === 'auth/invalid-email')     msg = 'That email is not valid.';
+    else if (e.code === '23505')                  msg = 'Username or email already exists in the database.';
+
+    req.flash('error', msg);
     res.redirect('/admin/users/new');
   }
 });
