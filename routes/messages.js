@@ -1,4 +1,6 @@
 const express = require('express');
+const { sendNewMessage } = require('../services/emailService');
+
 const { getDB } = require('../config/database');
 const { requireLogin } = require('../middleware/auth');
 const router = express.Router();
@@ -94,6 +96,24 @@ router.post('/messages/new', requireLogin, async (req, res) => {
     'INSERT INTO notifications (user_id, title, body, link) VALUES ($1,$2,$3,$4)',
     [Number(receiver_id), 'New message from ' + (sender.full_name || sender.username), body.slice(0, 80), '/messages']
   );
+
+
+
+  // Send email notification to the recipient
+  try {
+    const receiver = await db.get('SELECT email, full_name, username FROM users WHERE id = $1', [Number(receiver_id)]);
+    if (receiver && receiver.email) {
+      await sendNewMessage({
+        to: receiver.email,
+        recipientName: receiver.full_name || receiver.username,
+        senderName: sender.full_name || sender.username,
+        preview: body.slice(0, 200),
+      });
+    }
+  } catch (e) {
+    console.error('Message email failed:', e.message);
+  }
+
 
   req.flash('success', 'Message sent.');
   res.redirect('/messages');
