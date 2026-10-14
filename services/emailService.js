@@ -1,43 +1,36 @@
 // services/emailService.js
-// Sends transactional emails via Gmail SMTP.
+// Sends transactional emails via Resend.
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const GMAIL_USER = process.env.GMAIL_USER;
-const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const FROM_NAME = 'LuxMind';
+const RESEND_API_KEY = process.env.RESEND_API_KEY;
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
 const APP_URL = process.env.APP_URL || 'https://luxmind.onrender.com';
 
-let transporter = null;
-if (GMAIL_USER && GMAIL_APP_PASSWORD) {
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: GMAIL_USER,
-      pass: GMAIL_APP_PASSWORD.replace(/\s+/g, ''),
-    },
-  });
-  console.log('📧 Gmail email service initialized as ' + GMAIL_USER);
+let resend = null;
+if (RESEND_API_KEY) {
+  resend = new Resend(RESEND_API_KEY);
+  console.log('📧 Resend email service initialized');
 } else {
-  console.warn('⚠️  GMAIL_USER / GMAIL_APP_PASSWORD not set — emails will be skipped');
+  console.warn('⚠️  RESEND_API_KEY not set — emails will be skipped');
 }
 
 /**
  * Low-level send. Returns { ok: true } or { ok: false, error }.
  */
 async function sendEmail({ to, subject, html, text }) {
-  if (!transporter) {
+  if (!resend) {
     return { ok: false, error: 'Email service not configured' };
   }
   try {
-    const info = await transporter.sendMail({
-      from: FROM_NAME + ' <' + GMAIL_USER + '>',
+    const result = await resend.emails.send({
+      from: 'LuxMind <' + FROM_EMAIL + '>',
       to,
       subject,
       html: html || text,
       text: text || undefined,
     });
-    return { ok: true, id: info.messageId };
+    return { ok: true, id: result.id };
   } catch (e) {
     console.error('sendEmail error:', e.message);
     return { ok: false, error: e.message };
