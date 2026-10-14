@@ -90,6 +90,13 @@ app.use('/', bulkImportRoutes);
 app.use('/', teacherUploadRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true, app: 'LuxMind' }));
+app.get('/admin/test-email', requireLogin, requireRole('admin'), async (req, res) => {
+  const { sendWelcome } = require('./services/emailService');
+  const to = req.query.to;
+  if (!to) return res.status(400).send('Add ?to=you@example.com to the URL');
+  const r = await sendWelcome({ to, name: 'Test User' });
+  res.json(r);
+});
 
 app.get('/', (req, res) => {
   if (req.session.user) return res.redirect('/dashboard');
