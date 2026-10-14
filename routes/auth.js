@@ -4,6 +4,7 @@ const { auth } = require('../config/firebase');
 
 const path = require('path');
 const fs = require('fs');
+const { sendWelcome } = require('../services/emailService');
 
 const router = express.Router();
 
@@ -61,6 +62,13 @@ router.post('/login', async (req, res) => {
         email,
       };
       console.log('Auto-created SQLite user for: ' + email);
+
+      // Send welcome email (non-blocking)
+      try {
+        await sendWelcome({ to: email, name: fullName });
+      } catch (e) {
+        console.error('Welcome email failed:', e.message);
+      }
     }
 
     req.session.user = {
