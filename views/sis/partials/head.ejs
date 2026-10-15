@@ -161,13 +161,46 @@
     transition: all .15s; cursor: pointer; display: block;
     color: #0f172a;
   }
-  .sis-tile:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 28px rgba(15,23,42,.1);
-    border-color: #06b6d4;
+    .sis-tile:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(15,23,42,.15);
   }
-  .sis-tile-icon { font-size: 2.2rem; margin-bottom: .65rem; display: block; }
-  .sis-tile-label { font-weight: 700; font-size: .9rem; }
+  .sis-tile-icon {
+    font-size: 2.8rem;
+    margin-bottom: .85rem;
+    display: block;
+    line-height: 1;
+  }
+  .sis-tile-label {
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: -.01em;
+  }
+  .sis-tile-sub {
+    font-size: .75rem;
+    opacity: .8;
+    margin-top: .25rem;
+    font-weight: 500;
+  }
+  /* Color themes for tiles */
+  .sis-tile.tile-blue    { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border-color: transparent; }
+  .sis-tile.tile-blue:hover    { box-shadow: 0 16px 32px rgba(59,130,246,.4); }
+  .sis-tile.tile-green   { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-color: transparent; }
+  .sis-tile.tile-green:hover   { box-shadow: 0 16px 32px rgba(16,185,129,.4); }
+  .sis-tile.tile-amber   { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; border-color: transparent; }
+  .sis-tile.tile-amber:hover   { box-shadow: 0 16px 32px rgba(245,158,11,.4); }
+  .sis-tile.tile-purple  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; border-color: transparent; }
+  .sis-tile.tile-purple:hover  { box-shadow: 0 16px 32px rgba(139,92,246,.4); }
+  .sis-tile.tile-pink    { background: linear-gradient(135deg, #ec4899, #db2777); color: #fff; border-color: transparent; }
+  .sis-tile.tile-pink:hover    { box-shadow: 0 16px 32px rgba(236,72,153,.4); }
+  .sis-tile.tile-cyan    { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border-color: transparent; }
+  .sis-tile.tile-cyan:hover    { box-shadow: 0 16px 32px rgba(6,182,212,.4); }
+  .sis-tile.tile-indigo  { background: linear-gradient(135deg, #6366f1, #4f46e5); color: #fff; border-color: transparent; }
+  .sis-tile.tile-indigo:hover  { box-shadow: 0 16px 32px rgba(99,102,241,.4); }
+  .sis-tile.tile-rose    { background: linear-gradient(135deg, #f43f5e, #e11d48); color: #fff; border-color: transparent; }
+  .sis-tile.tile-rose:hover    { box-shadow: 0 16px 32px rgba(244,63,94,.4); }
+  .sis-tile.tile-slate   { background: linear-gradient(135deg, #64748b, #475569); color: #fff; border-color: transparent; }
+  .sis-tile.tile-slate:hover   { box-shadow: 0 16px 32px rgba(100,116,139,.4); }
 
   .sis-table { width: 100%; border-collapse: collapse; background: #fff; }
   .sis-table thead { background: #f8fafc; }
