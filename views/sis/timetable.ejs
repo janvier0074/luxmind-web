@@ -25,7 +25,7 @@
         <tr>
           <td colspan="6" style="text-align:center;padding:2.5rem;color:#64748b;">
             You haven't enrolled in any course yet.
-            <a href="/explore" style="color:#0891b2;font-weight:700;"> Browse courses →</a>
+            <a href="https://luxmind.onrender.com/explore" style="color:#0891b2;font-weight:700;"> Browse courses →</a>
           </td>
         </tr>
       <% } else { %>
@@ -33,26 +33,33 @@
           const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
           const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
           const attColor = pct >= 75 ? '#10b981' : (pct >= 50 ? '#f59e0b' : '#ef4444');
+          const lmsUrl = 'https://luxmind.onrender.com/courses/' + c.id;
         %>
           <tr>
-            <td style="font-family:ui-monospace,monospace;font-weight:700;color:#0891b2;font-size:.85rem;"><%= code %></td>
             <td>
-              <div style="font-weight:700;color:#0f172a;"><%= c.title %></div>
-              <% if (c.description) { %>
-                <div style="color:#64748b;font-size:.8rem;margin-top:.2rem;"><%= c.description.slice(0, 80) %><%= c.description.length > 80 ? '…' : '' %></div>
-              <% } %>
+              <a href="<%= lmsUrl %>" style="text-decoration:none;font-family:ui-monospace,monospace;font-weight:800;color:#0891b2;font-size:.85rem;" title="Open in LMS">
+                <%= code %>
+              </a>
+            </td>
+            <td>
+              <a href="<%= lmsUrl %>" style="text-decoration:none;color:inherit;display:block;" title="Open in LMS">
+                <div style="font-weight:700;color:#0f172a;"><%= c.title %> <span style="font-size:.75rem;color:#0891b2;font-weight:600;">↗</span></div>
+                <% if (c.description) { %>
+                  <div style="color:#64748b;font-size:.8rem;margin-top:.2rem;"><%= c.description.slice(0, 80) %><%= c.description.length > 80 ? '…' : '' %></div>
+                <% } %>
+              </a>
             </td>
             <td style="color:#334155;font-size:.88rem;"><%= c.teacher_name || 'LuxMind' %></td>
             <td style="text-align:center;">
-              <a href="/courses/<%= c.id %>" title="Syllabus & lessons" style="display:inline-flex;width:32px;height:32px;background:#e0f2fe;color:#0369a1;border-radius:6px;align-items:center;justify-content:center;text-decoration:none;font-size:.95rem;">📘</a>
+              <a href="<%= lmsUrl %>" title="Syllabus & lessons" style="display:inline-flex;width:32px;height:32px;background:#e0f2fe;color:#0369a1;border-radius:6px;align-items:center;justify-content:center;text-decoration:none;font-size:.95rem;">📘</a>
             </td>
             <td style="text-align:center;">
-              <a href="/sis/my/attendance" title="My attendance" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;">
-                <span style="display:inline-flex;width:32px;height:32px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:6px;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;"><%= pct %>%</span>
+              <a href="/sis/my/attendance" title="My attendance" style="display:inline-flex;text-decoration:none;">
+                <span style="display:inline-flex;width:36px;height:32px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:6px;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;"><%= pct %>%</span>
               </a>
             </td>
             <td style="text-align:center;">
-              <a class="sis-moodle-btn" href="/courses/<%= c.id %>" title="Open in LuxMind LMS">
+              <a class="sis-moodle-btn" href="<%= lmsUrl %>" title="Open in LuxMind LMS">
                 🟢 Open
               </a>
             </td>
@@ -94,7 +101,7 @@
             <td style="color:#64748b;"><%= d.course %></td>
             <td style="text-align:right;">
               <a class="sis-btn sis-btn-outline" style="padding:.35rem .8rem;font-size:.78rem;"
-                href="<%= d.kind === 'assignment' ? '/student/assignments/' + d.id : '/student/quiz/' + d.id %>">
+                href="https://luxmind.onrender.com<%= d.kind === 'assignment' ? '/student/assignments/' + d.id : '/student/quiz/' + d.id %>">
                 Open →
               </a>
             </td>
