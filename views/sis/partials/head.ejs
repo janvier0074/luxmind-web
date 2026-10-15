@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= typeof title !== 'undefined' ? title + ' · LuxMind SIS' : 'LuxMind SIS' %></title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
+  html, body { height: 100%; background: #f5f1e8; color: #1c1917; }
+
+  /* ============ SIS LAYOUT ============ */
+  .sis-shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+  /* ============ SIDEBAR (charcoal + gold) ============ */
+  .sis-sidebar {
+    background: #1c1917;
+    color: #e7e5e4;
+    display: flex;
+    flex-direction: column;
+    padding: 1.5rem 0;
+    border-right: 1px solid #292524;
+  }
+  .sis-brand {
+    padding: 0 1.5rem 1.5rem;
+    border-bottom: 1px solid #292524;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+  }
+  .sis-brand-logo {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #d4a017, #b45309);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.1rem; color: #1c1917;
+    font-family: Georgia, serif;
+  }
+  .sis-brand-text { line-height: 1.1; }
+  .sis-brand-title { font-family: Georgia, serif; font-weight: 700; font-size: 1.05rem; color: #fbbf24; letter-spacing: .02em; }
+  .sis-brand-sub { font-size: .68rem; text-transform: uppercase; letter-spacing: .15em; color: #78716c; margin-top: 2px; }
+
+  .sis-nav-label {
+    padding: .5rem 1.5rem;
+    font-size: .65rem;
+    text-transform: uppercase;
+    letter-spacing: .18em;
+    color: #78716c;
+    margin-top: 1rem;
+  }
+  .sis-nav a {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .7rem 1.5rem;
+    color: #d6d3d1;
+    text-decoration: none;
+    font-size: .9rem;
+    border-left: 3px solid transparent;
+    transition: all .15s;
+  }
+  .sis-nav a:hover { background: #292524; color: #fbbf24; }
+  .sis-nav a.active {
+    background: #292524;
+    color: #fbbf24;
+    border-left-color: #d4a017;
+    font-weight: 600;
+  }
+  .sis-nav a .icon { font-size: 1.05rem; width: 20px; text-align: center; }
+
+  .sis-back {
+    margin-top: auto;
+    padding: 1.5rem;
+    border-top: 1px solid #292524;
+  }
+  .sis-back a {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    color: #a8a29e;
+    text-decoration: none;
+    font-size: .82rem;
+    padding: .55rem .8rem;
+    border-radius: 6px;
+    transition: all .15s;
+  }
+  .sis-back a:hover { background: #292524; color: #fbbf24; }
+
+  /* ============ MAIN AREA (cream + serif headings) ============ */
+  .sis-main { padding: 2rem 2.5rem; overflow-x: hidden; }
+
+  .sis-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e7e5e4;
+  }
+  .sis-page-title { font-family: Georgia, 'Times New Roman', serif; font-size: 1.9rem; font-weight: 700; color: #1c1917; letter-spacing: -.01em; }
+  .sis-page-sub { color: #78716c; font-size: .9rem; margin-top: .35rem; font-style: italic; }
+
+  .sis-user {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .5rem .9rem;
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 6px;
+  }
+  .sis-user-name { font-weight: 600; font-size: .88rem; }
+  .sis-user-role { font-size: .72rem; color: #a16207; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ============ CARDS & TABLES (institutional) ============ */
+  .sis-card {
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-radius: 4px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 1px 2px rgba(28,25,23,.03);
+  }
+  .sis-card h2, .sis-card h3 {
+    font-family: Georgia, serif;
+    font-size: 1.05rem;
+    color: #1c1917;
+    margin-bottom: 1rem;
+    padding-bottom: .5rem;
+    border-bottom: 1px solid #f5f1e8;
+  }
+
+  .sis-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .sis-stat {
+    background: #fff;
+    border: 1px solid #e7e5e4;
+    border-left: 4px solid #d4a017;
+    border-radius: 4px;
+    padding: 1.25rem;
+  }
+  .sis-stat.gold   { border-left-color: #d4a017; }
+  .sis-stat.green  { border-left-color: #15803d; }
+  .sis-stat.red    { border-left-color: #b91c1c; }
+  .sis-stat.slate  { border-left-color: #57534e; }
+  .sis-stat-num { font-family: Georgia, serif; font-size: 2rem; font-weight: 700; color: #1c1917; line-height: 1; }
+  .sis-stat-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: #78716c; margin-top: .5rem; }
+
+  .sis-table { width: 100%; border-collapse: collapse; background: #fff; }
+  .sis-table thead { background: #f5f1e8; }
+  .sis-table th {
+    text-align: left;
+    padding: .85rem 1rem;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    color: #57534e;
+    font-weight: 700;
+    border-bottom: 2px solid #e7e5e4;
+  }
+  .sis-table td { padding: .9rem 1rem; border-bottom: 1px solid #f5f1e8; font-size: .9rem; }
+  .sis-table tr:hover { background: #faf8f3; }
+
+  /* ============ BADGES (institutional, square) ============ */
+  .sis-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    font-size: .72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    border-radius: 3px;
+  }
+  .sis-badge-active  { background: #dcfce7; color: #166534; }
+  .sis-badge-inactive{ background: #fee2e2; color: #991b1b; }
+  .sis-badge-gold    { background: #fef3c7; color: #92400e; }
+
+  /* ============ BUTTONS ============ */
+  .sis-btn {
+    display: inline-block;
+    padding: .65rem 1.2rem;
+    background: #1c1917;
+    color: #fbbf24;
+    text-decoration: none;
+    border: none;
+    border-radius: 4px;
+    font-size: .85rem;
+    font-weight: 600;
+    cursor: pointer;
+    letter-spacing: .02em;
+    transition: all .15s;
+    font-family: inherit;
+  }
+  .sis-btn:hover { background: #292524; }
+  .sis-btn-gold { background: linear-gradient(135deg, #d4a017, #b45309); color: #fff; }
+  .sis-btn-gold:hover { background: linear-gradient(135deg, #b45309, #92400e); }
+  .sis-btn-outline {
+    background: #fff;
+    color: #1c1917;
+    border: 1px solid #e7e5e4;
+  }
+  .sis-btn-outline:hover { background: #f5f1e8; }
+
+  /* ============ FORMS ============ */
+  .sis-input, .sis-select, .sis-textarea {
+    width: 100%;
+    padding: .7rem .9rem;
+    border: 1px solid #d6d3d1;
+    border-radius: 4px;
+    background: #fff;
+    font-size: .9rem;
+    font-family: inherit;
+    color: #1c1917;
+  }
+  .sis-input:focus, .sis-select:focus, .sis-textarea:focus {
+    outline: none;
+    border-color: #d4a017;
+    box-shadow: 0 0 0 3px rgba(212,160,23,.15);
+  }
+  .sis-label {
+    display: block;
+    font-size: .8rem;
+    font-weight: 600;
+    color: #44403c;
+    margin-bottom: .4rem;
+  }
+
+  /* ============ FLASH ============ */
+  .sis-flash {
+    padding: .85rem 1.2rem;
+    border-radius: 4px;
+    margin-bottom: 1.5rem;
+    font-size: .9rem;
+    border-left: 4px solid;
+  }
+  .sis-flash-success { background: #dcfce7; color: #166534; border-color: #15803d; }
+  .sis-flash-error   { background: #fee2e2; color: #991b1b; border-color: #b91c1c; }
+
+  .sis-empty {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #78716c;
+    font-style: italic;
+    background: #fff;
+    border: 1px dashed #d6d3d1;
+    border-radius: 4px;
+  }
+
+  @media (max-width: 800px) {
+    .sis-shell { grid-template-columns: 1fr; }
+    .sis-sidebar { display: none; }
+    .sis-main { padding: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+<div class="sis-shell">
+
+  <aside class="sis-sidebar">
+    <div class="sis-brand">
+      <div class="sis-brand-logo">S</div>
+      <div class="sis-brand-text">
+        <div class="sis-brand-title">LuxMind SIS</div>
+        <div class="sis-brand-sub">Administration</div>
+      </div>
+    </div>
+
+    <div class="sis-nav-label">Registry</div>
+    <nav class="sis-nav">
+      <a href="/sis" class="<%= currentPath === '/sis' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
+      <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+      <a href="/sis/classes" class="<%= currentPath === '/sis/classes' ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
+    </nav>
+
+    <div class="sis-nav-label">Records</div>
+    <nav class="sis-nav">
+      <a href="/sis/attendance" class="<%= currentPath === '/sis/attendance' ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
+      <a href="/sis/fees" class="<%= currentPath === '/sis/fees' ? 'active' : '' %>"><span class="icon">💰</span> Fees</a>
+      <a href="/sis/parents" class="<%= currentPath === '/sis/parents' ? 'active' : '' %>"><span class="icon">👨‍👩‍👧</span> Parents</a>
+    </nav>
+
+    <div class="sis-nav-label">Institution</div>
+    <nav class="sis-nav">
+      <a href="/sis/reports" class="<%= currentPath === '/sis/reports' ? 'active' : '' %>"><span class="icon">📊</span> Reports</a>
+      <a href="/sis/settings" class="<%= currentPath === '/sis/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>
+    </nav>
+
+    <div class="sis-back">
+      <a href="/dashboard">← Back to Learning</a>
+    </div>
+  </aside>
+
+  <main class="sis-main">
+    <div class="sis-topbar">
+      <div>
+        <div class="sis-page-title"><%= typeof heading !== 'undefined' ? heading : 'Overview' %></div>
+        <% if (typeof subtitle !== 'undefined' && subtitle) { %>
+          <div class="sis-page-sub"><%= subtitle %></div>
+        <% } %>
+      </div>
+      <div class="sis-user">
+        <div style="text-align:right;">
+          <div class="sis-user-name"><%= user.full_name || user.username %></div>
+          <div class="sis-user-role">Administrator</div>
+        </div>
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,#d4a017,#b45309);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;">
+          <%= (user.full_name || user.username).charAt(0).toUpperCase() %>
+        </div>
+      </div>
+    </div>
+
+    <% if (flash.error && flash.error.length) { %>
+      <div class="sis-flash sis-flash-error">⚠️ <%= flash.error[0] %></div>
+    <% } %>
+    <% if (flash.success && flash.success.length) { %>
+      <div class="sis-flash sis-flash-success">✓ <%= flash.success[0] %></div>
+    <% } %>

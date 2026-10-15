@@ -1,5 +1,5 @@
 // routes/sis.js
-// Student Information System routes
+// Student Information System — separate interface from the LMS
 const express = require('express');
 const { getDB } = require('../config/database');
 const { requireLogin, requireRole } = require('../middleware/auth');
@@ -9,9 +9,62 @@ const router = express.Router();
 const guard = [requireLogin, requireRole('admin')];
 
 // ============================================================
+//                 SIS DASHBOARD
+// ============================================================
+router.get('/sis', guard, async (req, res) => {
+  const db = getDB();
+
+  const studentsRow = await db.get(`SELECT COUNT(*) c FROM users WHERE role = 'student'`);
+  const activeRow   = await db.get(`SELECT COUNT(*) c FROM student_profiles WHERE status = 'active'`);
+  const classesRow  = await db.get(`SELECT COUNT(*) c FROM classes`);
+  const teachersRow = await db.get(`SELECT COUNT(*) c FROM users WHERE role = 'teacher'`);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const presentRow = await db.get(
+    `SELECT COUNT(*) c FROM attendance WHERE attendance_date = $1 AND status = 'present'`, [today]
+  );
+  const absentRow = await db.get(
+    `SELECT COUNT(*) c FROM attendance WHERE attendance_date = $1 AND status = 'absent'`, [today]
+  );
+
+  const monthStart = new Date();
+  monthStart.setDate(1);
+  const monthStartStr = monthStart.toISOString().slice(0, 10);
+  const feesRow = await db.get(
+    `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE paid_at >= $1`, [monthStartStr]
+  );
+
+  const recentStudents = await db.all(`
+    SELECT u.id, u.username, u.full_name, u.created_at,
+           sp.class_level, sp.admission_number
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.role = 'student'
+    ORDER BY u.created_at DESC
+    LIMIT 8
+  `);
+
+  res.render('sis/dashboard', {
+    title: 'Overview',
+    heading: 'School Overview',
+    subtitle: 'A snapshot of the institution.',
+    stats: {
+      students: studentsRow.c,
+      activeStudents: activeRow.c,
+      classes: classesRow.c,
+      teachers: teachersRow.c,
+      presentToday: presentRow.c,
+      absentToday: absentRow.c,
+      feesThisMonth: feesRow.total,
+    },
+    recentStudents,
+  });
+});
+
+// ============================================================
 //                 STUDENT LIST
 // ============================================================
-router.get('/admin/students', guard, async (req, res) => {
+router.get('/sis/students', guard, async (req, res) => {
   const db = getDB();
   const q = (req.query.q || '').trim();
   const classFilter = req.query.class || '';
@@ -51,10 +104,10 @@ router.get('/admin/students', guard, async (req, res) => {
     inactive: (await db.get(`SELECT COUNT(*) c FROM student_profiles WHERE status='inactive'`)).c,
   };
 
-  res.render('admin/students', {
+  res.render('sis/students', {
     title: 'Students',
     heading: 'Student Registry',
-    subtitle: 'Manage all students in the school.',
+    subtitle: 'All students enrolled in the institution.',
     students, totals, q, classFilter, classList,
   });
 });
@@ -62,11 +115,11 @@ router.get('/admin/students', guard, async (req, res) => {
 // ============================================================
 //                 NEW STUDENT FORM
 // ============================================================
-router.get('/admin/students/new', guard, (req, res) => {
-  res.render('admin/student-new', {
-    title: 'Add Student',
-    heading: 'Add New Student',
-    subtitle: 'Create a student record.',
+router.get('/sis/students/new', guard, (req, res) => {
+  res.render('sis/student-new', {
+    title: 'Register Student',
+    heading: 'Register New Student',
+    subtitle: 'Create a new student record.',
     error: null,
     form: {},
   });
@@ -75,7 +128,7 @@ router.get('/admin/students/new', guard, (req, res) => {
 // ============================================================
 //                 CREATE STUDENT
 // ============================================================
-router.post('/admin/students/new', guard, async (req, res) => {
+router.post('/sis/students/new', guard, async (req, res) => {
   const db = getDB();
   const {
     full_name, username, email, password,
@@ -85,10 +138,10 @@ router.post('/admin/students/new', guard, async (req, res) => {
   } = req.body;
 
   if (!full_name || !username || !email || !password) {
-    return res.render('admin/student-new', {
-      title: 'Add Student',
-      heading: 'Add New Student',
-      subtitle: 'Create a student record.',
+    return res.render('sis/student-new', {
+      title: 'Register Student',
+      heading: 'Register New Student',
+      subtitle: 'Create a new student record.',
       error: 'Full name, username, email and password are required.',
       form: req.body,
     });
@@ -96,7 +149,6 @@ router.post('/admin/students/new', guard, async (req, res) => {
 
   let firebaseUser = null;
   try {
-    // 1. Firebase account
     firebaseUser = await firebaseAuth.createUser({
       email,
       password,
@@ -104,7 +156,6 @@ router.post('/admin/students/new', guard, async (req, res) => {
       emailVerified: true,
     });
 
-    // 2. Postgres user row
     await db.run(
       `INSERT INTO users (username, email, password, role, full_name)
        VALUES ($1, $2, $3, 'student', $4)`,
@@ -114,7 +165,6 @@ router.post('/admin/students/new', guard, async (req, res) => {
     const row = await db.get('SELECT id FROM users WHERE username = $1', [username]);
     const userId = row.id;
 
-    // 3. Student profile
     await db.run(
       `INSERT INTO student_profiles
        (user_id, admission_number, date_of_birth, gender,
@@ -135,8 +185,8 @@ router.post('/admin/students/new', guard, async (req, res) => {
       ]
     );
 
-    req.flash('success', 'Student created: ' + full_name);
-    res.redirect('/admin/students');
+    req.flash('success', 'Student registered: ' + full_name);
+    res.redirect('/sis/students');
   } catch (e) {
     console.error('Create student error:', e);
 
@@ -144,14 +194,14 @@ router.post('/admin/students/new', guard, async (req, res) => {
       try { await firebaseAuth.deleteUser(firebaseUser.uid); } catch (_) {}
     }
 
-    let msg = 'Could not create student.';
+    let msg = 'Could not register student.';
     if (e.code === 'auth/email-already-exists') msg = 'That email is already registered.';
     else if (e.code === '23505') msg = 'Username or admission number already exists.';
 
-    res.render('admin/student-new', {
-      title: 'Add Student',
-      heading: 'Add New Student',
-      subtitle: 'Create a student record.',
+    res.render('sis/student-new', {
+      title: 'Register Student',
+      heading: 'Register New Student',
+      subtitle: 'Create a new student record.',
       error: msg,
       form: req.body,
     });
@@ -161,7 +211,7 @@ router.post('/admin/students/new', guard, async (req, res) => {
 // ============================================================
 //                 STUDENT PROFILE
 // ============================================================
-router.get('/admin/students/:id', guard, async (req, res) => {
+router.get('/sis/students/:id', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
 
@@ -196,10 +246,10 @@ router.get('/admin/students/:id', guard, async (req, res) => {
     [id]
   );
 
-  res.render('admin/student-profile', {
+  res.render('sis/student-profile', {
     title: student.full_name || 'Student',
     heading: student.full_name || student.username,
-    subtitle: 'Student profile',
+    subtitle: 'Student record',
     student,
     attendance,
     payments,
@@ -210,7 +260,7 @@ router.get('/admin/students/:id', guard, async (req, res) => {
 // ============================================================
 //                 EDIT STUDENT
 // ============================================================
-router.post('/admin/students/:id/edit', guard, async (req, res) => {
+router.post('/sis/students/:id/edit', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
   const {
@@ -251,14 +301,14 @@ router.post('/admin/students/:id/edit', guard, async (req, res) => {
     );
   }
 
-  req.flash('success', 'Student updated.');
-  res.redirect('/admin/students/' + id);
+  req.flash('success', 'Student record updated.');
+  res.redirect('/sis/students/' + id);
 });
 
 // ============================================================
 //                 DEACTIVATE / REACTIVATE
 // ============================================================
-router.post('/admin/students/:id/deactivate', guard, async (req, res) => {
+router.post('/sis/students/:id/deactivate', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
 
@@ -269,10 +319,10 @@ router.post('/admin/students/:id/deactivate', guard, async (req, res) => {
   );
 
   req.flash('success', 'Student deactivated.');
-  res.redirect('/admin/students');
+  res.redirect('/sis/students');
 });
 
-router.post('/admin/students/:id/reactivate', guard, async (req, res) => {
+router.post('/sis/students/:id/reactivate', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
 
@@ -283,7 +333,7 @@ router.post('/admin/students/:id/reactivate', guard, async (req, res) => {
   );
 
   req.flash('success', 'Student reactivated.');
-  res.redirect('/admin/students/' + id);
+  res.redirect('/sis/students/' + id);
 });
 
 module.exports = router;

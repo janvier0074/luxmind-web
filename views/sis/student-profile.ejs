@@ -1,0 +1,178 @@
+<%- include('partials/head', {
+  title: student.full_name || 'Student',
+  heading: student.full_name || student.username,
+  subtitle: 'Student record'
+}) %>
+
+<div style="margin-bottom:1.5rem;">
+  <a class="sis-btn sis-btn-outline" href="/sis/students">← Back to Students</a>
+</div>
+
+<div class="sis-stat-grid">
+  <div class="sis-stat gold">
+    <div class="sis-stat-num"><%= attendance.total_days || 0 %></div>
+    <div class="sis-stat-lbl">Days Marked</div>
+  </div>
+  <div class="sis-stat green">
+    <div class="sis-stat-num"><%= attendance.present_count || 0 %></div>
+    <div class="sis-stat-lbl">Present</div>
+  </div>
+  <div class="sis-stat red">
+    <div class="sis-stat-num"><%= attendance.absent_count || 0 %></div>
+    <div class="sis-stat-lbl">Absent</div>
+  </div>
+  <div class="sis-stat slate">
+    <div class="sis-stat-num"><%= Number(totalPaid || 0).toLocaleString() %></div>
+    <div class="sis-stat-lbl">Total Paid (BIF)</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+  <div class="sis-card">
+    <h3>📋 Student Details</h3>
+    <table class="sis-table" style="border:none;">
+      <tbody>
+        <tr><td style="color:#78716c;width:40%;">Username</td><td style="font-family:ui-monospace,monospace;">@<%= student.username %></td></tr>
+        <tr><td style="color:#78716c;">Email</td><td><%= student.email || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Admission #</td><td style="font-family:ui-monospace,monospace;"><%= student.admission_number || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Class</td><td><%= student.class_level || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Date of Birth</td><td><%= student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' %></td></tr>
+        <tr><td style="color:#78716c;">Gender</td><td><%= student.gender || '—' %></td></tr>
+        <tr>
+          <td style="color:#78716c;">Status</td>
+          <td>
+            <% if (student.status === 'active' && student.is_active) { %>
+              <span class="sis-badge sis-badge-active">Active</span>
+            <% } else { %>
+              <span class="sis-badge sis-badge-inactive">Inactive</span>
+            <% } %>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="sis-card">
+    <h3>👨‍👩‍👧 Guardian</h3>
+    <table class="sis-table" style="border:none;">
+      <tbody>
+        <tr><td style="color:#78716c;width:40%;">Name</td><td style="font-weight:600;"><%= student.guardian_name || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Phone</td><td><%= student.guardian_phone || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Email</td><td><%= student.guardian_email || '—' %></td></tr>
+        <tr><td style="color:#78716c;">Address</td><td><%= student.home_address || '—' %></td></tr>
+      </tbody>
+    </table>
+    <% if (student.medical_notes) { %>
+      <div style="margin-top:1rem;padding:.9rem;background:#fef3c7;border-left:4px solid #d4a017;border-radius:4px;font-size:.88rem;color:#78350f;">
+        <strong>⚠️ Medical notes:</strong> <%= student.medical_notes %>
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<div class="sis-card">
+  <h3>💳 Recent Payments</h3>
+  <% if (payments.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">No payments recorded yet.</div>
+  <% } else { %>
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Amount</th>
+          <th>Term</th>
+          <th>Method</th>
+          <th>Receipt #</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% payments.forEach(p => { %>
+          <tr>
+            <td><%= p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '—' %></td>
+            <td style="font-weight:700;color:#166534;"><%= Number(p.amount).toLocaleString() %> <%= p.currency %></td>
+            <td><%= p.term || '—' %></td>
+            <td><%= p.method || '—' %></td>
+            <td style="font-family:ui-monospace,monospace;font-size:.82rem;"><%= p.receipt_number || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="sis-card">
+  <h3>✏️ Edit Student Record</h3>
+  <form method="POST" action="/sis/students/<%= student.id %>/edit">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label class="sis-label">Full Name</label>
+        <input class="sis-input" name="full_name" value="<%= student.full_name || '' %>" required>
+      </div>
+      <div>
+        <label class="sis-label">Admission #</label>
+        <input class="sis-input" name="admission_number" value="<%= student.admission_number || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Date of Birth</label>
+        <input class="sis-input" name="date_of_birth" type="date" value="<%= student.date_of_birth ? String(student.date_of_birth).slice(0,10) : '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Gender</label>
+        <select class="sis-select" name="gender">
+          <option value="">—</option>
+          <option value="male" <%= student.gender === 'male' ? 'selected' : '' %>>Male</option>
+          <option value="female" <%= student.gender === 'female' ? 'selected' : '' %>>Female</option>
+        </select>
+      </div>
+      <div>
+        <label class="sis-label">Class</label>
+        <input class="sis-input" name="class_level" value="<%= student.class_level || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Status</label>
+        <select class="sis-select" name="status">
+          <option value="active" <%= student.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= student.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      <div>
+        <label class="sis-label">Guardian Name</label>
+        <input class="sis-input" name="guardian_name" value="<%= student.guardian_name || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Guardian Phone</label>
+        <input class="sis-input" name="guardian_phone" value="<%= student.guardian_phone || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Guardian Email</label>
+        <input class="sis-input" name="guardian_email" type="email" value="<%= student.guardian_email || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Home Address</label>
+        <input class="sis-input" name="home_address" value="<%= student.home_address || '' %>">
+      </div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label class="sis-label">Medical Notes</label>
+      <textarea class="sis-textarea" name="medical_notes" rows="2"><%= student.medical_notes || '' %></textarea>
+    </div>
+    <button class="sis-btn sis-btn-gold" type="submit">💾 Save Changes</button>
+  </form>
+
+  <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e7e5e4;">
+    <% if (student.status === 'active' && student.is_active) { %>
+      <form method="POST" action="/sis/students/<%= student.id %>/deactivate" style="display:inline;"
+        onsubmit="return confirm('Deactivate this student?');">
+        <button class="sis-btn" type="submit">⏸️ Deactivate</button>
+      </form>
+    <% } else { %>
+      <form method="POST" action="/sis/students/<%= student.id %>/reactivate" style="display:inline;">
+        <button class="sis-btn sis-btn-gold" type="submit">▶️ Reactivate</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<%- include('partials/foot') %>

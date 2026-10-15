@@ -1,0 +1,99 @@
+<%- include('partials/head', {
+  title: 'Register Student',
+  heading: 'Register New Student',
+  subtitle: 'Create a new student record.'
+}) %>
+
+<% if (error) { %>
+  <div class="sis-flash sis-flash-error">⚠️ <%= error %></div>
+<% } %>
+
+<form method="POST" action="/sis/students/new">
+
+  <div class="sis-card">
+    <h3>Account Credentials</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+      <div>
+        <label class="sis-label">Full Name *</label>
+        <input class="sis-input" name="full_name" value="<%= form.full_name || '' %>" required>
+      </div>
+      <div>
+        <label class="sis-label">Username *</label>
+        <input class="sis-input" name="username" value="<%= form.username || '' %>" required>
+      </div>
+      <div>
+        <label class="sis-label">Email *</label>
+        <input class="sis-input" name="email" type="email" value="<%= form.email || '' %>" required>
+      </div>
+      <div>
+        <label class="sis-label">Initial Password *</label>
+        <input class="sis-input" name="password" type="text" required minlength="6"
+          placeholder="Minimum 6 characters">
+      </div>
+    </div>
+  </div>
+
+  <div class="sis-card">
+    <h3>Student Details</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+      <div>
+        <label class="sis-label">Admission Number</label>
+        <input class="sis-input" name="admission_number" value="<%= form.admission_number || '' %>"
+          placeholder="e.g. LM-2026-0001">
+      </div>
+      <div>
+        <label class="sis-label">Date of Birth</label>
+        <input class="sis-input" name="date_of_birth" type="date" value="<%= form.date_of_birth || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Gender</label>
+        <select class="sis-select" name="gender">
+          <option value="">—</option>
+          <option value="male" <%= form.gender === 'male' ? 'selected' : '' %>>Male</option>
+          <option value="female" <%= form.gender === 'female' ? 'selected' : '' %>>Female</option>
+        </select>
+      </div>
+      <div>
+        <label class="sis-label">Class</label>
+        <input class="sis-input" name="class_level" value="<%= form.class_level || '' %>"
+          placeholder="e.g. Form 1A">
+      </div>
+    </div>
+  </div>
+
+  <div class="sis-card">
+    <h3>Guardian Information</h3>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;">
+      <div>
+        <label class="sis-label">Guardian Name</label>
+        <input class="sis-input" name="guardian_name" value="<%= form.guardian_name || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Guardian Phone</label>
+        <input class="sis-input" name="guardian_phone" value="<%= form.guardian_phone || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Guardian Email</label>
+        <input class="sis-input" name="guardian_email" type="email" value="<%= form.guardian_email || '' %>">
+      </div>
+      <div>
+        <label class="sis-label">Home Address</label>
+        <input class="sis-input" name="home_address" value="<%= form.home_address || '' %>">
+      </div>
+    </div>
+  </div>
+
+  <div class="sis-card">
+    <h3>Medical Notes</h3>
+    <textarea class="sis-textarea" name="medical_notes" rows="3"
+      placeholder="Allergies, conditions, or other important notes"><%= form.medical_notes || '' %></textarea>
+  </div>
+
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+    <button class="sis-btn sis-btn-gold" type="submit">✓ Register Student</button>
+    <a class="sis-btn sis-btn-outline" href="/sis/students">Cancel</a>
+  </div>
+
+</form>
+
+<%- include('partials/foot') %>

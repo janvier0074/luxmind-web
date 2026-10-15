@@ -1,0 +1,100 @@
+<%- include('partials/head', {
+  title: 'Students',
+  heading: 'Student Registry',
+  subtitle: 'All students enrolled in the institution.'
+}) %>
+
+<div class="sis-stat-grid">
+  <div class="sis-stat gold">
+    <div class="sis-stat-num"><%= totals.all %></div>
+    <div class="sis-stat-lbl">Total Students</div>
+  </div>
+  <div class="sis-stat green">
+    <div class="sis-stat-num"><%= totals.active %></div>
+    <div class="sis-stat-lbl">Active</div>
+  </div>
+  <div class="sis-stat red">
+    <div class="sis-stat-num"><%= totals.inactive %></div>
+    <div class="sis-stat-lbl">Inactive</div>
+  </div>
+</div>
+
+<div class="sis-card">
+  <form method="GET" action="/sis/students" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+    <div style="flex:1;min-width:220px;">
+      <label class="sis-label">Search</label>
+      <input class="sis-input" name="q" value="<%= q %>" placeholder="Name, username, email, admission #">
+    </div>
+    <div style="min-width:160px;">
+      <label class="sis-label">Class</label>
+      <select class="sis-select" name="class">
+        <option value="">All classes</option>
+        <% classList.forEach(c => { %>
+          <option value="<%= c.class_level %>" <%= classFilter === c.class_level ? 'selected' : '' %>><%= c.class_level %></option>
+        <% }) %>
+      </select>
+    </div>
+    <button class="sis-btn" type="submit">Search</button>
+    <a class="sis-btn sis-btn-gold" href="/sis/students/new">+ Register Student</a>
+  </form>
+</div>
+
+<% if (students.length === 0) { %>
+  <div class="sis-empty">
+    No students found.
+    <a href="/sis/students/new" style="color:#b45309;">Register the first one →</a>
+  </div>
+<% } else { %>
+  <div class="sis-card" style="padding:0;overflow:hidden;">
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Admission #</th>
+          <th>Class</th>
+          <th>Guardian</th>
+          <th>Status</th>
+          <th style="text-align:right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(s => { %>
+          <tr>
+            <td>
+              <div style="font-weight:700;color:#1c1917;"><%= s.full_name || s.username %></div>
+              <div style="color:#78716c;font-size:.78rem;font-family:ui-monospace,monospace;">@<%= s.username %></div>
+            </td>
+            <td style="font-family:ui-monospace,monospace;font-size:.85rem;color:#57534e;"><%= s.admission_number || '—' %></td>
+            <td>
+              <% if (s.class_level) { %>
+                <span class="sis-badge sis-badge-gold"><%= s.class_level %></span>
+              <% } else { %>
+                <span style="color:#a8a29e;">—</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (s.guardian_name) { %>
+                <div style="color:#44403c;"><%= s.guardian_name %></div>
+                <div style="color:#78716c;font-size:.78rem;"><%= s.guardian_phone || '' %></div>
+              <% } else { %>
+                <span style="color:#a8a29e;">—</span>
+              <% } %>
+            </td>
+            <td>
+              <% if (s.status === 'active' || s.is_active) { %>
+                <span class="sis-badge sis-badge-active">Active</span>
+              <% } else { %>
+                <span class="sis-badge sis-badge-inactive">Inactive</span>
+              <% } %>
+            </td>
+            <td style="text-align:right;white-space:nowrap;">
+              <a class="sis-btn sis-btn-outline" href="/sis/students/<%= s.id %>" style="padding:.4rem .9rem;font-size:.78rem;">View</a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>
