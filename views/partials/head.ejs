@@ -59,6 +59,16 @@
 
 
 
+
+        <div class="section-label">My Record</div>
+        <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
+        <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> My Attendance</a>
+        <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💰</span> My Fees</a>
+
+
+
+
+
         <div class="section-label">Social</div><a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>" style="position:relative;">
   <span class="icon">💬</span> Messages
   <% if (typeof unreadMessages !== 'undefined' && unreadMessages > 0) { %>
@@ -110,6 +120,11 @@
 <a href="/teacher/import-students" class="<%= currentPath === '/teacher/import-students' ? 'active' : '' %>"><span class="icon">📥</span> Import Students</a>
 
         <a href="/teacher/announcements" class="<%= currentPath === '/teacher/announcements' ? 'active' : '' %>"><span class="icon">📢</span> Announcements</a>
+
+        <div class="section-label">SIS Portal</div>
+        <a href="/sis/faculty" style="background:linear-gradient(135deg,#d4a017,#b45309);color:#fff;border-radius:8px;margin-top:.35rem;"><span class="icon">🏛️</span> SIS Dashboard</a>
+        <a href="/sis/attendance" class="<%= currentPath === '/sis/attendance' ? 'active' : '' %>"><span class="icon">📅</span> Take Attendance</a>
+
 
         <div class="section-label">Account</div><a href="/messages" class="<%= currentPath === '/messages' ? 'active' : '' %>" style="position:relative;">
   <span class="icon">💬</span> Messages

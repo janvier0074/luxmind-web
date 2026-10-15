@@ -584,4 +584,103 @@ router.get('/sis/attendance/student/:id', staffGuard, async (req, res) => {
   });
 });
 
+
+
+// ============================================================
+//                 STUDENT — Timetable (their courses as a schedule)
+// ============================================================
+router.get('/sis/my/timetable', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const courses = await db.all(`
+    SELECT c.*,
+      u.full_name AS teacher_name,
+      (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS total_lessons,
+      (SELECT COUNT(*) FROM progress p
+        JOIN lessons l ON l.id = p.lesson_id
+        WHERE l.course_id = c.id AND p.user_id = $1 AND p.completed = 1) AS done_lessons
+    FROM courses c
+    JOIN enrollments e ON e.course_id = c.id
+    LEFT JOIN users u ON u.id = c.teacher_id
+    WHERE e.user_id = $2
+    ORDER BY c.title
+  `, [uid, uid]);
+
+  const deadlines = await db.all(`
+    SELECT * FROM (
+      SELECT 'assignment' AS kind, a.id, a.title, a.deadline AS event_at, c.title AS course
+      FROM assignments a
+      JOIN courses c ON c.id = a.course_id
+      JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+      WHERE a.deadline IS NOT NULL
+        AND a.deadline >= CURRENT_DATE
+        AND a.id NOT IN (SELECT assignment_id FROM submissions WHERE user_id = $2)
+      UNION ALL
+      SELECT 'quiz' AS kind, q.id, q.title, q.release_at AS event_at, c.title AS course
+      FROM quizzes q
+      JOIN courses c ON c.id = q.course_id
+      JOIN enrollments e ON e.course_id = c.id AND e.user_id = $3
+      WHERE q.release_at IS NOT NULL
+        AND q.release_at >= CURRENT_DATE
+        AND q.id NOT IN (SELECT quiz_id FROM attempts WHERE user_id = $4)
+    ) sub ORDER BY event_at ASC LIMIT 10
+  `, [uid, uid, uid, uid]);
+
+  res.render('sis/timetable', {
+    title: 'My Timetable',
+    heading: 'My Timetable',
+    subtitle: 'Your courses and upcoming deadlines.',
+    courses, deadlines,
+  });
+});
+
+// ============================================================
+//                 STUDENT — My Fees
+// ============================================================
+router.get('/sis/my/fees', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const profile = await db.get(
+    `SELECT * FROM student_profiles WHERE user_id = $1`, [uid]
+  );
+
+  const payments = await db.all(`
+    SELECT * FROM payments WHERE student_id = $1
+    ORDER BY paid_at DESC
+  `, [uid]);
+
+  const totalPaidRow = await db.get(
+    `SELECT COALESCE(SUM(amount),0) AS total FROM payments WHERE student_id = $1`,
+    [uid]
+  );
+
+  let fees = [];
+  let totalOwed = 0;
+  if (profile && profile.class_level) {
+    const level = profile.class_level.replace(/[-\s].*$/, '').trim();
+    fees = await db.all(`
+      SELECT * FROM fee_structure
+      WHERE class_level = $1
+      ORDER BY term
+    `, [level]);
+    totalOwed = fees.reduce((sum, f) => sum + Number(f.amount), 0);
+  }
+
+  const totalPaid = Number(totalPaidRow.total || 0);
+  const balance = totalOwed - totalPaid;
+
+  res.render('sis/my-fees', {
+    title: 'My Fees',
+    heading: 'My Fees',
+    subtitle: 'Your payment history and balance.',
+    profile, payments, fees,
+    totalPaid, totalOwed, balance,
+  });
+});
+
+
+
+
 module.exports = router;

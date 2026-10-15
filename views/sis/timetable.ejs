@@ -1,0 +1,84 @@
+<%- include('partials/head', {
+  title: 'My Timetable',
+  heading: 'My Timetable',
+  subtitle: 'Your courses and upcoming deadlines.'
+}) %>
+
+<div style="margin-bottom:1.5rem;">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Overview</a>
+</div>
+
+<div class="sis-card">
+  <h3>📚 My Courses</h3>
+  <% if (courses.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">
+      You haven't enrolled in any courses yet.
+      <a href="/explore" style="color:#b45309;">Browse courses →</a>
+    </div>
+  <% } else { %>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;">
+      <% courses.forEach(c => {
+        const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
+      %>
+        <div style="border:1px solid #e7e5e4;border-left:4px solid #d4a017;border-radius:4px;padding:1.1rem;background:#fff;">
+          <div style="font-family:Georgia,serif;font-weight:700;font-size:1.05rem;color:#1c1917;margin-bottom:.35rem;"><%= c.title %></div>
+          <div style="color:#78716c;font-size:.82rem;margin-bottom:.5rem;">
+            👨‍🏫 <%= c.teacher_name || 'LuxMind' %>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#57534e;margin-bottom:.4rem;">
+            <span><%= c.done_lessons %>/<%= c.total_lessons %> lessons</span>
+            <span><strong><%= pct %>%</strong></span>
+          </div>
+          <div style="height:6px;background:#f5f1e8;border-radius:100px;overflow:hidden;margin-bottom:.85rem;">
+            <div style="height:100%;width:<%= pct %>%;background:linear-gradient(90deg,#d4a017,#b45309);border-radius:100px;"></div>
+          </div>
+          <a class="sis-btn sis-btn-gold" href="/courses/<%= c.id %>" style="padding:.45rem .9rem;font-size:.8rem;">Open Course →</a>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<div class="sis-card">
+  <h3>📅 Upcoming Deadlines</h3>
+  <% if (deadlines.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">Nothing due soon. Enjoy the break ✨</div>
+  <% } else { %>
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Type</th>
+          <th>Title</th>
+          <th>Course</th>
+          <th style="text-align:right;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% deadlines.forEach(d => {
+          const when = new Date(d.event_at);
+          const hours = (when - new Date()) / 3600000;
+          const urgent = hours < 24 ? 'sis-badge-inactive' : (hours < 72 ? 'sis-badge-gold' : 'sis-badge-active');
+        %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
+              <%= when.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' }) %>
+              <span style="color:#78716c;"><%= when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) %></span>
+            </td>
+            <td><span class="sis-badge sis-badge-gold"><%= d.kind === 'quiz' ? 'Quiz' : 'Assignment' %></span></td>
+            <td><strong><%= d.title %></strong></td>
+            <td style="color:#78716c;"><%= d.course %></td>
+            <td style="text-align:right;">
+              <a class="sis-btn sis-btn-outline" style="padding:.35rem .8rem;font-size:.78rem;"
+                href="<%= d.kind === 'assignment' ? '/student/assignments/' + d.id : '/student/quiz/' + d.id %>">
+                Open →
+              </a>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>
