@@ -262,25 +262,31 @@
       </div>
     </div>
 
-    <div class="sis-nav-label">Registry</div>
-    <nav class="sis-nav">
-      <a href="/sis" class="<%= currentPath === '/sis' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
-      <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
-      <a href="/sis/classes" class="<%= currentPath === '/sis/classes' ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
-    </nav>
+       <% if (user.role === 'admin') { %>
+      <div class="sis-nav-label">Registry</div>
+      <nav class="sis-nav">
+        <a href="/sis/admin" class="<%= currentPath === '/sis/admin' || currentPath === '/sis' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
+        <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+      </nav>
 
-    <div class="sis-nav-label">Records</div>
-    <nav class="sis-nav">
-      <a href="/sis/attendance" class="<%= currentPath === '/sis/attendance' ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
-      <a href="/sis/fees" class="<%= currentPath === '/sis/fees' ? 'active' : '' %>"><span class="icon">💰</span> Fees</a>
-      <a href="/sis/parents" class="<%= currentPath === '/sis/parents' ? 'active' : '' %>"><span class="icon">👨‍👩‍👧</span> Parents</a>
-    </nav>
-
-    <div class="sis-nav-label">Institution</div>
-    <nav class="sis-nav">
-      <a href="/sis/reports" class="<%= currentPath === '/sis/reports' ? 'active' : '' %>"><span class="icon">📊</span> Reports</a>
-      <a href="/sis/settings" class="<%= currentPath === '/sis/settings' ? 'active' : '' %>"><span class="icon">⚙️</span> Settings</a>
-    </nav>
+      <div class="sis-nav-label">Records</div>
+      <nav class="sis-nav">
+        <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
+      </nav>
+    <% } else if (user.role === 'teacher') { %>
+      <div class="sis-nav-label">Faculty</div>
+      <nav class="sis-nav">
+        <a href="/sis/faculty" class="<%= currentPath === '/sis/faculty' ? 'active' : '' %>"><span class="icon">🏛️</span> Dashboard</a>
+        <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Take Attendance</a>
+        <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+      </nav>
+    <% } else if (user.role === 'student') { %>
+      <div class="sis-nav-label">My Record</div>
+      <nav class="sis-nav">
+        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
+        <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📅</span> My Attendance</a>
+      </nav>
+    <% } %>
 
     <div class="sis-back">
       <a href="/dashboard">← Back to Learning</a>

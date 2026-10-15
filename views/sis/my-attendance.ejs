@@ -1,0 +1,68 @@
+<%- include('partials/head', {
+  title: 'My Attendance',
+  heading: 'My Attendance',
+  subtitle: 'Your full attendance record.'
+}) %>
+
+<div style="margin-bottom:1.5rem;">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Overview</a>
+</div>
+
+<div class="sis-stat-grid">
+  <div class="sis-stat gold">
+    <div class="sis-stat-num"><%= summary.pct %>%</div>
+    <div class="sis-stat-lbl">Attendance Rate</div>
+  </div>
+  <div class="sis-stat green">
+    <div class="sis-stat-num"><%= summary.present || 0 %></div>
+    <div class="sis-stat-lbl">Present</div>
+  </div>
+  <div class="sis-stat red">
+    <div class="sis-stat-num"><%= summary.absent || 0 %></div>
+    <div class="sis-stat-lbl">Absent</div>
+  </div>
+  <div class="sis-stat slate">
+    <div class="sis-stat-num"><%= summary.late || 0 %></div>
+    <div class="sis-stat-lbl">Late</div>
+  </div>
+</div>
+
+<div class="sis-card">
+  <h3>Full Record</h3>
+  <% if (records.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">No attendance records yet.</div>
+  <% } else { %>
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% records.forEach(r => { %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
+              <%= new Date(r.attendance_date).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) %>
+            </td>
+            <td>
+              <% if (r.status === 'present') { %>
+                <span class="sis-badge sis-badge-active">Present</span>
+              <% } else if (r.status === 'absent') { %>
+                <span class="sis-badge sis-badge-inactive">Absent</span>
+              <% } else if (r.status === 'late') { %>
+                <span class="sis-badge sis-badge-gold">Late</span>
+              <% } else { %>
+                <span class="sis-badge" style="background:#e7e5e4;color:#44403c;">Excused</span>
+              <% } %>
+            </td>
+            <td style="color:#57534e;font-size:.88rem;"><%= r.notes || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

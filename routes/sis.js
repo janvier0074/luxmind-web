@@ -1,17 +1,41 @@
 // routes/sis.js
-// Student Information System — separate interface from the LMS
+// Student Information System — role-based portals (admin, faculty, student)
 const express = require('express');
 const { getDB } = require('../config/database');
 const { requireLogin, requireRole } = require('../middleware/auth');
 const { auth: firebaseAuth } = require('../config/firebase');
 const router = express.Router();
 
-const guard = [requireLogin, requireRole('admin')];
+// --- Role guards ---
+const guard = [requireLogin, requireRole('admin')];          // admin only
+const staffGuard = [requireLogin, (req, res, next) => {       // admin OR teacher
+  if (!req.session.user) return res.redirect('/login');
+  const role = req.session.user.role;
+  if (role !== 'admin' && role !== 'teacher') return res.status(403).render('errors/403');
+  next();
+}];
+const studentGuard = [requireLogin, (req, res, next) => {     // student only
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'student') return res.status(403).render('errors/403');
+  next();
+}];
 
 // ============================================================
-//                 SIS DASHBOARD
+//                 SIS ROOT — role-based router
 // ============================================================
-router.get('/sis', guard, async (req, res) => {
+router.get('/sis', requireLogin, (req, res) => {
+  const role = req.session.user.role;
+  if (role === 'admin') return res.redirect('/sis/admin');
+  if (role === 'teacher') return res.redirect('/sis/faculty');
+  if (role === 'student') return res.redirect('/sis/my');
+  // Others (parent, unknown) — send to LMS
+  res.redirect('/dashboard');
+});
+
+// ============================================================
+//                 ADMIN DASHBOARD
+// ============================================================
+router.get('/sis/admin', guard, async (req, res) => {
   const db = getDB();
 
   const studentsRow = await db.get(`SELECT COUNT(*) c FROM users WHERE role = 'student'`);
@@ -44,7 +68,7 @@ router.get('/sis', guard, async (req, res) => {
     LIMIT 8
   `);
 
-  res.render('sis/dashboard', {
+  res.render('sis/admin-dashboard', {
     title: 'Overview',
     heading: 'School Overview',
     subtitle: 'A snapshot of the institution.',
@@ -62,7 +86,144 @@ router.get('/sis', guard, async (req, res) => {
 });
 
 // ============================================================
-//                 STUDENT LIST
+//                 FACULTY DASHBOARD
+// ============================================================
+router.get('/sis/faculty', staffGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const user = req.session.user;
+
+  // Classes the teacher can access (for now: all classes; later: assigned only)
+  const classRows = await db.all(`
+    SELECT sp.class_level AS name,
+           COUNT(*) FILTER (WHERE sp.status = 'active') AS student_count
+    FROM student_profiles sp
+    WHERE sp.class_level IS NOT NULL
+    GROUP BY sp.class_level
+    ORDER BY sp.class_level
+  `);
+
+  const totalStudentsRow = await db.get(
+    `SELECT COUNT(*) c FROM student_profiles WHERE status = 'active'`
+  );
+
+  const today = new Date().toISOString().slice(0, 10);
+  const markedTodayRow = await db.get(
+    `SELECT COUNT(DISTINCT student_id) c FROM attendance WHERE attendance_date = $1`, [today]
+  );
+
+  // Recent attendance activity
+  const recentRows = await db.all(`
+    SELECT a.attendance_date, a.status, a.created_at,
+           u.full_name AS student_name,
+           sp.class_level
+    FROM attendance a
+    JOIN users u ON u.id = a.student_id
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    ORDER BY a.created_at DESC LIMIT 8
+  `);
+
+  res.render('sis/faculty-dashboard', {
+    title: 'Faculty',
+    heading: 'Welcome, ' + (user.full_name || user.username),
+    subtitle: 'Your classes and attendance.',
+    classRows,
+    stats: {
+      classes: classRows.length,
+      students: totalStudentsRow.c,
+      markedToday: markedTodayRow.c,
+    },
+    recentRows,
+  });
+});
+
+// ============================================================
+//                 STUDENT PORTAL — /sis/my
+// ============================================================
+router.get('/sis/my', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // Attendance summary
+  const attSummary = await db.get(`
+    SELECT
+      COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE status='present') AS present,
+      COUNT(*) FILTER (WHERE status='absent')  AS absent,
+      COUNT(*) FILTER (WHERE status='late')    AS late,
+      COUNT(*) FILTER (WHERE status='excused') AS excused
+    FROM attendance WHERE student_id = $1
+  `, [uid]);
+
+  const pct = attSummary.total > 0
+    ? Math.round((attSummary.present / attSummary.total) * 100)
+    : 0;
+
+  // Student's class info
+  const profile = await db.get(
+    `SELECT * FROM student_profiles WHERE user_id = $1`, [uid]
+  );
+
+  // Fees paid
+  const paidRow = await db.get(
+    `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE student_id = $1`,
+    [uid]
+  );
+
+  // Recent attendance
+  const recent = await db.all(`
+    SELECT * FROM attendance WHERE student_id = $1
+    ORDER BY attendance_date DESC LIMIT 10
+  `, [uid]);
+
+  res.render('sis/student-dashboard', {
+    title: 'My SIS',
+    heading: 'Welcome, ' + (req.session.user.full_name || req.session.user.username),
+    subtitle: 'Your academic record.',
+    attSummary: { ...attSummary, pct },
+    profile,
+    totalPaid: paidRow.total,
+    recent,
+  });
+});
+
+// ============================================================
+//                 STUDENT — Attendance detail
+// ============================================================
+router.get('/sis/my/attendance', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const records = await db.all(`
+    SELECT * FROM attendance WHERE student_id = $1
+    ORDER BY attendance_date DESC LIMIT 120
+  `, [uid]);
+
+  const summary = await db.get(`
+    SELECT
+      COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE status='present') AS present,
+      COUNT(*) FILTER (WHERE status='absent')  AS absent,
+      COUNT(*) FILTER (WHERE status='late')    AS late,
+      COUNT(*) FILTER (WHERE status='excused') AS excused
+    FROM attendance WHERE student_id = $1
+  `, [uid]);
+
+  const pct = summary.total > 0
+    ? Math.round((summary.present / summary.total) * 100)
+    : 0;
+
+  res.render('sis/my-attendance', {
+    title: 'My Attendance',
+    heading: 'My Attendance',
+    subtitle: 'Your full attendance record.',
+    records,
+    summary: { ...summary, pct },
+  });
+});
+
+// ============================================================
+//                 STUDENT LIST (admin only)
 // ============================================================
 router.get('/sis/students', guard, async (req, res) => {
   const db = getDB();
@@ -90,7 +251,6 @@ router.get('/sis/students', guard, async (req, res) => {
   }
 
   sql += ` ORDER BY u.full_name ASC`;
-
   const students = await db.all(sql, params);
 
   const classList = await db.all(`
@@ -112,9 +272,6 @@ router.get('/sis/students', guard, async (req, res) => {
   });
 });
 
-// ============================================================
-//                 NEW STUDENT FORM
-// ============================================================
 router.get('/sis/students/new', guard, (req, res) => {
   res.render('sis/student-new', {
     title: 'Register Student',
@@ -125,9 +282,6 @@ router.get('/sis/students/new', guard, (req, res) => {
   });
 });
 
-// ============================================================
-//                 CREATE STUDENT
-// ============================================================
 router.post('/sis/students/new', guard, async (req, res) => {
   const db = getDB();
   const {
@@ -150,10 +304,7 @@ router.post('/sis/students/new', guard, async (req, res) => {
   let firebaseUser = null;
   try {
     firebaseUser = await firebaseAuth.createUser({
-      email,
-      password,
-      displayName: full_name,
-      emailVerified: true,
+      email, password, displayName: full_name, emailVerified: true,
     });
 
     await db.run(
@@ -189,7 +340,6 @@ router.post('/sis/students/new', guard, async (req, res) => {
     res.redirect('/sis/students');
   } catch (e) {
     console.error('Create student error:', e);
-
     if (firebaseUser) {
       try { await firebaseAuth.deleteUser(firebaseUser.uid); } catch (_) {}
     }
@@ -208,24 +358,18 @@ router.post('/sis/students/new', guard, async (req, res) => {
   }
 });
 
-// ============================================================
-//                 STUDENT PROFILE
-// ============================================================
 router.get('/sis/students/:id', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
 
   const student = await db.get(`
-    SELECT u.id, u.username, u.full_name, u.email, u.is_active, u.created_at,
-           sp.*
+    SELECT u.id, u.username, u.full_name, u.email, u.is_active, u.created_at, sp.*
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.id
     WHERE u.id = $1 AND u.role = 'student'
   `, [id]);
 
-  if (!student) {
-    return res.status(404).render('errors/404');
-  }
+  if (!student) return res.status(404).render('errors/404');
 
   const attendance = await db.get(`
     SELECT 
@@ -250,16 +394,11 @@ router.get('/sis/students/:id', guard, async (req, res) => {
     title: student.full_name || 'Student',
     heading: student.full_name || student.username,
     subtitle: 'Student record',
-    student,
-    attendance,
-    payments,
+    student, attendance, payments,
     totalPaid: totalPaidRow.total,
   });
 });
 
-// ============================================================
-//                 EDIT STUDENT
-// ============================================================
 router.post('/sis/students/:id/edit', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -305,19 +444,11 @@ router.post('/sis/students/:id/edit', guard, async (req, res) => {
   res.redirect('/sis/students/' + id);
 });
 
-// ============================================================
-//                 DEACTIVATE / REACTIVATE
-// ============================================================
 router.post('/sis/students/:id/deactivate', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
-
   await db.run(`UPDATE users SET is_active = 0 WHERE id = $1`, [id]);
-  await db.run(
-    `UPDATE student_profiles SET status = 'inactive', updated_at = NOW() WHERE user_id = $1`,
-    [id]
-  );
-
+  await db.run(`UPDATE student_profiles SET status = 'inactive', updated_at = NOW() WHERE user_id = $1`, [id]);
   req.flash('success', 'Student deactivated.');
   res.redirect('/sis/students');
 });
@@ -325,21 +456,16 @@ router.post('/sis/students/:id/deactivate', guard, async (req, res) => {
 router.post('/sis/students/:id/reactivate', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
-
   await db.run(`UPDATE users SET is_active = 1 WHERE id = $1`, [id]);
-  await db.run(
-    `UPDATE student_profiles SET status = 'active', updated_at = NOW() WHERE user_id = $1`,
-    [id]
-  );
-
+  await db.run(`UPDATE student_profiles SET status = 'active', updated_at = NOW() WHERE user_id = $1`, [id]);
   req.flash('success', 'Student reactivated.');
   res.redirect('/sis/students/' + id);
 });
 
 // ============================================================
-//                 ATTENDANCE
+//                 ATTENDANCE (admin + teacher)
 // ============================================================
-router.get('/sis/attendance', guard, async (req, res) => {
+router.get('/sis/attendance', staffGuard, async (req, res) => {
   const db = getDB();
   const date = req.query.date || new Date().toISOString().slice(0, 10);
   const classFilter = req.query.class || '';
@@ -382,7 +508,7 @@ router.get('/sis/attendance', guard, async (req, res) => {
   });
 });
 
-router.post('/sis/attendance', guard, async (req, res) => {
+router.post('/sis/attendance', staffGuard, async (req, res) => {
   const db = getDB();
   const { date, class_level } = req.body;
 
@@ -401,7 +527,6 @@ router.post('/sis/attendance', guard, async (req, res) => {
   let saved = 0;
 
   for (const s of students) {
-    // Remove any existing mark for this student on this date
     await db.run(
       `DELETE FROM attendance WHERE student_id = $1 AND attendance_date = $2 AND class_id IS NULL`,
       [s.id, date]
@@ -423,7 +548,7 @@ router.post('/sis/attendance', guard, async (req, res) => {
   res.redirect('/sis/attendance?date=' + date + '&class=' + encodeURIComponent(class_level));
 });
 
-router.get('/sis/attendance/student/:id', guard, async (req, res) => {
+router.get('/sis/attendance/student/:id', staffGuard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
 
@@ -458,6 +583,5 @@ router.get('/sis/attendance/student/:id', guard, async (req, res) => {
     student, records, summary,
   });
 });
-
 
 module.exports = router;
