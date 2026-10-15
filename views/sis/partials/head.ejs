@@ -65,6 +65,9 @@
     border-left-color: #06b6d4; font-weight: 600;
   }
   .sis-nav a .icon { font-size: 1rem; width: 20px; text-align: center; }
+  /* Nested collapsibles inside nav */
+  .sis-sidebar details details { margin-left: .5rem; border-left: 1px solid rgba(148,163,184,.15); }
+  .sis-sidebar details details > summary { padding-left: 1.5rem; font-size: .72rem; }
 
   .sis-nav-single {
     display: flex; align-items: center; gap: .75rem;
@@ -88,10 +91,7 @@
     padding: .6rem .8rem; border-radius: 6px;
   }
   .sis-back a:hover { background: rgba(6,182,212,.1); color: #67e8f9; }
-  .sis-back a.lms-link {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
-    color: #fff; font-weight: 700; justify-content: center;
-  }
+ 
   .sis-back a.lms-link:hover { background: linear-gradient(135deg, #0891b2, #0e7490); color: #fff; }
 
   /* MAIN AREA */
@@ -328,54 +328,60 @@
           <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
-    <% } else if (user && user.role === 'student') { %>
-      <div class="sis-nav-label">Home</div>
-      <nav class="sis-nav">
-        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Dashboard</a>
-      </nav>
+       <% } else if (user && user.role === 'student') { %>
+      <div class="sis-nav-label">Student</div>
+
+      <a href="/sis/my" class="sis-nav-single <%= currentPath === '/sis/my' ? 'active' : '' %>">
+        <span class="icon">🏛️</span> Dashboard
+      </a>
 
       <details open>
-        <summary>Academics</summary>
+        <summary>📚 Course</summary>
         <nav class="sis-nav">
-          <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> My Timetable</a>
+          <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
           <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> Attendance Detail</a>
-          <a href="https://luxmind.onrender.com/student/courses"><span class="icon">📚</span> My Courses</a>
-          <a href="https://luxmind.onrender.com/student/grades"><span class="icon">🏆</span> My Grades</a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📝</span> Course Registration <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">➕</span> Additional Course <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📜</span> Curriculum <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏆</span> My Grades <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📋</span> Transcript <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
 
       <details>
-        <summary>Assignments</summary>
+        <summary>💰 Accounting</summary>
         <nav class="sis-nav">
-          <a href="https://luxmind.onrender.com/student/assignments"><span class="icon">📋</span> Assignments</a>
-          <a href="https://luxmind.onrender.com/student/quizzes"><span class="icon">📝</span> Quizzes</a>
-          <a href="https://luxmind.onrender.com/my-certificates"><span class="icon">🎓</span> Certificates</a>
+          <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💵</span> My Fees</a>
+          <a href="/sis/my/fees"><span class="icon">💳</span> Payment History</a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🧮</span> CGPA Calculator <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
 
       <details>
-        <summary>Finance</summary>
+        <summary>📨 Requests</summary>
         <nav class="sis-nav">
-          <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💰</span> My Fees</a>
-          <a href="/sis/my/fees#payments"><span class="icon">💳</span> Payment History</a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📄</span> Document Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎫</span> Guidance Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏢</span> Internship Application <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎓</span> Graduation Application <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
 
       <details>
-        <summary>Communication</summary>
+        <summary>ℹ️ My Info</summary>
+        <nav class="sis-nav">
+          <a href="https://luxmind.onrender.com/profile"><span class="icon">👤</span> Profile</a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">ℹ️</span> Student Info <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏫</span> My Faculty <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📞</span> Contact Info <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>💬 Communication</summary>
         <nav class="sis-nav">
           <a href="https://luxmind.onrender.com/messages"><span class="icon">💬</span> Messages</a>
           <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
-          <a href="https://luxmind.onrender.com/student/announcements"><span class="icon">📢</span> Announcements</a>
-          <a href="https://luxmind.onrender.com/calendar"><span class="icon">📅</span> Calendar</a>
-        </nav>
-      </details>
-
-      <details>
-        <summary>My Account</summary>
-        <nav class="sis-nav">
-          <a href="https://luxmind.onrender.com/profile"><span class="icon">👤</span> Profile</a>
-          <a href="https://luxmind.onrender.com/settings"><span class="icon">⚙️</span> Settings</a>
         </nav>
       </details>
     <% } %>
