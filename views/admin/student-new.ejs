@@ -1,0 +1,106 @@
+<%- include('../partials/head', {
+  title: 'Add Student',
+  heading: 'Add New Student',
+  subtitle: 'Create a student record.'
+}) %>
+
+<% if (error) { %>
+  <div class="flash error" style="margin-bottom:1.5rem;">⚠️ <%= error %></div>
+<% } %>
+
+<form method="POST" action="/admin/students/new" class="card animate" style="max-width:800px;">
+
+  <h3 style="margin-top:0;font-size:1.1rem;">Account</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Full name *</label>
+      <input name="full_name" value="<%= form.full_name || '' %>" required
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Username *</label>
+      <input name="username" value="<%= form.username || '' %>" required
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Email *</label>
+      <input name="email" type="email" value="<%= form.email || '' %>" required
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Password *</label>
+      <input name="password" type="text" required minlength="6"
+        placeholder="At least 6 characters"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;">Student details</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Admission #</label>
+      <input name="admission_number" value="<%= form.admission_number || '' %>"
+        placeholder="e.g. LM-2026-0001"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Date of birth</label>
+      <input name="date_of_birth" type="date" value="<%= form.date_of_birth || '' %>"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Gender</label>
+      <select name="gender"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+        <option value="">Select</option>
+        <option value="male" <%= form.gender === 'male' ? 'selected' : '' %>>Male</option>
+        <option value="female" <%= form.gender === 'female' ? 'selected' : '' %>>Female</option>
+      </select>
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Class</label>
+      <input name="class_level" value="<%= form.class_level || '' %>"
+        placeholder="e.g. Form 1A"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;">Guardian</h3>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Guardian name</label>
+      <input name="guardian_name" value="<%= form.guardian_name || '' %>"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Guardian phone</label>
+      <input name="guardian_phone" value="<%= form.guardian_phone || '' %>"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Guardian email</label>
+      <input name="guardian_email" type="email" value="<%= form.guardian_email || '' %>"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+    <div>
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Home address</label>
+      <input name="home_address" value="<%= form.home_address || '' %>"
+        style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;">
+    </div>
+  </div>
+
+  <h3 style="font-size:1.1rem;">Notes</h3>
+  <div style="margin-bottom:1.5rem;">
+    <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.9rem;">Medical notes / allergies</label>
+    <textarea name="medical_notes" rows="3"
+      style="width:100%;padding:.7rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.92rem;font-family:inherit;resize:vertical;"><%= form.medical_notes || '' %></textarea>
+  </div>
+
+  <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+    <button class="btn" type="submit" style="background:linear-gradient(135deg,#10b981,#14b8a6);">✓ Create Student</button>
+    <a class="btn outline" href="/admin/students">Cancel</a>
+  </div>
+
+</form>
+
+<%- include('../partials/foot') %>

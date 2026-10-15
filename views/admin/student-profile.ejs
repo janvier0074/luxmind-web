@@ -1,0 +1,219 @@
+<%- include('../partials/head', {
+  title: student.full_name || 'Student',
+  heading: student.full_name || student.username,
+  subtitle: 'Student profile'
+}) %>
+
+<div style="margin-bottom:1.25rem;">
+  <a class="btn outline" href="/admin/students">← Back to students</a>
+</div>
+
+<div class="stat-grid animate" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:1.5rem;">
+  <div class="stat blue">
+    <div class="stat-icon">📅</div>
+    <div class="num"><%= attendance.total_days || 0 %></div>
+    <div class="lbl">Days Marked</div>
+  </div>
+  <div class="stat emerald">
+    <div class="stat-icon">✅</div>
+    <div class="num"><%= attendance.present_count || 0 %></div>
+    <div class="lbl">Present</div>
+  </div>
+  <div class="stat pink">
+    <div class="stat-icon">❌</div>
+    <div class="num"><%= attendance.absent_count || 0 %></div>
+    <div class="lbl">Absent</div>
+  </div>
+  <div class="stat violet">
+    <div class="stat-icon">💰</div>
+    <div class="num"><%= Number(totalPaid || 0).toLocaleString() %></div>
+    <div class="lbl">Total Paid (BIF)</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
+
+  <div class="card animate">
+    <h3 style="margin-top:0;font-size:1.1rem;">📋 Student Details</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:.92rem;">
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;width:40%;">Username</td>
+        <td style="padding:.55rem 0;font-weight:600;">@<%= student.username %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Email</td>
+        <td style="padding:.55rem 0;"><%= student.email || '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Admission #</td>
+        <td style="padding:.55rem 0;"><%= student.admission_number || '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Class</td>
+        <td style="padding:.55rem 0;"><%= student.class_level || '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Date of birth</td>
+        <td style="padding:.55rem 0;"><%= student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Gender</td>
+        <td style="padding:.55rem 0;"><%= student.gender || '—' %></td>
+      </tr>
+      <tr>
+        <td style="padding:.55rem 0;color:#64748b;">Status</td>
+        <td style="padding:.55rem 0;">
+          <% if (student.status === 'active' && student.is_active) { %>
+            <span class="badge ok">Active</span>
+          <% } else { %>
+            <span class="badge err">Inactive</span>
+          <% } %>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div class="card animate">
+    <h3 style="margin-top:0;font-size:1.1rem;">👨‍👩‍👧 Guardian</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:.92rem;">
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;width:40%;">Name</td>
+        <td style="padding:.55rem 0;font-weight:600;"><%= student.guardian_name || '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Phone</td>
+        <td style="padding:.55rem 0;"><%= student.guardian_phone || '—' %></td>
+      </tr>
+      <tr style="border-bottom:1px solid #f1f5f9;">
+        <td style="padding:.55rem 0;color:#64748b;">Email</td>
+        <td style="padding:.55rem 0;"><%= student.guardian_email || '—' %></td>
+      </tr>
+      <tr>
+        <td style="padding:.55rem 0;color:#64748b;">Address</td>
+        <td style="padding:.55rem 0;"><%= student.home_address || '—' %></td>
+      </tr>
+    </table>
+    <% if (student.medical_notes) { %>
+      <div style="margin-top:1rem;padding:.85rem;background:#fef3c7;border-radius:10px;font-size:.88rem;color:#78350f;">
+        <strong>⚠️ Medical notes:</strong> <%= student.medical_notes %>
+      </div>
+    <% } %>
+  </div>
+
+</div>
+
+<div class="card animate" style="margin-bottom:1.5rem;">
+  <h3 style="margin-top:0;font-size:1.1rem;">💳 Recent Payments</h3>
+  <% if (payments.length === 0) { %>
+    <div class="muted" style="padding:.75rem 0;">No payments recorded yet.</div>
+  <% } else { %>
+    <table style="width:100%;border-collapse:collapse;font-size:.92rem;">
+      <thead style="background:#f8fafc;">
+        <tr>
+          <th style="text-align:left;padding:.7rem;">Date</th>
+          <th style="text-align:left;padding:.7rem;">Amount</th>
+          <th style="text-align:left;padding:.7rem;">Term</th>
+          <th style="text-align:left;padding:.7rem;">Method</th>
+          <th style="text-align:left;padding:.7rem;">Receipt #</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% payments.forEach(p => { %>
+          <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:.7rem;"><%= p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '—' %></td>
+            <td style="padding:.7rem;font-weight:700;color:#047857;"><%= Number(p.amount).toLocaleString() %> <%= p.currency %></td>
+            <td style="padding:.7rem;"><%= p.term || '—' %></td>
+            <td style="padding:.7rem;"><%= p.method || '—' %></td>
+            <td style="padding:.7rem;font-family:ui-monospace,monospace;font-size:.85rem;"><%= p.receipt_number || '—' %></td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<div class="card animate">
+  <h3 style="margin-top:0;font-size:1.1rem;">✏️ Edit Student</h3>
+  <form method="POST" action="/admin/students/<%= student.id %>/edit">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin-bottom:1rem;">
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Full name</label>
+        <input name="full_name" value="<%= student.full_name || '' %>" required
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Admission #</label>
+        <input name="admission_number" value="<%= student.admission_number || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Date of birth</label>
+        <input name="date_of_birth" type="date" value="<%= student.date_of_birth ? String(student.date_of_birth).slice(0,10) : '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Gender</label>
+        <select name="gender" style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+          <option value="">—</option>
+          <option value="male" <%= student.gender === 'male' ? 'selected' : '' %>>Male</option>
+          <option value="female" <%= student.gender === 'female' ? 'selected' : '' %>>Female</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Class</label>
+        <input name="class_level" value="<%= student.class_level || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Status</label>
+        <select name="status" style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+          <option value="active" <%= student.status === 'active' ? 'selected' : '' %>>Active</option>
+          <option value="inactive" <%= student.status === 'inactive' ? 'selected' : '' %>>Inactive</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Guardian name</label>
+        <input name="guardian_name" value="<%= student.guardian_name || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Guardian phone</label>
+        <input name="guardian_phone" value="<%= student.guardian_phone || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Guardian email</label>
+        <input name="guardian_email" type="email" value="<%= student.guardian_email || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+      <div>
+        <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Home address</label>
+        <input name="home_address" value="<%= student.home_address || '' %>"
+          style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;">
+      </div>
+    </div>
+    <div style="margin-bottom:1rem;">
+      <label style="display:block;font-weight:600;color:#334155;margin-bottom:.4rem;font-size:.88rem;">Medical notes</label>
+      <textarea name="medical_notes" rows="2"
+        style="width:100%;padding:.65rem 1rem;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.9rem;font-family:inherit;resize:vertical;"><%= student.medical_notes || '' %></textarea>
+    </div>
+    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+      <button class="btn" type="submit">💾 Save Changes</button>
+    </div>
+  </form>
+
+  <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #f1f5f9;">
+    <% if (student.status === 'active' && student.is_active) { %>
+      <form method="POST" action="/admin/students/<%= student.id %>/deactivate" style="display:inline;"
+        onsubmit="return confirm('Deactivate this student?');">
+        <button class="btn" type="submit" style="background:linear-gradient(135deg,#f59e0b,#d97706);">⏸️ Deactivate</button>
+      </form>
+    <% } else { %>
+      <form method="POST" action="/admin/students/<%= student.id %>/reactivate" style="display:inline;">
+        <button class="btn" type="submit" style="background:linear-gradient(135deg,#10b981,#14b8a6);">▶️ Reactivate</button>
+      </form>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

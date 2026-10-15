@@ -32,6 +32,7 @@ const teacherRoutes = require('./routes/teacher');
 const gradebookRoutes = require('./routes/gradebook');
 const bulkImportRoutes = require('./routes/bulk-import');
 const teacherUploadRoutes = require('./routes/teacher-upload');
+const sisRoutes = require('./routes/sis');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -88,6 +89,7 @@ app.use('/', teacherRoutes);
 app.use('/', gradebookRoutes);
 app.use('/', bulkImportRoutes);
 app.use('/', teacherUploadRoutes);
+app.use('/', sisRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true, app: 'LuxMind' }));
 app.get('/admin/test-email', requireLogin, requireRole('admin'), async (req, res) => {
