@@ -1,7 +1,7 @@
 <%- include('partials/head', {
-  title: 'My SIS',
-  heading: 'Welcome, ' + (user.full_name || user.username),
-  subtitle: 'Your academic record.'
+  title: 'My Record',
+  heading: 'Good day, ' + (user.full_name ? user.full_name.split(' ')[0] : user.username),
+  subtitle: 'Your academic record at a glance.'
 }) %>
 
 <div class="sis-stat-grid">
@@ -19,57 +19,69 @@
   </div>
   <div class="sis-stat slate">
     <div class="sis-stat-num"><%= attSummary.total || 0 %></div>
-    <div class="sis-stat-lbl">Total Days</div>
+    <div class="sis-stat-lbl">Days Marked</div>
   </div>
+</div>
+
+<h3 style="font-size:1.05rem;color:#0f172a;margin-bottom:1rem;font-weight:700;">Quick Access</h3>
+
+<div class="sis-tiles">
+  <a class="sis-tile" href="/sis/my/timetable">
+    <span class="sis-tile-icon">📅</span>
+    <div class="sis-tile-label">Timetable</div>
+  </a>
+  <a class="sis-tile" href="/sis/my/attendance">
+    <span class="sis-tile-icon">📋</span>
+    <div class="sis-tile-label">Attendance Detail</div>
+  </a>
+  <a class="sis-tile" href="/student/grades">
+    <span class="sis-tile-icon">🏆</span>
+    <div class="sis-tile-label">My Grades</div>
+  </a>
+  <a class="sis-tile" href="/sis/my/fees">
+    <span class="sis-tile-icon">💰</span>
+    <div class="sis-tile-label">My Fees</div>
+  </a>
+  <a class="sis-tile" href="/profile">
+    <span class="sis-tile-icon">👤</span>
+    <div class="sis-tile-label">My Profile</div>
+  </a>
+  <a class="sis-tile" href="/notifications">
+    <span class="sis-tile-icon">🔔</span>
+    <div class="sis-tile-label">Notifications</div>
+  </a>
+  <a class="sis-tile" href="/messages">
+    <span class="sis-tile-icon">💬</span>
+    <div class="sis-tile-label">Messages</div>
+  </a>
+  <a class="sis-tile" href="/settings">
+    <span class="sis-tile-icon">⚙️</span>
+    <div class="sis-tile-label">Settings</div>
+  </a>
 </div>
 
 <div class="sis-card">
-  <h3>Quick Links</h3>
-  <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
-    <a class="sis-btn sis-btn-gold" href="/sis/my/attendance">📅 My Attendance</a>
-    <a class="sis-btn sis-btn-outline" href="/student/grades">🏆 My Grades</a>
-    <a class="sis-btn sis-btn-outline" href="/student">📚 Back to Learning</a>
-  </div>
-</div>
-
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;">
-
-  <div class="sis-card">
-    <h3>📋 My Details</h3>
-    <table class="sis-table" style="border:none;">
-      <tbody>
-        <tr>
-          <td style="color:#78716c;width:45%;">Admission #</td>
-          <td style="font-family:ui-monospace,monospace;font-size:.85rem;"><%= profile && profile.admission_number || '—' %></td>
-        </tr>
-        <tr>
-          <td style="color:#78716c;">Class</td>
-          <td><%= profile && profile.class_level || '—' %></td>
-        </tr>
-        <tr>
-          <td style="color:#78716c;">Date of Birth</td>
-          <td><%= profile && profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString() : '—' %></td>
-        </tr>
-        <tr>
-          <td style="color:#78716c;">Status</td>
-          <td><span class="sis-badge sis-badge-active"><%= profile && profile.status || 'active' %></span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-  <div class="sis-card">
-    <h3>💰 Fees</h3>
-    <div style="text-align:center;padding:1rem 0;">
-      <div style="font-family:Georgia,serif;font-size:2rem;font-weight:700;color:#166534;">
-        <%= Number(totalPaid || 0).toLocaleString() %>
-      </div>
-      <div style="font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;color:#78716c;margin-top:.5rem;">
-        Total Paid (BIF)
-      </div>
-    </div>
-  </div>
-
+  <h3>📋 My Details</h3>
+  <table class="sis-table" style="border:none;">
+    <tbody>
+      <tr>
+        <td style="color:#64748b;width:35%;">Admission #</td>
+        <td style="font-family:ui-monospace,monospace;font-size:.9rem;font-weight:700;"><%= profile && profile.admission_number || '—' %></td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;">Class</td>
+        <td><strong><%= profile && profile.class_level || '—' %></strong></td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;">Date of Birth</td>
+        <td><%= profile && profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></td>
+      </tr>
+      <tr>
+        <td style="color:#64748b;">Status</td>
+        <td><span class="sis-badge sis-badge-active"><%= profile && profile.status || 'active' %></span></td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 
 <div class="sis-card">
@@ -89,7 +101,7 @@
         <% recent.forEach(r => { %>
           <tr>
             <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
-              <%= new Date(r.attendance_date).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) %>
+              <%= new Date(r.attendance_date).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' }) %>
             </td>
             <td>
               <% if (r.status === 'present') { %>
@@ -99,10 +111,10 @@
               <% } else if (r.status === 'late') { %>
                 <span class="sis-badge sis-badge-gold">Late</span>
               <% } else { %>
-                <span class="sis-badge" style="background:#e7e5e4;color:#44403c;">Excused</span>
+                <span class="sis-badge" style="background:#e2e8f0;color:#475569;">Excused</span>
               <% } %>
             </td>
-            <td style="color:#57534e;font-size:.88rem;"><%= r.notes || '—' %></td>
+            <td style="color:#64748b;font-size:.88rem;"><%= r.notes || '—' %></td>
           </tr>
         <% }) %>
       </tbody>

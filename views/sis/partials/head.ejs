@@ -6,242 +6,236 @@
 <title><%= typeof title !== 'undefined' ? title + ' · LuxMind SIS' : 'LuxMind SIS' %></title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
-  html, body { height: 100%; background: #f5f1e8; color: #1c1917; }
+  html, body { height: 100%; background: #f1f5f9; color: #0f172a; }
 
-  /* ============ SIS LAYOUT ============ */
-  .sis-shell { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+  .sis-shell { display: grid; grid-template-columns: 270px 1fr; min-height: 100vh; }
 
-  /* ============ SIDEBAR (charcoal + gold) ============ */
+  /* SIDEBAR — navy gradient with cyan accent */
   .sis-sidebar {
-    background: #1c1917;
-    color: #e7e5e4;
+    background: linear-gradient(180deg, #0f2942 0%, #051b30 100%);
+    color: #cbd5e1;
     display: flex;
     flex-direction: column;
-    padding: 1.5rem 0;
-    border-right: 1px solid #292524;
+    padding: 1.25rem 0;
+    overflow-y: auto;
+    max-height: 100vh;
+    position: sticky;
+    top: 0;
   }
   .sis-brand {
-    padding: 0 1.5rem 1.5rem;
-    border-bottom: 1px solid #292524;
+    padding: 0 1.25rem 1.25rem;
+    border-bottom: 1px solid rgba(148,163,184,.15);
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
     gap: .75rem;
   }
   .sis-brand-logo {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, #d4a017, #b45309);
-    border-radius: 8px;
+    width: 42px; height: 42px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-weight: 900; font-size: 1.1rem; color: #1c1917;
-    font-family: Georgia, serif;
+    font-weight: 900; font-size: 1.15rem; color: #051b30;
+    box-shadow: 0 4px 12px rgba(6,182,212,.4);
   }
   .sis-brand-text { line-height: 1.1; }
-  .sis-brand-title { font-family: Georgia, serif; font-weight: 700; font-size: 1.05rem; color: #fbbf24; letter-spacing: .02em; }
-  .sis-brand-sub { font-size: .68rem; text-transform: uppercase; letter-spacing: .15em; color: #78716c; margin-top: 2px; }
+  .sis-brand-title { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -.01em; }
+  .sis-brand-sub { font-size: .65rem; text-transform: uppercase; letter-spacing: .18em; color: #06b6d4; margin-top: 3px; font-weight: 700; }
+
+  /* Collapsible sections */
+  .sis-sidebar details { border: none; }
+  .sis-sidebar details > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: .65rem 1.25rem;
+    font-size: .7rem;
+    text-transform: uppercase;
+    letter-spacing: .14em;
+    color: #94a3b8;
+    font-weight: 700;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: color .15s;
+  }
+  .sis-sidebar details > summary:hover { color: #06b6d4; }
+  .sis-sidebar details > summary::-webkit-details-marker { display: none; }
+  .sis-sidebar details > summary::after {
+    content: '▾';
+    font-size: .8rem;
+    transition: transform .2s;
+  }
+  .sis-sidebar details[open] > summary::after { transform: rotate(180deg); }
+  .sis-sidebar details > summary { margin-top: .35rem; }
 
   .sis-nav-label {
-    padding: .5rem 1.5rem;
-    font-size: .65rem;
+    padding: .8rem 1.25rem .4rem;
+    font-size: .68rem;
     text-transform: uppercase;
-    letter-spacing: .18em;
-    color: #78716c;
-    margin-top: 1rem;
+    letter-spacing: .16em;
+    color: #94a3b8;
+    font-weight: 700;
   }
+  .sis-nav { display: flex; flex-direction: column; }
   .sis-nav a {
     display: flex;
     align-items: center;
     gap: .75rem;
-    padding: .7rem 1.5rem;
-    color: #d6d3d1;
+    padding: .6rem 1.25rem;
+    color: #cbd5e1;
     text-decoration: none;
-    font-size: .9rem;
+    font-size: .88rem;
     border-left: 3px solid transparent;
     transition: all .15s;
   }
-  .sis-nav a:hover { background: #292524; color: #fbbf24; }
+  .sis-nav a:hover { background: rgba(6,182,212,.08); color: #67e8f9; }
   .sis-nav a.active {
-    background: #292524;
-    color: #fbbf24;
-    border-left-color: #d4a017;
+    background: rgba(6,182,212,.12);
+    color: #67e8f9;
+    border-left-color: #06b6d4;
     font-weight: 600;
   }
-  .sis-nav a .icon { font-size: 1.05rem; width: 20px; text-align: center; }
+  .sis-nav a .icon { font-size: 1rem; width: 20px; text-align: center; }
 
   .sis-back {
     margin-top: auto;
-    padding: 1.5rem;
-    border-top: 1px solid #292524;
+    padding: 1.25rem;
+    border-top: 1px solid rgba(148,163,184,.15);
   }
   .sis-back a {
-    display: flex;
-    align-items: center;
-    gap: .5rem;
-    color: #a8a29e;
-    text-decoration: none;
-    font-size: .82rem;
-    padding: .55rem .8rem;
-    border-radius: 6px;
-    transition: all .15s;
+    display: flex; align-items: center; gap: .5rem;
+    color: #94a3b8; text-decoration: none; font-size: .82rem;
+    padding: .55rem .8rem; border-radius: 6px;
   }
-  .sis-back a:hover { background: #292524; color: #fbbf24; }
+  .sis-back a:hover { background: rgba(6,182,212,.1); color: #67e8f9; }
 
-  /* ============ MAIN AREA (cream + serif headings) ============ */
+  /* MAIN AREA */
   .sis-main { padding: 2rem 2.5rem; overflow-x: hidden; }
-
   .sis-topbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 2px solid #e7e5e4;
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 2rem; padding-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
   }
-  .sis-page-title { font-family: Georgia, 'Times New Roman', serif; font-size: 1.9rem; font-weight: 700; color: #1c1917; letter-spacing: -.01em; }
-  .sis-page-sub { color: #78716c; font-size: .9rem; margin-top: .35rem; font-style: italic; }
+  .sis-page-title { font-size: 1.75rem; font-weight: 800; color: #0f172a; letter-spacing: -.02em; }
+  .sis-page-sub { color: #64748b; font-size: .9rem; margin-top: .35rem; }
 
   .sis-user {
     display: flex; align-items: center; gap: .75rem;
-    padding: .5rem .9rem;
-    background: #fff;
-    border: 1px solid #e7e5e4;
-    border-radius: 6px;
+    padding: .5rem .9rem; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 10px;
   }
-  .sis-user-name { font-weight: 600; font-size: .88rem; }
-  .sis-user-role { font-size: .72rem; color: #a16207; text-transform: uppercase; letter-spacing: .08em; }
+  .sis-user-name { font-weight: 700; font-size: .88rem; }
+  .sis-user-role { font-size: .72rem; color: #0891b2; text-transform: uppercase; letter-spacing: .08em; font-weight: 700; }
 
-  /* ============ CARDS & TABLES (institutional) ============ */
   .sis-card {
-    background: #fff;
-    border: 1px solid #e7e5e4;
-    border-radius: 4px;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 1px 2px rgba(28,25,23,.03);
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 1.5rem; margin-bottom: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
   }
   .sis-card h2, .sis-card h3 {
-    font-family: Georgia, serif;
-    font-size: 1.05rem;
-    color: #1c1917;
-    margin-bottom: 1rem;
-    padding-bottom: .5rem;
-    border-bottom: 1px solid #f5f1e8;
+    font-size: 1.05rem; color: #0f172a;
+    margin-bottom: 1rem; padding-bottom: .65rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-weight: 700;
+    display: flex; align-items: center; gap: .5rem;
   }
 
   .sis-stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
   .sis-stat {
-    background: #fff;
-    border: 1px solid #e7e5e4;
-    border-left: 4px solid #d4a017;
-    border-radius: 4px;
-    padding: 1.25rem;
+    background: #fff; border: 1px solid #e2e8f0;
+    border-left: 4px solid #06b6d4;
+    border-radius: 10px; padding: 1.25rem;
   }
-  .sis-stat.gold   { border-left-color: #d4a017; }
-  .sis-stat.green  { border-left-color: #15803d; }
-  .sis-stat.red    { border-left-color: #b91c1c; }
-  .sis-stat.slate  { border-left-color: #57534e; }
-  .sis-stat-num { font-family: Georgia, serif; font-size: 2rem; font-weight: 700; color: #1c1917; line-height: 1; }
-  .sis-stat-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .12em; color: #78716c; margin-top: .5rem; }
+  .sis-stat.gold   { border-left-color: #06b6d4; }
+  .sis-stat.green  { border-left-color: #10b981; }
+  .sis-stat.red    { border-left-color: #ef4444; }
+  .sis-stat.slate  { border-left-color: #64748b; }
+  .sis-stat-num { font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1; }
+  .sis-stat-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #64748b; margin-top: .5rem; font-weight: 700; }
+
+  /* Tile grid (CIU-style home) */
+  .sis-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .sis-tile {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    padding: 1.5rem 1rem; text-align: center; text-decoration: none;
+    transition: all .15s; cursor: pointer; display: block;
+    color: #0f172a;
+  }
+  .sis-tile:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 28px rgba(15,23,42,.1);
+    border-color: #06b6d4;
+  }
+  .sis-tile-icon { font-size: 2.2rem; margin-bottom: .65rem; display: block; }
+  .sis-tile-label { font-weight: 700; font-size: .9rem; }
 
   .sis-table { width: 100%; border-collapse: collapse; background: #fff; }
-  .sis-table thead { background: #f5f1e8; }
+  .sis-table thead { background: #f8fafc; }
   .sis-table th {
-    text-align: left;
-    padding: .85rem 1rem;
-    font-size: .72rem;
-    text-transform: uppercase;
-    letter-spacing: .1em;
-    color: #57534e;
-    font-weight: 700;
-    border-bottom: 2px solid #e7e5e4;
+    text-align: left; padding: .85rem 1rem;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+    color: #64748b; font-weight: 800;
+    border-bottom: 2px solid #e2e8f0;
   }
-  .sis-table td { padding: .9rem 1rem; border-bottom: 1px solid #f5f1e8; font-size: .9rem; }
-  .sis-table tr:hover { background: #faf8f3; }
+  .sis-table td { padding: .9rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: .9rem; }
+  .sis-table tr:hover { background: #f8fafc; }
 
-  /* ============ BADGES (institutional, square) ============ */
   .sis-badge {
-    display: inline-block;
-    padding: 3px 9px;
-    font-size: .72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    border-radius: 3px;
+    display: inline-block; padding: 3px 10px; font-size: .7rem;
+    font-weight: 800; text-transform: uppercase; letter-spacing: .06em;
+    border-radius: 100px;
   }
-  .sis-badge-active  { background: #dcfce7; color: #166534; }
+  .sis-badge-active  { background: #d1fae5; color: #065f46; }
   .sis-badge-inactive{ background: #fee2e2; color: #991b1b; }
-  .sis-badge-gold    { background: #fef3c7; color: #92400e; }
+  .sis-badge-gold    { background: #cffafe; color: #0e7490; }
 
-  /* ============ BUTTONS ============ */
   .sis-btn {
-    display: inline-block;
-    padding: .65rem 1.2rem;
-    background: #1c1917;
-    color: #fbbf24;
-    text-decoration: none;
-    border: none;
-    border-radius: 4px;
-    font-size: .85rem;
-    font-weight: 600;
-    cursor: pointer;
-    letter-spacing: .02em;
-    transition: all .15s;
-    font-family: inherit;
+    display: inline-block; padding: .65rem 1.2rem;
+    background: #0f2942; color: #67e8f9;
+    text-decoration: none; border: none; border-radius: 8px;
+    font-size: .85rem; font-weight: 700; cursor: pointer;
+    letter-spacing: .02em; transition: all .15s; font-family: inherit;
   }
-  .sis-btn:hover { background: #292524; }
-  .sis-btn-gold { background: linear-gradient(135deg, #d4a017, #b45309); color: #fff; }
-  .sis-btn-gold:hover { background: linear-gradient(135deg, #b45309, #92400e); }
-  .sis-btn-outline {
-    background: #fff;
-    color: #1c1917;
-    border: 1px solid #e7e5e4;
-  }
-  .sis-btn-outline:hover { background: #f5f1e8; }
+  .sis-btn:hover { background: #051b30; }
+  .sis-btn-gold { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; }
+  .sis-btn-gold:hover { background: linear-gradient(135deg, #0891b2, #0e7490); }
+  .sis-btn-outline { background: #fff; color: #0f2942; border: 1px solid #e2e8f0; }
+  .sis-btn-outline:hover { background: #f1f5f9; border-color: #06b6d4; }
 
-  /* ============ FORMS ============ */
   .sis-input, .sis-select, .sis-textarea {
-    width: 100%;
-    padding: .7rem .9rem;
-    border: 1px solid #d6d3d1;
-    border-radius: 4px;
-    background: #fff;
-    font-size: .9rem;
-    font-family: inherit;
-    color: #1c1917;
+    width: 100%; padding: .7rem .9rem;
+    border: 1px solid #cbd5e1; border-radius: 8px;
+    background: #fff; font-size: .9rem; font-family: inherit; color: #0f172a;
   }
   .sis-input:focus, .sis-select:focus, .sis-textarea:focus {
-    outline: none;
-    border-color: #d4a017;
-    box-shadow: 0 0 0 3px rgba(212,160,23,.15);
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
   }
   .sis-label {
-    display: block;
-    font-size: .8rem;
-    font-weight: 600;
-    color: #44403c;
-    margin-bottom: .4rem;
+    display: block; font-size: .78rem; font-weight: 700;
+    color: #334155; margin-bottom: .4rem;
   }
 
-  /* ============ FLASH ============ */
   .sis-flash {
-    padding: .85rem 1.2rem;
-    border-radius: 4px;
-    margin-bottom: 1.5rem;
-    font-size: .9rem;
-    border-left: 4px solid;
+    padding: .9rem 1.2rem; border-radius: 8px;
+    margin-bottom: 1.5rem; font-size: .9rem; border-left: 4px solid;
   }
-  .sis-flash-success { background: #dcfce7; color: #166534; border-color: #15803d; }
-  .sis-flash-error   { background: #fee2e2; color: #991b1b; border-color: #b91c1c; }
+  .sis-flash-success { background: #d1fae5; color: #065f46; border-color: #10b981; }
+  .sis-flash-error   { background: #fee2e2; color: #991b1b; border-color: #ef4444; }
 
   .sis-empty {
-    text-align: center;
-    padding: 3rem 1rem;
-    color: #78716c;
-    font-style: italic;
-    background: #fff;
-    border: 1px dashed #d6d3d1;
-    border-radius: 4px;
+    text-align: center; padding: 3rem 1rem; color: #64748b;
+    background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;
+    font-size: .92rem;
   }
+
+  .sis-moodle-btn {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .4rem .75rem; background: linear-gradient(135deg,#10b981,#059669);
+    color: #fff; text-decoration: none; border-radius: 6px;
+    font-size: .78rem; font-weight: 700;
+  }
+  .sis-moodle-btn:hover { opacity: .9; }
 
   @media (max-width: 800px) {
     .sis-shell { grid-template-columns: 1fr; }
@@ -258,38 +252,79 @@
       <div class="sis-brand-logo">S</div>
       <div class="sis-brand-text">
         <div class="sis-brand-title">LuxMind SIS</div>
-        <div class="sis-brand-sub">Administration</div>
+        <div class="sis-brand-sub">Student Portal</div>
       </div>
     </div>
 
-       <% if (user.role === 'admin') { %>
-      <div class="sis-nav-label">Registry</div>
+    <% if (user && user.role === 'admin') { %>
+      <div class="sis-nav-label">Administration</div>
       <nav class="sis-nav">
         <a href="/sis/admin" class="<%= currentPath === '/sis/admin' || currentPath === '/sis' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
         <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
-      </nav>
-
-      <div class="sis-nav-label">Records</div>
-      <nav class="sis-nav">
         <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
       </nav>
-    <% } else if (user.role === 'teacher') { %>
+
+      <details open>
+        <summary>Registry</summary>
+        <nav class="sis-nav">
+          <a href="/sis/students/new"><span class="icon">➕</span> Register Student</a>
+          <a href="/sis/classes"><span class="icon">🏫</span> Classes</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Finance</summary>
+        <nav class="sis-nav">
+          <a href="/sis/fees"><span class="icon">💰</span> Fees</a>
+          <a href="/sis/reports"><span class="icon">📊</span> Reports</a>
+        </nav>
+      </details>
+    <% } else if (user && user.role === 'teacher') { %>
       <div class="sis-nav-label">Faculty</div>
       <nav class="sis-nav">
         <a href="/sis/faculty" class="<%= currentPath === '/sis/faculty' ? 'active' : '' %>"><span class="icon">🏛️</span> Dashboard</a>
         <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Take Attendance</a>
-        <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
       </nav>
-    <% } else if (user.role === 'student') { %>
+
+      <details open>
+        <summary>My Classes</summary>
+        <nav class="sis-nav">
+          <a href="/sis/students"><span class="icon">🎓</span> All Students</a>
+        </nav>
+      </details>
+    <% } else if (user && user.role === 'student') { %>
       <div class="sis-nav-label">My Record</div>
       <nav class="sis-nav">
-        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
-        <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📅</span> My Attendance</a>
+        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Home</a>
       </nav>
+
+      <details open>
+        <summary>Courses</summary>
+        <nav class="sis-nav">
+          <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
+          <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> Attendance Detail</a>
+          <a href="/student/grades"><span class="icon">🏆</span> My Grades</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Finance</summary>
+        <nav class="sis-nav">
+          <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💰</span> My Fees</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Profile</summary>
+        <nav class="sis-nav">
+          <a href="/profile"><span class="icon">👤</span> My Profile</a>
+          <a href="/settings"><span class="icon">⚙️</span> Settings</a>
+        </nav>
+      </details>
     <% } %>
 
     <div class="sis-back">
-      <a href="/dashboard">← Back to Learning</a>
+      <a href="/logout">🚪 Logout</a>
     </div>
   </aside>
 
@@ -304,9 +339,9 @@
       <div class="sis-user">
         <div style="text-align:right;">
           <div class="sis-user-name"><%= user.full_name || user.username %></div>
-          <div class="sis-user-role">Administrator</div>
+          <div class="sis-user-role"><%= user.role %></div>
         </div>
-        <div style="width:36px;height:36px;background:linear-gradient(135deg,#d4a017,#b45309);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.9rem;">
+        <div style="width:38px;height:38px;background:linear-gradient(135deg,#06b6d4,#0891b2);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.95rem;">
           <%= (user.full_name || user.username).charAt(0).toUpperCase() %>
         </div>
       </div>

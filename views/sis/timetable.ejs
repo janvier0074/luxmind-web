@@ -1,42 +1,66 @@
 <%- include('partials/head', {
   title: 'My Timetable',
-  heading: 'My Timetable',
-  subtitle: 'Your courses and upcoming deadlines.'
+  heading: 'Timetable',
+  subtitle: 'Your courses, instructors and quick links.'
 }) %>
 
 <div style="margin-bottom:1.5rem;">
   <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Overview</a>
 </div>
 
-<div class="sis-card">
-  <h3>📚 My Courses</h3>
-  <% if (courses.length === 0) { %>
-    <div class="sis-empty" style="padding:1.5rem;">
-      You haven't enrolled in any courses yet.
-      <a href="/explore" style="color:#b45309;">Browse courses →</a>
-    </div>
-  <% } else { %>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;">
-      <% courses.forEach(c => {
-        const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
-      %>
-        <div style="border:1px solid #e7e5e4;border-left:4px solid #d4a017;border-radius:4px;padding:1.1rem;background:#fff;">
-          <div style="font-family:Georgia,serif;font-weight:700;font-size:1.05rem;color:#1c1917;margin-bottom:.35rem;"><%= c.title %></div>
-          <div style="color:#78716c;font-size:.82rem;margin-bottom:.5rem;">
-            👨‍🏫 <%= c.teacher_name || 'LuxMind' %>
-          </div>
-          <div style="display:flex;justify-content:space-between;font-size:.8rem;color:#57534e;margin-bottom:.4rem;">
-            <span><%= c.done_lessons %>/<%= c.total_lessons %> lessons</span>
-            <span><strong><%= pct %>%</strong></span>
-          </div>
-          <div style="height:6px;background:#f5f1e8;border-radius:100px;overflow:hidden;margin-bottom:.85rem;">
-            <div style="height:100%;width:<%= pct %>%;background:linear-gradient(90deg,#d4a017,#b45309);border-radius:100px;"></div>
-          </div>
-          <a class="sis-btn sis-btn-gold" href="/courses/<%= c.id %>" style="padding:.45rem .9rem;font-size:.8rem;">Open Course →</a>
-        </div>
-      <% }) %>
-    </div>
-  <% } %>
+<div class="sis-card" style="padding:0;overflow:hidden;">
+  <table class="sis-table">
+    <thead>
+      <tr>
+        <th style="width:90px;">Code</th>
+        <th>Course Name</th>
+        <th>Instructor</th>
+        <th style="width:90px;text-align:center;">Syllabus</th>
+        <th style="width:110px;text-align:center;">Attendance</th>
+        <th style="width:100px;text-align:center;">Moodle</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if (courses.length === 0) { %>
+        <tr>
+          <td colspan="6" style="text-align:center;padding:2.5rem;color:#64748b;">
+            You haven't enrolled in any course yet.
+            <a href="/explore" style="color:#0891b2;font-weight:700;"> Browse courses →</a>
+          </td>
+        </tr>
+      <% } else { %>
+        <% courses.forEach((c, i) => {
+          const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
+          const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
+          const attColor = pct >= 75 ? '#10b981' : (pct >= 50 ? '#f59e0b' : '#ef4444');
+        %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-weight:700;color:#0891b2;font-size:.85rem;"><%= code %></td>
+            <td>
+              <div style="font-weight:700;color:#0f172a;"><%= c.title %></div>
+              <% if (c.description) { %>
+                <div style="color:#64748b;font-size:.8rem;margin-top:.2rem;"><%= c.description.slice(0, 80) %><%= c.description.length > 80 ? '…' : '' %></div>
+              <% } %>
+            </td>
+            <td style="color:#334155;font-size:.88rem;"><%= c.teacher_name || 'LuxMind' %></td>
+            <td style="text-align:center;">
+              <a href="/courses/<%= c.id %>" title="Syllabus & lessons" style="display:inline-flex;width:32px;height:32px;background:#e0f2fe;color:#0369a1;border-radius:6px;align-items:center;justify-content:center;text-decoration:none;font-size:.95rem;">📘</a>
+            </td>
+            <td style="text-align:center;">
+              <a href="/sis/my/attendance" title="My attendance" style="display:inline-flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;">
+                <span style="display:inline-flex;width:32px;height:32px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:6px;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;"><%= pct %>%</span>
+              </a>
+            </td>
+            <td style="text-align:center;">
+              <a class="sis-moodle-btn" href="/courses/<%= c.id %>" title="Open in LuxMind LMS">
+                🟢 Open
+              </a>
+            </td>
+          </tr>
+        <% }) %>
+      <% } %>
+    </tbody>
+  </table>
 </div>
 
 <div class="sis-card">
@@ -47,7 +71,7 @@
     <table class="sis-table">
       <thead>
         <tr>
-          <th>Date</th>
+          <th>When</th>
           <th>Type</th>
           <th>Title</th>
           <th>Course</th>
@@ -63,11 +87,11 @@
           <tr>
             <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
               <%= when.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' }) %>
-              <span style="color:#78716c;"><%= when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) %></span>
+              <span style="color:#64748b;"><%= when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) %></span>
             </td>
-            <td><span class="sis-badge sis-badge-gold"><%= d.kind === 'quiz' ? 'Quiz' : 'Assignment' %></span></td>
+            <td><span class="sis-badge <%= urgent %>"><%= d.kind === 'quiz' ? 'Quiz' : 'Assignment' %></span></td>
             <td><strong><%= d.title %></strong></td>
-            <td style="color:#78716c;"><%= d.course %></td>
+            <td style="color:#64748b;"><%= d.course %></td>
             <td style="text-align:right;">
               <a class="sis-btn sis-btn-outline" style="padding:.35rem .8rem;font-size:.78rem;"
                 href="<%= d.kind === 'assignment' ? '/student/assignments/' + d.id : '/student/quiz/' + d.id %>">

@@ -1,6 +1,6 @@
 <%- include('partials/head', {
-  title: 'My Attendance',
-  heading: 'My Attendance',
+  title: 'Attendance Detail',
+  heading: 'Attendance Detail',
   subtitle: 'Your full attendance record.'
 }) %>
 
@@ -27,24 +27,40 @@
   </div>
 </div>
 
-<div class="sis-card">
-  <h3>Full Record</h3>
+<% if (summary.total > 0 && summary.pct < 75) { %>
+  <div class="sis-flash sis-flash-error" style="margin-bottom:1.5rem;">
+    ⚠️ Your attendance is below the 75% required by most institutions. Contact your teacher if this is a mistake.
+  </div>
+<% } %>
+
+<div class="sis-card" style="padding:0;overflow:hidden;">
+  <div style="padding:1.25rem 1.5rem;border-bottom:1px solid #f1f5f9;">
+    <h3 style="border:none;padding:0;margin:0;">📋 Full Record (last 120 days)</h3>
+  </div>
   <% if (records.length === 0) { %>
-    <div class="sis-empty" style="padding:1.5rem;">No attendance records yet.</div>
+    <div style="padding:2.5rem;text-align:center;color:#64748b;">
+      No attendance records yet.
+    </div>
   <% } else { %>
     <table class="sis-table">
       <thead>
         <tr>
           <th>Date</th>
+          <th>Day</th>
           <th>Status</th>
           <th>Notes</th>
         </tr>
       </thead>
       <tbody>
-        <% records.forEach(r => { %>
+        <% records.forEach(r => {
+          const dt = new Date(r.attendance_date);
+        %>
           <tr>
             <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
-              <%= new Date(r.attendance_date).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) %>
+              <%= dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </td>
+            <td style="color:#64748b;font-size:.85rem;">
+              <%= dt.toLocaleDateString('en-GB', { weekday:'long' }) %>
             </td>
             <td>
               <% if (r.status === 'present') { %>
@@ -54,10 +70,10 @@
               <% } else if (r.status === 'late') { %>
                 <span class="sis-badge sis-badge-gold">Late</span>
               <% } else { %>
-                <span class="sis-badge" style="background:#e7e5e4;color:#44403c;">Excused</span>
+                <span class="sis-badge" style="background:#e2e8f0;color:#475569;">Excused</span>
               <% } %>
             </td>
-            <td style="color:#57534e;font-size:.88rem;"><%= r.notes || '—' %></td>
+            <td style="color:#64748b;font-size:.88rem;"><%= r.notes || '—' %></td>
           </tr>
         <% }) %>
       </tbody>
