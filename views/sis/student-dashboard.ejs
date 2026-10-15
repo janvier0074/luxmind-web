@@ -1,13 +1,34 @@
+<%
+  const today = new Date();
+  const hour = today.getHours();
+  const greeting = hour < 12 ? 'Good morning' : (hour < 18 ? 'Good afternoon' : 'Good evening');
+  const dayName = today.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const firstName = user.full_name ? user.full_name.split(' ')[0] : user.username;
+%>
+
 <%- include('partials/head', {
   title: 'My Record',
-  heading: 'Good day, ' + (user.full_name ? user.full_name.split(' ')[0] : user.username),
+  heading: 'Dashboard',
   subtitle: 'Your academic record at a glance.'
 }) %>
+
+<div class="sis-welcome">
+  <div>
+    <div class="sis-welcome-greeting"><%= greeting %>, <%= firstName %> 👋</div>
+    <div class="sis-welcome-date"><%= dayName %></div>
+  </div>
+  <div class="sis-welcome-user">
+    <strong><%= profile && profile.class_level || 'No class assigned' %></strong>
+    <% if (profile && profile.admission_number) { %>
+      Admission #: <%= profile.admission_number %>
+    <% } %>
+  </div>
+</div>
 
 <div class="sis-stat-grid">
   <div class="sis-stat gold">
     <div class="sis-stat-num"><%= attSummary.pct %>%</div>
-    <div class="sis-stat-lbl">Attendance</div>
+    <div class="sis-stat-lbl">Attendance Rate</div>
   </div>
   <div class="sis-stat green">
     <div class="sis-stat-num"><%= attSummary.present || 0 %></div>
@@ -23,20 +44,20 @@
   </div>
 </div>
 
-<h3 style="font-size:1.05rem;color:#0f172a;margin-bottom:1rem;font-weight:700;">Quick Access</h3>
+<h3 style="font-size:1.15rem;color:#0f172a;margin-bottom:1.1rem;font-weight:800;">⚡ Quick Access</h3>
 
-<div class="sis-tiles" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1.25rem;">
+<div class="sis-tiles">
   <a class="sis-tile tile-blue" href="/sis/my/timetable">
     <span class="sis-tile-icon">📅</span>
     <div class="sis-tile-label">Timetable</div>
-    <div class="sis-tile-sub">Your weekly schedule</div>
+    <div class="sis-tile-sub">Your courses</div>
   </a>
   <a class="sis-tile tile-green" href="/sis/my/attendance">
     <span class="sis-tile-icon">📋</span>
     <div class="sis-tile-label">Attendance</div>
-    <div class="sis-tile-sub">Present, absent, late</div>
+    <div class="sis-tile-sub">Present · Absent · Late</div>
   </a>
-  <a class="sis-tile tile-amber" href="/student/grades">
+  <a class="sis-tile tile-amber" href="https://luxmind.onrender.com/student/grades">
     <span class="sis-tile-icon">🏆</span>
     <div class="sis-tile-label">My Grades</div>
     <div class="sis-tile-sub">Quiz & assignment scores</div>
@@ -44,27 +65,27 @@
   <a class="sis-tile tile-purple" href="/sis/my/fees">
     <span class="sis-tile-icon">💰</span>
     <div class="sis-tile-label">My Fees</div>
-    <div class="sis-tile-sub">Payments & balance</div>
+    <div class="sis-tile-sub">Balance & payments</div>
   </a>
-  <a class="sis-tile tile-pink" href="/profile">
-    <span class="sis-tile-icon">👤</span>
-    <div class="sis-tile-label">My Profile</div>
-    <div class="sis-tile-sub">Your details</div>
+  <a class="sis-tile tile-cyan" href="https://luxmind.onrender.com/student/courses">
+    <span class="sis-tile-icon">📚</span>
+    <div class="sis-tile-label">My Courses</div>
+    <div class="sis-tile-sub">Enrolled lessons</div>
   </a>
-  <a class="sis-tile tile-cyan" href="/messages">
+  <a class="sis-tile tile-pink" href="https://luxmind.onrender.com/messages">
     <span class="sis-tile-icon">💬</span>
     <div class="sis-tile-label">Messages</div>
     <div class="sis-tile-sub">Talk to teachers</div>
   </a>
-  <a class="sis-tile tile-indigo" href="/notifications">
-    <span class="sis-tile-icon">🔔</span>
-    <div class="sis-tile-label">Notifications</div>
-    <div class="sis-tile-sub">Recent alerts</div>
+  <a class="sis-tile tile-indigo" href="https://luxmind.onrender.com/student/assignments">
+    <span class="sis-tile-icon">📋</span>
+    <div class="sis-tile-label">Assignments</div>
+    <div class="sis-tile-sub">Submit & review</div>
   </a>
-  <a class="sis-tile tile-slate" href="/settings">
-    <span class="sis-tile-icon">⚙️</span>
-    <div class="sis-tile-label">Settings</div>
-    <div class="sis-tile-sub">Preferences</div>
+  <a class="sis-tile tile-rose" href="https://luxmind.onrender.com/my-certificates">
+    <span class="sis-tile-icon">🎓</span>
+    <div class="sis-tile-label">Certificates</div>
+    <div class="sis-tile-sub">Your achievements</div>
   </a>
 </div>
 

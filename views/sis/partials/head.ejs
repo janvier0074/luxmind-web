@@ -8,33 +8,23 @@
   * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, system-ui, sans-serif; }
   html, body { height: 100%; background: #f1f5f9; color: #0f172a; }
 
-  .sis-shell { display: grid; grid-template-columns: 270px 1fr; min-height: 100vh; }
+  .sis-shell { display: grid; grid-template-columns: 280px 1fr; min-height: 100vh; }
 
-  /* SIDEBAR — navy gradient with cyan accent */
   .sis-sidebar {
     background: linear-gradient(180deg, #0f2942 0%, #051b30 100%);
-    color: #cbd5e1;
-    display: flex;
-    flex-direction: column;
-    padding: 1.25rem 0;
-    overflow-y: auto;
-    max-height: 100vh;
-    position: sticky;
-    top: 0;
+    color: #cbd5e1; display: flex; flex-direction: column;
+    padding: 1.25rem 0; overflow-y: auto;
+    max-height: 100vh; position: sticky; top: 0;
   }
   .sis-brand {
     padding: 0 1.25rem 1.25rem;
     border-bottom: 1px solid rgba(148,163,184,.15);
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    gap: .75rem;
+    margin-bottom: .75rem; display: flex; align-items: center; gap: .75rem;
   }
   .sis-brand-logo {
     width: 42px; height: 42px;
     background: linear-gradient(135deg, #06b6d4, #0891b2);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
     font-weight: 900; font-size: 1.15rem; color: #051b30;
     box-shadow: 0 4px 12px rgba(6,182,212,.4);
   }
@@ -42,78 +32,73 @@
   .sis-brand-title { font-weight: 800; font-size: 1rem; color: #fff; letter-spacing: -.01em; }
   .sis-brand-sub { font-size: .65rem; text-transform: uppercase; letter-spacing: .18em; color: #06b6d4; margin-top: 3px; font-weight: 700; }
 
-  /* Collapsible sections */
   .sis-sidebar details { border: none; }
   .sis-sidebar details > summary {
-    list-style: none;
-    cursor: pointer;
-    padding: .65rem 1.25rem;
-    font-size: .7rem;
-    text-transform: uppercase;
-    letter-spacing: .14em;
-    color: #94a3b8;
-    font-weight: 700;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    list-style: none; cursor: pointer; padding: .7rem 1.25rem;
+    font-size: .7rem; text-transform: uppercase; letter-spacing: .14em;
+    color: #94a3b8; font-weight: 700;
+    display: flex; justify-content: space-between; align-items: center;
     transition: color .15s;
   }
   .sis-sidebar details > summary:hover { color: #06b6d4; }
   .sis-sidebar details > summary::-webkit-details-marker { display: none; }
   .sis-sidebar details > summary::after {
-    content: '▾';
-    font-size: .8rem;
-    transition: transform .2s;
+    content: '▾'; font-size: .8rem; transition: transform .2s;
   }
   .sis-sidebar details[open] > summary::after { transform: rotate(180deg); }
-  .sis-sidebar details > summary { margin-top: .35rem; }
 
   .sis-nav-label {
-    padding: .8rem 1.25rem .4rem;
-    font-size: .68rem;
-    text-transform: uppercase;
-    letter-spacing: .16em;
-    color: #94a3b8;
-    font-weight: 700;
+    padding: .9rem 1.25rem .4rem;
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .16em;
+    color: #64748b; font-weight: 800;
   }
   .sis-nav { display: flex; flex-direction: column; }
   .sis-nav a {
-    display: flex;
-    align-items: center;
-    gap: .75rem;
-    padding: .6rem 1.25rem;
-    color: #cbd5e1;
-    text-decoration: none;
-    font-size: .88rem;
-    border-left: 3px solid transparent;
-    transition: all .15s;
+    display: flex; align-items: center; gap: .75rem;
+    padding: .6rem 1.25rem .6rem 1.75rem;
+    color: #cbd5e1; text-decoration: none; font-size: .87rem;
+    border-left: 3px solid transparent; transition: all .15s;
   }
   .sis-nav a:hover { background: rgba(6,182,212,.08); color: #67e8f9; }
   .sis-nav a.active {
-    background: rgba(6,182,212,.12);
-    color: #67e8f9;
-    border-left-color: #06b6d4;
-    font-weight: 600;
+    background: rgba(6,182,212,.12); color: #67e8f9;
+    border-left-color: #06b6d4; font-weight: 600;
   }
   .sis-nav a .icon { font-size: 1rem; width: 20px; text-align: center; }
 
+  .sis-nav-single {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .7rem 1.25rem; color: #cbd5e1; text-decoration: none;
+    font-size: .9rem; border-left: 3px solid transparent; transition: all .15s;
+  }
+  .sis-nav-single:hover { background: rgba(6,182,212,.08); color: #67e8f9; }
+  .sis-nav-single.active {
+    background: rgba(6,182,212,.12); color: #67e8f9;
+    border-left-color: #06b6d4; font-weight: 600;
+  }
+
   .sis-back {
-    margin-top: auto;
-    padding: 1.25rem;
+    margin-top: auto; padding: 1.25rem;
     border-top: 1px solid rgba(148,163,184,.15);
+    display: flex; flex-direction: column; gap: .5rem;
   }
   .sis-back a {
     display: flex; align-items: center; gap: .5rem;
-    color: #94a3b8; text-decoration: none; font-size: .82rem;
-    padding: .55rem .8rem; border-radius: 6px;
+    color: #94a3b8; text-decoration: none; font-size: .84rem;
+    padding: .6rem .8rem; border-radius: 6px;
   }
   .sis-back a:hover { background: rgba(6,182,212,.1); color: #67e8f9; }
+  .sis-back a.lms-link {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; font-weight: 700; justify-content: center;
+  }
+  .sis-back a.lms-link:hover { background: linear-gradient(135deg, #0891b2, #0e7490); color: #fff; }
 
   /* MAIN AREA */
   .sis-main { padding: 2rem 2.5rem; overflow-x: hidden; }
   .sis-topbar {
     display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 2rem; padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem; padding-bottom: 1.5rem;
     border-bottom: 2px solid #e2e8f0;
   }
   .sis-page-title { font-size: 1.75rem; font-weight: 800; color: #0f172a; letter-spacing: -.02em; }
@@ -135,8 +120,7 @@
   .sis-card h2, .sis-card h3 {
     font-size: 1.05rem; color: #0f172a;
     margin-bottom: 1rem; padding-bottom: .65rem;
-    border-bottom: 1px solid #f1f5f9;
-    font-weight: 700;
+    border-bottom: 1px solid #f1f5f9; font-weight: 700;
     display: flex; align-items: center; gap: .5rem;
   }
 
@@ -153,36 +137,22 @@
   .sis-stat-num { font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1; }
   .sis-stat-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #64748b; margin-top: .5rem; font-weight: 700; }
 
-  /* Tile grid (CIU-style home) */
-  .sis-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  /* Tile grid (colorful) */
+  .sis-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
   .sis-tile {
     background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
-    padding: 1.5rem 1rem; text-align: center; text-decoration: none;
-    transition: all .15s; cursor: pointer; display: block;
-    color: #0f172a;
+    padding: 1.75rem 1.25rem; text-align: center; text-decoration: none;
+    transition: all .2s; cursor: pointer; display: block; color: #0f172a;
+    box-shadow: 0 2px 8px rgba(15,23,42,.04);
   }
-    .sis-tile:hover {
+  .sis-tile:hover {
     transform: translateY(-4px);
     box-shadow: 0 16px 32px rgba(15,23,42,.15);
   }
-  .sis-tile-icon {
-    font-size: 2.8rem;
-    margin-bottom: .85rem;
-    display: block;
-    line-height: 1;
-  }
-  .sis-tile-label {
-    font-weight: 800;
-    font-size: 1rem;
-    letter-spacing: -.01em;
-  }
-  .sis-tile-sub {
-    font-size: .75rem;
-    opacity: .8;
-    margin-top: .25rem;
-    font-weight: 500;
-  }
-  /* Color themes for tiles */
+  .sis-tile-icon { font-size: 2.8rem; margin-bottom: .85rem; display: block; line-height: 1; }
+  .sis-tile-label { font-weight: 800; font-size: 1rem; letter-spacing: -.01em; }
+  .sis-tile-sub { font-size: .75rem; opacity: .85; margin-top: .3rem; font-weight: 500; }
+
   .sis-tile.tile-blue    { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; border-color: transparent; }
   .sis-tile.tile-blue:hover    { box-shadow: 0 16px 32px rgba(59,130,246,.4); }
   .sis-tile.tile-green   { background: linear-gradient(135deg, #10b981, #059669); color: #fff; border-color: transparent; }
@@ -207,8 +177,7 @@
   .sis-table th {
     text-align: left; padding: .85rem 1rem;
     font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
-    color: #64748b; font-weight: 800;
-    border-bottom: 2px solid #e2e8f0;
+    color: #64748b; font-weight: 800; border-bottom: 2px solid #e2e8f0;
   }
   .sis-table td { padding: .9rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: .9rem; }
   .sis-table tr:hover { background: #f8fafc; }
@@ -241,13 +210,9 @@
     background: #fff; font-size: .9rem; font-family: inherit; color: #0f172a;
   }
   .sis-input:focus, .sis-select:focus, .sis-textarea:focus {
-    outline: none; border-color: #06b6d4;
-    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+    outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6,182,212,.15);
   }
-  .sis-label {
-    display: block; font-size: .78rem; font-weight: 700;
-    color: #334155; margin-bottom: .4rem;
-  }
+  .sis-label { display: block; font-size: .78rem; font-weight: 700; color: #334155; margin-bottom: .4rem; }
 
   .sis-flash {
     padding: .9rem 1.2rem; border-radius: 8px;
@@ -258,8 +223,7 @@
 
   .sis-empty {
     text-align: center; padding: 3rem 1rem; color: #64748b;
-    background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px;
-    font-size: .92rem;
+    background: #fff; border: 1px dashed #cbd5e1; border-radius: 10px; font-size: .92rem;
   }
 
   .sis-moodle-btn {
@@ -269,6 +233,19 @@
     font-size: .78rem; font-weight: 700;
   }
   .sis-moodle-btn:hover { opacity: .9; }
+
+  /* Welcome banner for dashboard */
+  .sis-welcome {
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    color: #fff; padding: 2rem 2.25rem; border-radius: 14px;
+    margin-bottom: 2rem; box-shadow: 0 12px 32px rgba(6,182,212,.25);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 1rem;
+  }
+  .sis-welcome-greeting { font-size: 1.75rem; font-weight: 800; letter-spacing: -.02em; }
+  .sis-welcome-date { font-size: .92rem; opacity: .85; margin-top: .35rem; }
+  .sis-welcome-user { text-align: right; font-size: .85rem; opacity: .9; }
+  .sis-welcome-user strong { display: block; font-size: 1rem; margin-bottom: .15rem; }
 
   @media (max-width: 800px) {
     .sis-shell { grid-template-columns: 1fr; }
@@ -293,7 +270,7 @@
       <div class="sis-nav-label">Administration</div>
       <nav class="sis-nav">
         <a href="/sis/admin" class="<%= currentPath === '/sis/admin' || currentPath === '/sis' ? 'active' : '' %>"><span class="icon">🏛️</span> Overview</a>
-        <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
+        <a href="/sis/students" class="<%= currentPath && currentPath.startsWith('/sis/students') && !currentPath.includes('/new') ? 'active' : '' %>"><span class="icon">🎓</span> Students</a>
         <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
       </nav>
 
@@ -312,6 +289,14 @@
           <a href="/sis/reports"><span class="icon">📊</span> Reports</a>
         </nav>
       </details>
+
+      <details>
+        <summary>Communication</summary>
+        <nav class="sis-nav">
+          <a href="https://luxmind.onrender.com/messages"><span class="icon">💬</span> Messages</a>
+          <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
+        </nav>
+      </details>
     <% } else if (user && user.role === 'teacher') { %>
       <div class="sis-nav-label">Faculty</div>
       <nav class="sis-nav">
@@ -323,20 +308,48 @@
         <summary>My Classes</summary>
         <nav class="sis-nav">
           <a href="/sis/students"><span class="icon">🎓</span> All Students</a>
+          <a href="/sis/classes"><span class="icon">🏫</span> My Classes</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Attendance</summary>
+        <nav class="sis-nav">
+          <a href="/sis/attendance"><span class="icon">✅</span> Mark Today</a>
+          <a href="/sis/attendance?date=&class="><span class="icon">📋</span> History</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Communication</summary>
+        <nav class="sis-nav">
+          <a href="https://luxmind.onrender.com/teacher/announcements"><span class="icon">📢</span> Announcements</a>
+          <a href="https://luxmind.onrender.com/messages"><span class="icon">💬</span> Messages</a>
+          <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
     <% } else if (user && user.role === 'student') { %>
-      <div class="sis-nav-label">My Record</div>
+      <div class="sis-nav-label">Home</div>
       <nav class="sis-nav">
-        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Home</a>
+        <a href="/sis/my" class="<%= currentPath === '/sis/my' ? 'active' : '' %>"><span class="icon">🏛️</span> Dashboard</a>
       </nav>
 
       <details open>
-        <summary>Courses</summary>
+        <summary>Academics</summary>
         <nav class="sis-nav">
-          <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
+          <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> My Timetable</a>
           <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> Attendance Detail</a>
-          <a href="/student/grades"><span class="icon">🏆</span> My Grades</a>
+          <a href="https://luxmind.onrender.com/student/courses"><span class="icon">📚</span> My Courses</a>
+          <a href="https://luxmind.onrender.com/student/grades"><span class="icon">🏆</span> My Grades</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>Assignments</summary>
+        <nav class="sis-nav">
+          <a href="https://luxmind.onrender.com/student/assignments"><span class="icon">📋</span> Assignments</a>
+          <a href="https://luxmind.onrender.com/student/quizzes"><span class="icon">📝</span> Quizzes</a>
+          <a href="https://luxmind.onrender.com/my-certificates"><span class="icon">🎓</span> Certificates</a>
         </nav>
       </details>
 
@@ -344,19 +357,31 @@
         <summary>Finance</summary>
         <nav class="sis-nav">
           <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💰</span> My Fees</a>
+          <a href="/sis/my/fees#payments"><span class="icon">💳</span> Payment History</a>
         </nav>
       </details>
 
       <details>
-        <summary>Profile</summary>
+        <summary>Communication</summary>
         <nav class="sis-nav">
-          <a href="/profile"><span class="icon">👤</span> My Profile</a>
-          <a href="/settings"><span class="icon">⚙️</span> Settings</a>
+          <a href="https://luxmind.onrender.com/messages"><span class="icon">💬</span> Messages</a>
+          <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
+          <a href="https://luxmind.onrender.com/student/announcements"><span class="icon">📢</span> Announcements</a>
+          <a href="https://luxmind.onrender.com/calendar"><span class="icon">📅</span> Calendar</a>
+        </nav>
+      </details>
+
+      <details>
+        <summary>My Account</summary>
+        <nav class="sis-nav">
+          <a href="https://luxmind.onrender.com/profile"><span class="icon">👤</span> Profile</a>
+          <a href="https://luxmind.onrender.com/settings"><span class="icon">⚙️</span> Settings</a>
         </nav>
       </details>
     <% } %>
 
     <div class="sis-back">
+      <a class="lms-link" href="https://luxmind.onrender.com">🌐 Go to LuxMind LMS</a>
       <a href="/logout">🚪 Logout</a>
     </div>
   </aside>
