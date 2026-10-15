@@ -1,0 +1,72 @@
+<%- include('partials/head', {
+  title: student.full_name + ' — Attendance',
+  heading: student.full_name,
+  subtitle: 'Attendance history'
+}) %>
+
+<div style="margin-bottom:1.5rem;">
+  <a class="sis-btn sis-btn-outline" href="/sis/students/<%= student.id %>">← Back to Student</a>
+</div>
+
+<div class="sis-stat-grid">
+  <div class="sis-stat slate">
+    <div class="sis-stat-num"><%= summary.total || 0 %></div>
+    <div class="sis-stat-lbl">Days Marked</div>
+  </div>
+  <div class="sis-stat green">
+    <div class="sis-stat-num"><%= summary.present || 0 %></div>
+    <div class="sis-stat-lbl">Present</div>
+  </div>
+  <div class="sis-stat red">
+    <div class="sis-stat-num"><%= summary.absent || 0 %></div>
+    <div class="sis-stat-lbl">Absent</div>
+  </div>
+  <div class="sis-stat gold">
+    <div class="sis-stat-num"><%= summary.late || 0 %></div>
+    <div class="sis-stat-lbl">Late</div>
+  </div>
+</div>
+
+<div class="sis-card">
+  <h3>Last 90 Days</h3>
+  <% if (records.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">No attendance records yet.</div>
+  <% } else { %>
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Status</th>
+          <th>Notes</th>
+          <th>Marked</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% records.forEach(r => { %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
+              <%= new Date(r.attendance_date).toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' }) %>
+            </td>
+            <td>
+              <% if (r.status === 'present') { %>
+                <span class="sis-badge sis-badge-active">Present</span>
+              <% } else if (r.status === 'absent') { %>
+                <span class="sis-badge sis-badge-inactive">Absent</span>
+              <% } else if (r.status === 'late') { %>
+                <span class="sis-badge sis-badge-gold">Late</span>
+              <% } else { %>
+                <span class="sis-badge" style="background:#e7e5e4;color:#44403c;">Excused</span>
+              <% } %>
+            </td>
+            <td style="color:#57534e;font-size:.88rem;"><%= r.notes || '—' %></td>
+            <td style="color:#78716c;font-size:.82rem;">
+              <%= r.created_at ? new Date(r.created_at).toLocaleDateString() : '—' %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</div>
+
+<%- include('partials/foot') %>

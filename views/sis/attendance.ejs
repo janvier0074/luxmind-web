@@ -1,0 +1,99 @@
+<%- include('partials/head', {
+  title: 'Attendance',
+  heading: 'Attendance Register',
+  subtitle: 'Mark daily attendance for a class.'
+}) %>
+
+<div class="sis-card">
+  <form method="GET" action="/sis/attendance" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+    <div style="min-width:180px;">
+      <label class="sis-label">Date</label>
+      <input class="sis-input" type="date" name="date" value="<%= date %>" required>
+    </div>
+    <div style="min-width:180px;">
+      <label class="sis-label">Class</label>
+      <select class="sis-select" name="class" required>
+        <option value="">Pick a class</option>
+        <% classList.forEach(c => { %>
+          <option value="<%= c.class_level %>" <%= classFilter === c.class_level ? 'selected' : '' %>><%= c.class_level %></option>
+        <% }) %>
+      </select>
+    </div>
+    <button class="sis-btn sis-btn-gold" type="submit">Load Class</button>
+  </form>
+</div>
+
+<% if (classFilter && students.length > 0) { %>
+  <div class="sis-stat-grid">
+    <div class="sis-stat green">
+      <div class="sis-stat-num"><%= summary.present || 0 %></div>
+      <div class="sis-stat-lbl">Present Today</div>
+    </div>
+    <div class="sis-stat red">
+      <div class="sis-stat-num"><%= summary.absent || 0 %></div>
+      <div class="sis-stat-lbl">Absent Today</div>
+    </div>
+    <div class="sis-stat gold">
+      <div class="sis-stat-num"><%= summary.late || 0 %></div>
+      <div class="sis-stat-lbl">Late</div>
+    </div>
+    <div class="sis-stat slate">
+      <div class="sis-stat-num"><%= summary.excused || 0 %></div>
+      <div class="sis-stat-lbl">Excused</div>
+    </div>
+  </div>
+<% } %>
+
+<% if (!classFilter) { %>
+  <div class="sis-empty">Pick a date and class above to begin.</div>
+<% } else if (students.length === 0) { %>
+  <div class="sis-empty">No active students in <strong><%= classFilter %></strong>.</div>
+<% } else { %>
+  <form method="POST" action="/sis/attendance">
+    <input type="hidden" name="date" value="<%= date %>">
+    <input type="hidden" name="class_level" value="<%= classFilter %>">
+
+    <div class="sis-card" style="padding:0;overflow:hidden;">
+      <table class="sis-table">
+        <thead>
+          <tr>
+            <th style="width:40%;">Student</th>
+            <th style="text-align:center;">Present</th>
+            <th style="text-align:center;">Absent</th>
+            <th style="text-align:center;">Late</th>
+            <th style="text-align:center;">Excused</th>
+            <th style="width:25%;">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% students.forEach(s => { %>
+            <tr>
+              <td>
+                <div style="font-weight:700;color:#1c1917;"><%= s.full_name || s.username %></div>
+                <div style="color:#78716c;font-size:.78rem;font-family:ui-monospace,monospace;">@<%= s.username %></div>
+              </td>
+              <% ['present','absent','late','excused'].forEach(st => { %>
+                <td style="text-align:center;">
+                  <input type="radio" name="status_<%= s.id %>" value="<%= st %>"
+                    <%= (s.current_status || 'present') === st ? 'checked' : '' %>
+                    style="width:20px;height:20px;accent-color:#d4a017;cursor:pointer;">
+                </td>
+              <% }) %>
+              <td>
+                <input class="sis-input" name="notes_<%= s.id %>" value="<%= s.current_notes || '' %>"
+                  placeholder="Optional" style="padding:.4rem .6rem;font-size:.85rem;">
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1rem;">
+      <button class="sis-btn sis-btn-gold" type="submit">✓ Save Attendance</button>
+      <a class="sis-btn sis-btn-outline" href="/sis/attendance?date=<%= date %>&class=<%= encodeURIComponent(classFilter) %>">Reset</a>
+    </div>
+  </form>
+<% } %>
+
+<%- include('partials/foot') %>

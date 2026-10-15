@@ -336,4 +336,128 @@ router.post('/sis/students/:id/reactivate', guard, async (req, res) => {
   res.redirect('/sis/students/' + id);
 });
 
+// ============================================================
+//                 ATTENDANCE
+// ============================================================
+router.get('/sis/attendance', guard, async (req, res) => {
+  const db = getDB();
+  const date = req.query.date || new Date().toISOString().slice(0, 10);
+  const classFilter = req.query.class || '';
+
+  const classList = await db.all(`
+    SELECT DISTINCT class_level FROM student_profiles
+    WHERE class_level IS NOT NULL AND status = 'active'
+    ORDER BY class_level
+  `);
+
+  let students = [];
+  if (classFilter) {
+    students = await db.all(`
+      SELECT u.id, u.username, u.full_name,
+             a.status AS current_status, a.notes AS current_notes
+      FROM users u
+      JOIN student_profiles sp ON sp.user_id = u.id
+      LEFT JOIN attendance a ON a.student_id = u.id
+        AND a.attendance_date = $2 AND a.class_id IS NULL
+      WHERE u.role = 'student' AND sp.class_level = $1 AND sp.status = 'active'
+      ORDER BY u.full_name
+    `, [classFilter, date]);
+  }
+
+  const summary = await db.get(`
+    SELECT
+      COUNT(*) FILTER (WHERE status='present') AS present,
+      COUNT(*) FILTER (WHERE status='absent')  AS absent,
+      COUNT(*) FILTER (WHERE status='late')    AS late,
+      COUNT(*) FILTER (WHERE status='excused') AS excused,
+      COUNT(*) AS total
+    FROM attendance WHERE attendance_date = $1
+  `, [date]);
+
+  res.render('sis/attendance', {
+    title: 'Attendance',
+    heading: 'Attendance Register',
+    subtitle: 'Mark daily attendance for a class.',
+    date, classFilter, classList, students, summary,
+  });
+});
+
+router.post('/sis/attendance', guard, async (req, res) => {
+  const db = getDB();
+  const { date, class_level } = req.body;
+
+  if (!date || !class_level) {
+    req.flash('error', 'Please pick a date and class.');
+    return res.redirect('/sis/attendance');
+  }
+
+  const students = await db.all(`
+    SELECT u.id FROM users u
+    JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.role = 'student' AND sp.class_level = $1 AND sp.status = 'active'
+  `, [class_level]);
+
+  const markedBy = req.session.user.id;
+  let saved = 0;
+
+  for (const s of students) {
+    // Remove any existing mark for this student on this date
+    await db.run(
+      `DELETE FROM attendance WHERE student_id = $1 AND attendance_date = $2 AND class_id IS NULL`,
+      [s.id, date]
+    );
+
+    const status = req.body['status_' + s.id];
+    if (!status) continue;
+
+    const notes = req.body['notes_' + s.id] || null;
+    await db.run(
+      `INSERT INTO attendance (student_id, attendance_date, status, notes, marked_by)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [s.id, date, status, notes, markedBy]
+    );
+    saved++;
+  }
+
+  req.flash('success', 'Attendance saved for ' + saved + ' of ' + students.length + ' students.');
+  res.redirect('/sis/attendance?date=' + date + '&class=' + encodeURIComponent(class_level));
+});
+
+router.get('/sis/attendance/student/:id', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const student = await db.get(`
+    SELECT u.id, u.full_name, u.username, sp.class_level
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.id = $1 AND u.role = 'student'
+  `, [id]);
+
+  if (!student) return res.status(404).render('errors/404');
+
+  const records = await db.all(`
+    SELECT * FROM attendance WHERE student_id = $1
+    ORDER BY attendance_date DESC LIMIT 90
+  `, [id]);
+
+  const summary = await db.get(`
+    SELECT
+      COUNT(*) AS total,
+      COUNT(*) FILTER (WHERE status='present') AS present,
+      COUNT(*) FILTER (WHERE status='absent')  AS absent,
+      COUNT(*) FILTER (WHERE status='late')    AS late,
+      COUNT(*) FILTER (WHERE status='excused') AS excused
+    FROM attendance WHERE student_id = $1
+  `, [id]);
+
+  res.render('sis/attendance-student', {
+    title: student.full_name + ' — Attendance',
+    heading: student.full_name,
+    subtitle: 'Attendance history',
+    student, records, summary,
+  });
+});
+
+
 module.exports = router;
