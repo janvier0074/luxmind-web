@@ -10,10 +10,9 @@ const router = express.Router();
 
 // ---------- LOGIN PAGE ----------
 router.get('/login', (req, res) => {
-    if (req.session.user) return res.redirect('/sis');
-  res.render('auth/login');
+  if (req.session.user) return res.redirect(HOME_PATH);
+  res.render(process.env.APP_MODE === 'sis' ? 'sis/login' : 'auth/login');
 });
-
 // ---------- VERIFY FIREBASE TOKEN → SESSION (auto-creates if needed) ----------
 router.post('/login', async (req, res) => {
   const { idToken } = req.body || {};
