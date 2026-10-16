@@ -438,7 +438,7 @@
           <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
-       <% } else if (user && user.role === 'student') { %>
+         <% } else if (user && user.role === 'student') { %>
       <div class="sis-nav-label">Student</div>
 
       <a href="/sis/my" class="sis-nav-single <%= currentPath === '/sis/my' ? 'active' : '' %>">
@@ -450,11 +450,11 @@
         <nav class="sis-nav">
           <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
           <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> Attendance Detail</a>
+          <a href="/sis/my/grades" class="<%= currentPath === '/sis/my/grades' ? 'active' : '' %>"><span class="icon">🏆</span> My Grades</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📝</span> Course Registration <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">➕</span> Additional Course <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📜</span> Curriculum <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏆</span> My Grades <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📋</span> Transcript <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📜</span> Transcript <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📖</span> Curriculum <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
 
@@ -472,26 +472,14 @@
         <nav class="sis-nav">
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📄</span> Document Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎫</span> Guidance Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏢</span> Internship Application <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎓</span> Graduation Application <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
 
       <details>
         <summary>ℹ️ My Info</summary>
         <nav class="sis-nav">
-          <a href="https://luxmind.onrender.com/profile"><span class="icon">👤</span> Profile</a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">ℹ️</span> Student Info <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🏫</span> My Faculty <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">👤</span> My Profile <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📞</span> Contact Info <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-        </nav>
-      </details>
-
-      <details>
-        <summary>💬 Communication</summary>
-        <nav class="sis-nav">
-          <a href="https://luxmind.onrender.com/messages"><span class="icon">💬</span> Messages</a>
-          <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
     <% } %>

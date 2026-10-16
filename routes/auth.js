@@ -12,8 +12,12 @@ const HOME_PATH = process.env.APP_MODE === 'sis' ? '/sis' : '/dashboard';
 
 // ---------- LOGIN PAGE ----------
 router.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect(HOME_PATH);
-  res.render(process.env.APP_MODE === 'sis' ? 'sis/login' : 'auth/login');
+  const next = req.query.next || null;
+  if (req.session.user) return res.redirect(next || HOME_PATH);
+  if (process.env.APP_MODE === 'sis') {
+    return res.render('sis/login', { next });
+  }
+  res.render('auth/login', { next });
 });
 // ---------- VERIFY FIREBASE TOKEN → SESSION (auto-creates if needed) ----------
 router.post('/login', async (req, res) => {

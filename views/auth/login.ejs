@@ -224,8 +224,8 @@
       const data = await resp.json();
 
       if (resp.ok && data.success) {
-        window.location.href = data.redirect || '/dashboard';
-      } else {
+            const next = new URLSearchParams(window.location.search).get('next');
+        window.location.href = next || data.redirect || '/dashboard';      } else {
         throw new Error(data.error || 'Login failed');
       }
     } catch (err) {
