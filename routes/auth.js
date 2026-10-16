@@ -10,7 +10,7 @@ const router = express.Router();
 
 // ---------- LOGIN PAGE ----------
 router.get('/login', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+    if (req.session.user) return res.redirect('/sis');
   res.render('auth/login');
 });
 
@@ -80,7 +80,7 @@ router.post('/login', async (req, res) => {
       firebaseUid: decoded.uid,
     };
 
-    return res.json({ success: true, redirect: '/dashboard' });
+        return res.json({ success: true, redirect: HOME_PATH });
   } catch (err) {
     console.error('Login failed:', err.message);
     return res.status(401).json({ error: 'Invalid or expired credentials.' });
@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
 
 // ---------- REGISTER PAGE ----------
 router.get('/register', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+    if (req.session.user) return res.redirect(HOME_PATH);
   res.render('auth/register');
 });
 
@@ -115,7 +115,7 @@ router.post('/register', async (req, res) => {
         email: existing.email,
         firebaseUid: decoded.uid,
       };
-      return res.json({ success: true, redirect: '/dashboard' });
+           return res.json({ success: true, redirect: HOME_PATH });
     }
 
     let baseUsername = email.split('@')[0].toLowerCase().replace(/[^a-z0-9_]/g, '') || 'user';
@@ -149,7 +149,7 @@ router.post('/register', async (req, res) => {
       firebaseUid: decoded.uid,
     };
 
-    return res.json({ success: true, redirect: '/dashboard' });
+        return res.json({ success: true, redirect: HOME_PATH });
   } catch (err) {
     console.error('Register failed:', err.message);
     return res.status(400).json({ error: 'Registration failed: ' + err.message });
@@ -162,7 +162,7 @@ router.get('/logout', (req, res) => {
 });
 // ---------- FORGOT PASSWORD PAGE ----------
 router.get('/forgot-password', (req, res) => {
-  if (req.session.user) return res.redirect('/dashboard');
+   if (req.session.user) return res.redirect(HOME_PATH);
   res.render('auth/forgot-password');
 });
 
