@@ -247,17 +247,127 @@
   .sis-welcome-user { text-align: right; font-size: .85rem; opacity: .9; }
   .sis-welcome-user strong { display: block; font-size: 1rem; margin-bottom: .15rem; }
 
-  @media (max-width: 800px) {
+   /* ============ GLOBAL OVERFLOW PROTECTION ============ */
+  img, table, pre { max-width: 100%; }
+  .sis-main, .sis-card, .sis-stat, .sis-tile { min-width: 0; }
+  .sis-page-title, .sis-card h3, .sis-tile-label {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    hyphens: auto;
+  }
+  .sis-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sis-table thead, .sis-table tbody { display: table; width: 100%; min-width: 600px; }
+
+  /* ============ HAMBURGER BUTTON (hidden on desktop) ============ */
+  .sis-hamburger {
+    display: none;
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 200;
+    background: linear-gradient(135deg, #0f2942, #0891b2);
+    color: #fff;
+    border: none;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    box-shadow: 0 6px 18px rgba(6,182,212,.35);
+    align-items: center;
+    justify-content: center;
+    font-family: inherit;
+  }
+  .sis-hamburger:active { transform: scale(.95); }
+
+  /* ============ DRAWER BACKDROP ============ */
+  .sis-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15,23,42,.5);
+    z-index: 99;
+    backdrop-filter: blur(2px);
+  }
+  .sis-backdrop.show { display: block; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 900px) {
     .sis-shell { grid-template-columns: 1fr; }
-    .sis-sidebar { display: none; }
-    .sis-main { padding: 1.25rem; }
+
+    .sis-hamburger { display: flex; }
+
+    .sis-sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 280px;
+      max-width: 85vw;
+      height: 100vh;
+      z-index: 100;
+      transform: translateX(-100%);
+      transition: transform .25s cubic-bezier(.4,0,.2,1);
+      box-shadow: 4px 0 24px rgba(0,0,0,.15);
+    }
+    .sis-sidebar.open { transform: translateX(0); }
+
+    .sis-main {
+      padding: 4.5rem 1rem 1.5rem;
+      overflow-x: hidden;
+    }
+
+    .sis-topbar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: .75rem;
+    }
+    .sis-user { width: 100%; justify-content: space-between; }
+
+    .sis-stat-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: .75rem;
+    }
+    .sis-stat { padding: 1rem; }
+    .sis-stat-num { font-size: 1.5rem; }
+    .sis-stat-lbl { font-size: .65rem; }
+
+    .sis-tiles {
+      grid-template-columns: repeat(2, 1fr);
+      gap: .75rem;
+    }
+    .sis-tile { padding: 1.25rem .75rem; }
+    .sis-tile-icon { font-size: 2.2rem; margin-bottom: .55rem; }
+    .sis-tile-label { font-size: .85rem; }
+    .sis-tile-sub { font-size: .68rem; }
+
+    .sis-card { padding: 1.1rem; margin-bottom: 1rem; }
+    .sis-card h3 { font-size: .98rem; }
+    .sis-page-title { font-size: 1.4rem; }
+    .sis-page-sub { font-size: .82rem; }
+
+    .sis-btn { padding: .55rem 1rem; font-size: .82rem; }
+
+    /* Forms on mobile */
+    .sis-input, .sis-select, .sis-textarea { font-size: 16px; padding: .7rem .8rem; }
+  }
+
+  @media (max-width: 400px) {
+    .sis-stat-grid { grid-template-columns: 1fr; }
+    .sis-tiles { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 <div class="sis-shell">
 
-  <aside class="sis-sidebar">
+  <button class="sis-hamburger" id="sisMenuBtn" aria-label="Open menu">☰</button>
+  <div class="sis-backdrop" id="sisBackdrop"></div>
+
+  <aside class="sis-sidebar" id="sisSidebar">
     <div class="sis-brand">
       <div class="sis-brand-logo">S</div>
       <div class="sis-brand-text">
@@ -385,6 +495,45 @@
         </nav>
       </details>
     <% } %>
+
+
+    <script>
+      (function () {
+        var btn = document.getElementById('sisMenuBtn');
+        var sidebar = document.getElementById('sisSidebar');
+        var backdrop = document.getElementById('sisBackdrop');
+        if (!btn || !sidebar || !backdrop) return;
+
+        function open() {
+          sidebar.classList.add('open');
+          backdrop.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
+        function close() {
+          sidebar.classList.remove('open');
+          backdrop.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (sidebar.classList.contains('open')) close(); else open();
+        });
+        backdrop.addEventListener('click', close);
+
+        // Close drawer when a nav link is clicked (mobile UX)
+        sidebar.querySelectorAll('a').forEach(function (a) {
+          a.addEventListener('click', function () {
+            if (window.innerWidth <= 900) close();
+          });
+        });
+
+        // Close on Escape
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') close();
+        });
+      })();
+    </script>
 
     <div class="sis-back">
       

@@ -1,0 +1,295 @@
+<%- include('partials/head', {
+  title: 'My Grades',
+  heading: 'My Grades',
+  subtitle: 'Your academic performance across all courses.'
+}) %>
+
+<div style="margin-bottom:1.25rem;">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Overview</a>
+</div>
+
+<!-- STATS -->
+<div class="sis-stat-grid">
+  <div class="sis-stat gold">
+    <div class="sis-stat-num"><%= stats.overallAverage %>%</div>
+    <div class="sis-stat-lbl">Overall Average</div>
+  </div>
+  <div class="sis-stat green">
+    <div class="sis-stat-num"><%= stats.quizzesTaken %></div>
+    <div class="sis-stat-lbl">Quizzes Taken</div>
+  </div>
+  <div class="sis-stat slate">
+    <div class="sis-stat-num"><%= stats.assignmentsGraded %></div>
+    <div class="sis-stat-lbl">Assignments Graded</div>
+  </div>
+  <div class="sis-stat red">
+    <div class="sis-stat-num"><%= stats.totalGraded %></div>
+    <div class="sis-stat-lbl">Total Graded</div>
+  </div>
+</div>
+
+<!-- PER-COURSE BREAKDOWN -->
+<h3 style="font-size:1.15rem;color:#0f172a;margin-bottom:1rem;font-weight:800;">📚 Grades by Course</h3>
+
+<% if (courses.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">
+    No graded work yet. Take a quiz or submit an assignment to see your grades.
+  </div>
+<% } else { %>
+
+  <div class="sis-course-grid">
+    <% courses.forEach(c => { %>
+      <div class="sis-course-card">
+        <div class="sis-course-head">
+          <div style="flex:1;min-width:0;">
+            <div class="sis-course-title"><%= c.title %></div>
+            <div class="sis-course-meta">
+              <%= c.quizCount %> quiz<%= c.quizCount === 1 ? '' : 'zes' %>
+              · <%= c.assCount %> assignment<%= c.assCount === 1 ? '' : 's' %>
+            </div>
+          </div>
+          <div class="sis-grade-badge <%= c.gradeClass %>">
+            <div class="sis-grade-letter"><%= c.letter %></div>
+            <div class="sis-grade-pct"><%= c.overallPct !== null ? c.overallPct + '%' : '—' %></div>
+          </div>
+        </div>
+
+        <div class="sis-course-bars">
+          <% if (c.quizPct !== null) { %>
+            <div class="sis-bar-row">
+              <span class="sis-bar-label">📝 Quizzes</span>
+              <span class="sis-bar-pct"><%= c.quizPct %>%</span>
+            </div>
+            <div class="sis-bar-track">
+              <div class="sis-bar-fill" style="width:<%= c.quizPct %>%;background:<%= c.quizPct >= 75 ? '#10b981' : (c.quizPct >= 50 ? '#f59e0b' : '#ef4444') %>;"></div>
+            </div>
+          <% } %>
+
+          <% if (c.assPct !== null) { %>
+            <div class="sis-bar-row">
+              <span class="sis-bar-label">📋 Assignments</span>
+              <span class="sis-bar-pct"><%= c.assPct %>%</span>
+            </div>
+            <div class="sis-bar-track">
+              <div class="sis-bar-fill" style="width:<%= c.assPct %>%;background:<%= c.assPct >= 75 ? '#10b981' : (c.assPct >= 50 ? '#f59e0b' : '#ef4444') %>;"></div>
+            </div>
+          <% } %>
+
+          <% if (c.quizPct === null && c.assPct === null) { %>
+            <div style="padding:.5rem 0;color:#94a3b8;font-size:.85rem;">No grades yet.</div>
+          <% } %>
+        </div>
+
+        <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #f1f5f9;">
+          <a class="sis-btn sis-btn-outline" style="width:100%;text-align:center;padding:.6rem;" href="/sis/my/timetable">
+            View course details
+          </a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+
+<% } %>
+
+<!-- RECENT GRADED ITEMS -->
+<h3 style="font-size:1.15rem;color:#0f172a;margin:2rem 0 1rem;font-weight:800;">🕐 Recent Graded Work</h3>
+
+<% if (recent.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">Nothing graded yet.</div>
+<% } else { %>
+  <!-- Desktop table -->
+  <div class="sis-card sis-table-desktop" style="padding:0;overflow:hidden;">
+    <table class="sis-table">
+      <thead>
+        <tr>
+          <th style="width:90px;">Type</th>
+          <th>Title</th>
+          <th>Course</th>
+          <th style="width:110px;text-align:right;">Score</th>
+          <th style="width:110px;text-align:right;">Percent</th>
+          <th style="width:120px;text-align:right;">Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% recent.forEach(r => { %>
+          <tr>
+            <td>
+              <span class="sis-badge <%= r.type === 'Quiz' ? 'sis-badge-gold' : 'sis-badge-active' %>">
+                <%= r.type %>
+              </span>
+            </td>
+            <td><strong><%= r.title %></strong></td>
+            <td style="color:#64748b;"><%= r.course %></td>
+            <td style="text-align:right;font-family:ui-monospace,monospace;font-size:.88rem;">
+              <%= r.score %> / <%= r.max_score %>
+            </td>
+            <td style="text-align:right;font-weight:800;color:<%= r.pct >= 75 ? '#059669' : (r.pct >= 50 ? '#d97706' : '#dc2626') %>;">
+              <%= r.pct %>%
+            </td>
+            <td style="text-align:right;color:#64748b;font-size:.82rem;">
+              <%= new Date(r.submitted_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile cards -->
+  <div class="sis-mobile-list">
+    <% recent.forEach(r => { %>
+      <div class="sis-mobile-card">
+        <div class="sis-mobile-card-head">
+          <span class="sis-badge <%= r.type === 'Quiz' ? 'sis-badge-gold' : 'sis-badge-active' %>"><%= r.type %></span>
+          <span class="sis-mobile-pct" style="color:<%= r.pct >= 75 ? '#059669' : (r.pct >= 50 ? '#d97706' : '#dc2626') %>;">
+            <%= r.pct %>%
+          </span>
+        </div>
+        <div class="sis-mobile-card-title"><%= r.title %></div>
+        <div class="sis-mobile-card-meta">
+          <%= r.course %> · <%= r.score %>/<%= r.max_score %>
+        </div>
+        <div class="sis-mobile-card-date">
+          <%= new Date(r.submitted_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<!-- Inline styles for this page -->
+<style>
+  /* Course card grid */
+  .sis-course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+  .sis-course-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    transition: box-shadow .15s;
+  }
+  .sis-course-card:hover {
+    box-shadow: 0 8px 20px rgba(15,23,42,.08);
+  }
+  .sis-course-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+  .sis-course-title {
+    font-weight: 800;
+    color: #0f172a;
+    font-size: 1.02rem;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+  .sis-course-meta {
+    color: #64748b;
+    font-size: .8rem;
+    margin-top: .3rem;
+  }
+
+  .sis-grade-badge {
+    flex-shrink: 0;
+    width: 62px;
+    height: 62px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .sis-grade-letter { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+  .sis-grade-pct { font-size: .68rem; font-weight: 700; margin-top: 2px; opacity: .9; }
+  .sis-grade-a    { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
+  .sis-grade-b    { background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; }
+  .sis-grade-c    { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+  .sis-grade-d    { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; }
+  .sis-grade-f    { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
+  .sis-grade-empty{ background: #f1f5f9; color: #94a3b8; }
+
+  .sis-course-bars { display: flex; flex-direction: column; gap: .75rem; }
+  .sis-bar-row { display: flex; justify-content: space-between; font-size: .82rem; margin-bottom: .35rem; }
+  .sis-bar-label { color: #475569; font-weight: 600; }
+  .sis-bar-pct { color: #0f172a; font-weight: 800; }
+  .sis-bar-track {
+    height: 8px;
+    background: #f1f5f9;
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .sis-bar-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width .4s ease;
+  }
+
+  /* Mobile list (hidden on desktop) */
+  .sis-mobile-list { display: none; }
+  .sis-table-desktop { display: block; }
+
+  .sis-mobile-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    margin-bottom: .75rem;
+  }
+  .sis-mobile-card-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: .5rem;
+  }
+  .sis-mobile-pct { font-weight: 800; font-size: 1rem; }
+  .sis-mobile-card-title {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: .95rem;
+    margin-bottom: .35rem;
+    word-break: break-word;
+  }
+  .sis-mobile-card-meta {
+    color: #64748b;
+    font-size: .82rem;
+    word-break: break-word;
+  }
+  .sis-mobile-card-date {
+    color: #94a3b8;
+    font-size: .75rem;
+    margin-top: .35rem;
+  }
+
+  /* RESPONSIVE — mobile-first behavior */
+  @media (max-width: 700px) {
+    .sis-course-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .sis-grade-badge {
+      width: 54px;
+      height: 54px;
+    }
+    .sis-grade-letter { font-size: 1.3rem; }
+
+    .sis-table-desktop { display: none; }
+    .sis-mobile-list { display: block; }
+
+    .sis-stat-num { font-size: 1.5rem; }
+
+    h3 { font-size: 1rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>

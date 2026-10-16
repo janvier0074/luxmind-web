@@ -681,6 +681,152 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
 });
 
 
+// ============================================================
+//                 STUDENT — My Grades
+// ============================================================
+router.get('/sis/my/grades', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // Fetch all quizzes + assignments with scores for this student
+  const quizGrades = await db.all(`
+    SELECT
+      q.id,
+      q.title,
+      c.title AS course_title,
+      c.id AS course_id,
+      a.score,
+      a.max_score,
+      a.submitted_at,
+      m.override_score,
+      COALESCE(m.override_score, a.score) AS final_score
+    FROM attempts a
+    JOIN quizzes q ON q.id = a.quiz_id
+    JOIN courses c ON c.id = q.course_id
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    LEFT JOIN manual_grades m ON m.attempt_id = a.id
+    WHERE a.user_id = $2 AND COALESCE(m.override_score, a.score) IS NOT NULL
+    ORDER BY a.submitted_at DESC
+  `, [uid, uid]);
+
+  const assignmentGrades = await db.all(`
+    SELECT
+      s.id,
+      a.title,
+      c.title AS course_title,
+      c.id AS course_id,
+      s.score,
+      a.max_points AS max_score,
+      s.submitted_at
+    FROM submissions s
+    JOIN assignments a ON a.id = s.assignment_id
+    JOIN courses c ON c.id = a.course_id
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    WHERE s.user_id = $2 AND s.score IS NOT NULL
+    ORDER BY s.submitted_at DESC
+  `, [uid, uid]);
+
+  // Combine into one stream for "recent grades"
+  const recent = [
+    ...quizGrades.map(q => ({
+      type: 'Quiz',
+      title: q.title,
+      course: q.course_title,
+      course_id: q.course_id,
+      score: Number(q.final_score),
+      max_score: Number(q.max_score),
+      pct: q.max_score ? Math.round((Number(q.final_score) / Number(q.max_score)) * 100) : 0,
+      submitted_at: q.submitted_at,
+    })),
+    ...assignmentGrades.map(a => ({
+      type: 'Assignment',
+      title: a.title,
+      course: a.course_title,
+      course_id: a.course_id,
+      score: Number(a.score),
+      max_score: Number(a.max_score),
+      pct: a.max_score ? Math.round((Number(a.score) / Number(a.max_score)) * 100) : 0,
+      submitted_at: a.submitted_at,
+    })),
+  ].sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).slice(0, 12);
+
+  // Build per-course averages
+  const byCourse = {};
+  for (const q of quizGrades) {
+    const key = q.course_id;
+    if (!byCourse[key]) {
+      byCourse[key] = { course_id: key, title: q.course_title, quizScores: [], assScores: [] };
+    }
+    byCourse[key].quizScores.push({
+      score: Number(q.final_score),
+      max: Number(q.max_score),
+    });
+  }
+  for (const a of assignmentGrades) {
+    const key = a.course_id;
+    if (!byCourse[key]) {
+      byCourse[key] = { course_id: key, title: a.course_title, quizScores: [], assScores: [] };
+    }
+    byCourse[key].assScores.push({
+      score: Number(a.score),
+      max: Number(a.max_score),
+    });
+  }
+
+  const courses = Object.values(byCourse).map(c => {
+    const quizTotal = c.quizScores.reduce((sum, x) => sum + x.score, 0);
+    const quizMax = c.quizScores.reduce((sum, x) => sum + x.max, 0);
+    const assTotal = c.assScores.reduce((sum, x) => sum + x.score, 0);
+    const assMax = c.assScores.reduce((sum, x) => sum + x.max, 0);
+    const quizPct = quizMax > 0 ? Math.round((quizTotal / quizMax) * 100) : null;
+    const assPct = assMax > 0 ? Math.round((assTotal / assMax) * 100) : null;
+    const totalScore = quizTotal + assTotal;
+    const totalMax = quizMax + assMax;
+    const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : null;
+
+    let letter = '—';
+    let gradeClass = 'sis-grade-empty';
+    if (overallPct !== null) {
+      if (overallPct >= 90) { letter = 'A'; gradeClass = 'sis-grade-a'; }
+      else if (overallPct >= 80) { letter = 'B'; gradeClass = 'sis-grade-b'; }
+      else if (overallPct >= 70) { letter = 'C'; gradeClass = 'sis-grade-c'; }
+      else if (overallPct >= 60) { letter = 'D'; gradeClass = 'sis-grade-d'; }
+      else { letter = 'F'; gradeClass = 'sis-grade-f'; }
+    }
+
+    return {
+      ...c,
+      quizPct,
+      assPct,
+      overallPct,
+      letter,
+      gradeClass,
+      quizCount: c.quizScores.length,
+      assCount: c.assScores.length,
+    };
+  });
+
+  // Overall stats
+  const allQuizzes = quizGrades.length;
+  const allAss = assignmentGrades.length;
+  const totalScore = [...quizGrades.map(q => Number(q.final_score)), ...assignmentGrades.map(a => Number(a.score))].reduce((s, x) => s + x, 0);
+  const totalMax = [...quizGrades.map(q => Number(q.max_score)), ...assignmentGrades.map(a => Number(a.max_score))].reduce((s, x) => s + x, 0);
+  const overallAverage = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
+  res.render('sis/my-grades', {
+    title: 'My Grades',
+    heading: 'My Grades',
+    subtitle: 'Your academic performance across all courses.',
+    courses,
+    recent,
+    stats: {
+      overallAverage,
+      quizzesTaken: allQuizzes,
+      assignmentsGraded: allAss,
+      totalGraded: allQuizzes + allAss,
+    },
+  });
+});
 
 
 module.exports = router;
