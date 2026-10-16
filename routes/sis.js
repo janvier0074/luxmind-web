@@ -682,6 +682,104 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
 
 
 // ============================================================
+//                 STUDENT — Transcript
+// ============================================================
+router.get('/sis/my/transcript', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // Get student profile
+  const profile = await db.get(`
+    SELECT u.full_name, u.username, u.email, sp.admission_number, sp.class_level, sp.date_of_birth
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.id = $1
+  `, [uid]);
+
+  // Get all courses with grades
+  const quizRows = await db.all(`
+    SELECT c.id AS course_id, c.title AS course_title,
+           COALESCE(m.override_score, a.score) AS score,
+           a.max_score
+    FROM attempts a
+    JOIN quizzes q ON q.id = a.quiz_id
+    JOIN courses c ON c.id = q.course_id
+    LEFT JOIN manual_grades m ON m.attempt_id = a.id
+    WHERE a.user_id = $1 AND COALESCE(m.override_score, a.score) IS NOT NULL
+  `, [uid]);
+
+  const assRows = await db.all(`
+    SELECT c.id AS course_id, c.title AS course_title,
+           s.score, a.max_points AS max_score
+    FROM submissions s
+    JOIN assignments a ON a.id = s.assignment_id
+    JOIN courses c ON c.id = a.course_id
+    WHERE s.user_id = $1 AND s.score IS NOT NULL
+  `, [uid]);
+
+  const attendanceRows = await db.all(`
+    SELECT COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE status='present') AS present
+    FROM attendance WHERE student_id = $1
+  `, [uid]);
+
+  // Build per-course records
+  const courseMap = {};
+  const ensure = (id, title) => {
+    if (!courseMap[id]) courseMap[id] = { id, title, score: 0, max: 0, quizCount: 0, assCount: 0 };
+    return courseMap[id];
+  };
+
+  for (const r of quizRows) {
+    const c = ensure(r.course_id, r.course_title);
+    c.score += Number(r.score);
+    c.max += Number(r.max_score);
+    c.quizCount++;
+  }
+  for (const r of assRows) {
+    const c = ensure(r.course_id, r.course_title);
+    c.score += Number(r.score);
+    c.max += Number(r.max_score);
+    c.assCount++;
+  }
+
+  const courses = Object.values(courseMap).map(c => {
+    const pct = c.max > 0 ? Math.round((c.score / c.max) * 100) : 0;
+    let letter = '—', gradeClass = 'g-empty';
+    if (c.max === 0) { letter = '—'; gradeClass = 'g-empty'; }
+    else if (pct >= 90) { letter = 'A'; gradeClass = 'g-a'; }
+    else if (pct >= 80) { letter = 'B'; gradeClass = 'g-b'; }
+    else if (pct >= 70) { letter = 'C'; gradeClass = 'g-c'; }
+    else if (pct >= 60) { letter = 'D'; gradeClass = 'g-d'; }
+    else { letter = 'F'; gradeClass = 'g-f'; }
+
+    // GPA points: A=4.0, B=3.0, C=2.0, D=1.0, F=0
+    const gpaPoints = { A: 4.0, B: 3.0, C: 2.0, D: 1.0, F: 0 }[letter] || 0;
+
+    return { ...c, pct, letter, gradeClass, gpaPoints };
+  });
+
+  const totalEarned = courses.reduce((s, c) => s + c.score, 0);
+  const totalMax = courses.reduce((s, c) => s + c.max, 0);
+  const cumulativePct = totalMax > 0 ? Math.round((totalEarned / totalMax) * 100) : 0;
+  const cumulativeGPA = courses.length > 0
+    ? (courses.reduce((s, c) => s + c.gpaPoints, 0) / courses.length).toFixed(2)
+    : '0.00';
+
+  const att = attendanceRows[0] || { total: 0, present: 0 };
+  const attendancePct = att.total > 0 ? Math.round((att.present / att.total) * 100) : 0;
+
+  res.render('sis/transcript', {
+    title: 'Transcript',
+    heading: 'Academic Transcript',
+    subtitle: 'Your complete academic record.',
+    profile, courses,
+    cumulativePct, cumulativeGPA, attendancePct,
+  });
+});
+
+
+// ============================================================
 //                 STUDENT — My Grades
 // ============================================================
 router.get('/sis/my/grades', studentGuard, async (req, res) => {

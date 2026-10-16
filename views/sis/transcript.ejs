@@ -1,0 +1,380 @@
+<%- include('partials/head', {
+  title: 'Transcript',
+  heading: 'Academic Transcript',
+  subtitle: 'Your complete academic record.'
+}) %>
+
+<!-- Action bar -->
+<div class="tr-actions">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Dashboard</a>
+  <button class="sis-btn sis-btn-gold" onclick="window.print()">🖨️ Print / Save as PDF</button>
+</div>
+
+<!-- Official header block -->
+<div class="tr-official">
+  <div class="tr-official-head">
+    <div class="tr-logo">L</div>
+    <div>
+      <div class="tr-official-title">LuxMind Institute</div>
+      <div class="tr-official-sub">Office of the Registrar · Official Transcript</div>
+    </div>
+  </div>
+
+  <div class="tr-student-block">
+    <div class="tr-student-col">
+      <div class="tr-field">
+        <div class="tr-field-lbl">Student Name</div>
+        <div class="tr-field-val"><%= profile.full_name || profile.username %></div>
+      </div>
+      <div class="tr-field">
+        <div class="tr-field-lbl">Student ID</div>
+        <div class="tr-field-val mono"><%= profile.admission_number || '—' %></div>
+      </div>
+      <div class="tr-field">
+        <div class="tr-field-lbl">Email</div>
+        <div class="tr-field-val"><%= profile.email || '—' %></div>
+      </div>
+    </div>
+    <div class="tr-student-col">
+      <div class="tr-field">
+        <div class="tr-field-lbl">Class</div>
+        <div class="tr-field-val"><%= profile.class_level || '—' %></div>
+      </div>
+      <div class="tr-field">
+        <div class="tr-field-lbl">Date of Birth</div>
+        <div class="tr-field-val"><%= profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></div>
+      </div>
+      <div class="tr-field">
+        <div class="tr-field-lbl">Issued</div>
+        <div class="tr-field-val"><%= new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) %></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Summary stats -->
+<div class="tr-stats">
+  <div class="tr-stat">
+    <div class="tr-stat-num"><%= cumulativeGPA %></div>
+    <div class="tr-stat-lbl">Cumulative GPA</div>
+  </div>
+  <div class="tr-stat">
+    <div class="tr-stat-num"><%= cumulativePct %>%</div>
+    <div class="tr-stat-lbl">Overall Average</div>
+  </div>
+  <div class="tr-stat">
+    <div class="tr-stat-num"><%= courses.length %></div>
+    <div class="tr-stat-lbl">Courses Graded</div>
+  </div>
+  <div class="tr-stat">
+    <div class="tr-stat-num"><%= attendancePct %>%</div>
+    <div class="tr-stat-lbl">Attendance Rate</div>
+  </div>
+</div>
+
+<!-- Grade legend -->
+<div class="tr-legend">
+  <span><b>A</b> 90–100</span>
+  <span><b>B</b> 80–89</span>
+  <span><b>C</b> 70–79</span>
+  <span><b>D</b> 60–69</span>
+  <span><b>F</b> below 60</span>
+</div>
+
+<!-- Transcript table -->
+<h3 class="tr-section-title">Course Record</h3>
+
+<% if (courses.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No graded courses on record yet.</div>
+<% } else { %>
+  <div class="tr-table-wrap">
+    <table class="tr-table">
+      <colgroup>
+        <col style="width: 90px;">
+        <col>
+        <col style="width: 90px;">
+        <col style="width: 110px;">
+        <col style="width: 90px;">
+        <col style="width: 90px;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Course Title</th>
+          <th class="c">Credits</th>
+          <th class="c">Score</th>
+          <th class="c">%</th>
+          <th class="c">Grade</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% courses.forEach(c => {
+          const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
+        %>
+          <tr>
+            <td><span class="tr-code"><%= code %></span></td>
+            <td><span class="tr-cname"><%= c.title %></span></td>
+            <td class="c mono">3</td>
+            <td class="c mono"><%= c.score %>/<%= c.max %></td>
+            <td class="c mono"><%= c.pct %>%</td>
+            <td class="c"><span class="tr-grade <%= c.gradeClass %>"><%= c.letter %></span></td>
+          </tr>
+        <% }) %>
+        <tr class="tr-total-row">
+          <td colspan="3" class="tr-total-label">Cumulative Total</td>
+          <td class="c mono"><%= totalEarned || 0 %>/<%= totalMax || 0 %></td>
+          <td class="c mono"><strong><%= cumulativePct %>%</strong></td>
+          <td class="c"><strong><%= cumulativeGPA %></strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<!-- Footer -->
+<div class="tr-footer">
+  <div class="tr-footer-col">
+    <div class="tr-sign-line"></div>
+    <div class="tr-sign-lbl">Registrar's Signature</div>
+  </div>
+  <div class="tr-footer-col">
+    <div class="tr-sign-line"></div>
+    <div class="tr-sign-lbl">Date</div>
+  </div>
+</div>
+
+<div class="tr-official-note">
+  This transcript is generated by LuxMind Student Information System and reflects all grades recorded as of the date issued. Verify authenticity at <span class="mono">luxmind-sis.onrender.com</span>.
+</div>
+
+<style>
+  /* Action bar */
+  .tr-actions {
+    display: flex; justify-content: space-between; gap: .75rem;
+    margin-bottom: 1.5rem; flex-wrap: wrap;
+  }
+
+  /* Official header */
+  .tr-official {
+    background: #fff;
+    border: 2px solid #0f2942;
+    border-radius: 12px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .tr-official-head {
+    display: flex; align-items: center; gap: 1rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 2px solid #0f2942;
+    margin-bottom: 1.25rem;
+  }
+  .tr-logo {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.5rem; color: #fff;
+    font-family: Georgia, serif;
+  }
+  .tr-official-title {
+    font-family: Georgia, serif;
+    font-size: 1.25rem; font-weight: 800;
+    color: #0f2942; letter-spacing: -.01em;
+  }
+  .tr-official-sub {
+    font-size: .72rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b; font-weight: 700;
+    margin-top: 3px;
+  }
+
+  .tr-student-block {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.25rem;
+  }
+  .tr-student-col { display: flex; flex-direction: column; gap: .85rem; }
+  .tr-field-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #64748b; font-weight: 800;
+    margin-bottom: .2rem;
+  }
+  .tr-field-val {
+    font-size: .95rem; color: #0f172a; font-weight: 700;
+    word-break: break-word;
+  }
+  .tr-field-val.mono, .mono { font-family: ui-monospace, monospace; }
+
+  /* Stats */
+  .tr-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: .85rem;
+    margin-bottom: 1.25rem;
+  }
+  .tr-stat {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-left: 4px solid #06b6d4;
+    border-radius: 10px; padding: 1rem 1.1rem;
+  }
+  .tr-stat-num {
+    font-family: Georgia, serif;
+    font-size: 1.65rem; font-weight: 800;
+    color: #0f2942; line-height: 1;
+  }
+  .tr-stat-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .1em; color: #64748b;
+    font-weight: 800; margin-top: .4rem;
+  }
+
+  /* Legend */
+  .tr-legend {
+    display: flex; flex-wrap: wrap; gap: 1rem;
+    padding: .6rem 1rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    font-size: .78rem;
+    color: #475569;
+    margin-bottom: 1.5rem;
+  }
+  .tr-legend b { color: #0f2942; font-weight: 900; margin-right: .2rem; }
+
+  .tr-section-title {
+    font-size: 1rem; color: #0f172a;
+    font-weight: 800; letter-spacing: -.01em;
+    margin-bottom: .85rem;
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .15em;
+  }
+
+  /* Table */
+  .tr-table-wrap {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+  }
+  .tr-table {
+    width: 100%; border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .tr-table thead { background: #0f2942; }
+  .tr-table th {
+    color: #fff; text-align: left;
+    padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+  }
+  .tr-table th.c { text-align: center; }
+  .tr-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .87rem;
+    vertical-align: middle;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tr-table td.c { text-align: center; }
+  .tr-table tbody tr:hover { background: #f8fafc; }
+
+  .tr-code {
+    font-family: ui-monospace, monospace;
+    font-weight: 800; color: #0891b2;
+    font-size: .8rem;
+  }
+  .tr-cname { font-weight: 700; color: #0f172a; }
+
+  .tr-grade {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    font-weight: 900; font-size: 1rem;
+    font-family: Georgia, serif;
+    color: #fff;
+  }
+  .g-a { background: linear-gradient(135deg, #10b981, #059669); }
+  .g-b { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+  .g-c { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .g-d { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .g-f { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .g-empty { background: #e2e8f0; color: #94a3b8; }
+
+  .tr-total-row { background: #f8fafc !important; }
+  .tr-total-row td {
+    border-top: 2px solid #0f2942;
+    border-bottom: none;
+    font-weight: 800;
+    color: #0f2942;
+    padding-top: .9rem; padding-bottom: .9rem;
+  }
+  .tr-total-label { text-align: right; font-size: .78rem !important; letter-spacing: .08em; text-transform: uppercase; }
+
+  /* Footer */
+  .tr-footer {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 3rem; margin-top: 2rem; margin-bottom: 1rem;
+  }
+  .tr-footer-col { text-align: center; }
+  .tr-sign-line {
+    height: 1px; background: #0f2942;
+    margin-bottom: .5rem;
+  }
+  .tr-sign-lbl {
+    font-size: .7rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #64748b; font-weight: 700;
+  }
+
+  .tr-official-note {
+    font-size: .72rem; color: #64748b;
+    text-align: center; line-height: 1.6;
+    padding: 1rem;
+    border-top: 1px solid #e2e8f0;
+    margin-top: 1.5rem;
+  }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 700px) {
+    .tr-actions { flex-direction: column; }
+    .tr-actions .sis-btn { text-align: center; }
+
+    .tr-official { padding: 1.1rem; }
+    .tr-official-head { gap: .75rem; padding-bottom: 1rem; margin-bottom: 1rem; }
+    .tr-logo { width: 44px; height: 44px; font-size: 1.3rem; }
+    .tr-official-title { font-size: 1.05rem; }
+    .tr-official-sub { font-size: .6rem; }
+
+    .tr-student-block { grid-template-columns: 1fr; gap: .9rem; }
+
+    .tr-stats {
+      grid-template-columns: repeat(2, 1fr);
+      gap: .6rem;
+    }
+    .tr-stat { padding: .8rem .85rem; }
+    .tr-stat-num { font-size: 1.3rem; }
+    .tr-stat-lbl { font-size: .58rem; }
+
+    .tr-table-wrap { overflow-x: auto; }
+    .tr-table { min-width: 620px; }
+
+    .tr-footer { grid-template-columns: 1fr; gap: 1.75rem; margin-top: 1.5rem; }
+
+    .tr-legend { font-size: .72rem; gap: .7rem; }
+  }
+
+  /* Print styles */
+  @media print {
+    .sis-sidebar, .sis-hamburger, .tr-actions, .tr-legend { display: none !important; }
+    .sis-shell { grid-template-columns: 1fr; }
+    .sis-main { padding: 0; }
+    .sis-topbar { display: none; }
+    .tr-official { border: 2px solid #000; page-break-inside: avoid; }
+    .tr-table thead { background: #000 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .tr-grade { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body { background: #fff !important; }
+  }
+</style>
+
+<%- include('partials/foot') %>
