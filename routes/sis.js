@@ -769,12 +769,13 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
   const att = attendanceRows[0] || { total: 0, present: 0 };
   const attendancePct = att.total > 0 ? Math.round((att.present / att.total) * 100) : 0;
 
-  res.render('sis/transcript', {
+   res.render('sis/transcript', {
     title: 'Transcript',
     heading: 'Academic Transcript',
     subtitle: 'Your complete academic record.',
     profile, courses,
     cumulativePct, cumulativeGPA, attendancePct,
+    totalEarned, totalMax,
   });
 });
 
