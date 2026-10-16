@@ -1693,35 +1693,80 @@ router.get('/sis/my/exams/results', studentGuard, async (req, res) => {
 // ============================================================
 //                 ADMIN — EXAMS
 // ============================================================
-router.get('/sis/admin/exams', guard, async (req, res) => {
+// ============================================================
+//                 EXAMS (admin + teacher)
+// ============================================================
+
+// Who can access exam routes — admin and teacher
+function examStaffFilter(req) {
+  // Returns { teacherOnly: true } if the caller is a teacher
+  return req.session.user.role === 'teacher' ? { teacherOnly: true, uid: req.session.user.id } : { teacherOnly: false };
+}
+
+router.get('/sis/admin/exams', staffGuard, async (req, res) => {
   const db = getDB();
+  const f = examStaffFilter(req);
+  const isTeacher = f.teacherOnly;
 
-  const exams = await db.all(`
-    SELECT e.*, c.title AS course_title,
-           (SELECT COUNT(*) FROM exam_results WHERE exam_id = e.id) AS result_count,
-           (SELECT COUNT(*) FROM enrollments WHERE course_id = e.course_id) AS student_count
-    FROM exams e
-    JOIN courses c ON c.id = e.course_id
-    ORDER BY e.exam_date DESC
-  `);
+  let exams;
+  let courses;
 
-  const courses = await db.all(`SELECT id, title FROM courses ORDER BY title`);
+  if (isTeacher) {
+    exams = await db.all(`
+      SELECT e.*, c.title AS course_title,
+             (SELECT COUNT(*) FROM exam_results WHERE exam_id = e.id) AS result_count,
+             (SELECT COUNT(*) FROM enrollments WHERE course_id = e.course_id) AS student_count
+      FROM exams e
+      JOIN courses c ON c.id = e.course_id
+      WHERE c.teacher_id = $1
+      ORDER BY e.exam_date DESC
+    `, [f.uid]);
+
+    courses = await db.all(
+      `SELECT id, title FROM courses WHERE teacher_id = $1 ORDER BY title`,
+      [f.uid]
+    );
+  } else {
+    exams = await db.all(`
+      SELECT e.*, c.title AS course_title,
+             (SELECT COUNT(*) FROM exam_results WHERE exam_id = e.id) AS result_count,
+             (SELECT COUNT(*) FROM enrollments WHERE course_id = e.course_id) AS student_count
+      FROM exams e
+      JOIN courses c ON c.id = e.course_id
+      ORDER BY e.exam_date DESC
+    `);
+    courses = await db.all(`SELECT id, title FROM courses ORDER BY title`);
+  }
 
   res.render('sis/admin-exams', {
     title: 'Exams',
-    heading: 'Exam Management',
-    subtitle: 'Schedule exams and record results.',
+    heading: isTeacher ? 'My Exams' : 'Exam Management',
+    subtitle: isTeacher ? 'Schedule exams and enter results for your courses.' : 'Schedule exams and record results.',
     exams, courses,
+    isTeacher,
   });
 });
 
-router.post('/sis/admin/exams/new', guard, async (req, res) => {
+router.post('/sis/admin/exams/new', staffGuard, async (req, res) => {
   const db = getDB();
+  const f = examStaffFilter(req);
   const { course_id, title, exam_date, start_time, duration_minutes, room, max_score } = req.body;
 
   if (!course_id || !title || !exam_date) {
     req.flash('error', 'Course, title, and date are required.');
     return res.redirect('/sis/admin/exams');
+  }
+
+  // If teacher: verify they own this course
+  if (f.teacherOnly) {
+    const owns = await db.get(
+      `SELECT id FROM courses WHERE id = $1 AND teacher_id = $2`,
+      [Number(course_id), f.uid]
+    );
+    if (!owns) {
+      req.flash('error', 'You can only create exams for your own courses.');
+      return res.redirect('/sis/admin/exams');
+    }
   }
 
   await db.run(
@@ -1743,17 +1788,23 @@ router.post('/sis/admin/exams/new', guard, async (req, res) => {
   res.redirect('/sis/admin/exams');
 });
 
-router.get('/sis/admin/exams/:id', guard, async (req, res) => {
+router.get('/sis/admin/exams/:id', staffGuard, async (req, res) => {
   const db = getDB();
+  const f = examStaffFilter(req);
   const id = Number(req.params.id);
 
   const exam = await db.get(`
-    SELECT e.*, c.title AS course_title
+    SELECT e.*, c.title AS course_title, c.teacher_id
     FROM exams e JOIN courses c ON c.id = e.course_id
     WHERE e.id = $1
   `, [id]);
 
   if (!exam) return res.status(404).render('errors/404');
+
+  // Teacher can only access own courses
+  if (f.teacherOnly && exam.teacher_id !== f.uid) {
+    return res.status(403).render('errors/403');
+  }
 
   const students = await db.all(`
     SELECT u.id, u.full_name, u.username, sp.admission_number,
@@ -1771,27 +1822,37 @@ router.get('/sis/admin/exams/:id', guard, async (req, res) => {
     heading: exam.title,
     subtitle: exam.course_title,
     exam, students,
+    isTeacher: f.teacherOnly,
   });
 });
 
-router.post('/sis/admin/exams/:id/results', guard, async (req, res) => {
+router.post('/sis/admin/exams/:id/results', staffGuard, async (req, res) => {
   const db = getDB();
+  const f = examStaffFilter(req);
   const id = Number(req.params.id);
 
-  const exam = await db.get(`SELECT max_score FROM exams WHERE id = $1`, [id]);
-  if (!exam) return res.status(404).render('errors/404');
+  const exam = await db.get(`
+    SELECT e.max_score, c.teacher_id
+    FROM exams e JOIN courses c ON c.id = e.course_id
+    WHERE e.id = $1
+  `, [id]);
 
-  const scores = req.body['score_'];
+  if (!exam) return res.status(404).render('errors/404');
+  if (f.teacherOnly && exam.teacher_id !== f.uid) {
+    return res.status(403).render('errors/403');
+  }
+
   for (const key of Object.keys(req.body)) {
     const m = key.match(/^score_(\d+)$/);
     if (!m) continue;
     const studentId = Number(m[1]);
     const rawScore = req.body[key];
+
     if (rawScore === '' || rawScore === null || rawScore === undefined) {
-      // Clear if blank
       await db.run(`DELETE FROM exam_results WHERE exam_id = $1 AND student_id = $2`, [id, studentId]);
       continue;
     }
+
     const score = Number(rawScore);
     const pct = Number(exam.max_score) > 0 ? (score / Number(exam.max_score)) * 100 : 0;
     let grade = 'F';
@@ -1815,9 +1876,24 @@ router.post('/sis/admin/exams/:id/results', guard, async (req, res) => {
   res.redirect('/sis/admin/exams/' + id);
 });
 
-router.post('/sis/admin/exams/:id/delete', guard, async (req, res) => {
+router.post('/sis/admin/exams/:id/delete', staffGuard, async (req, res) => {
   const db = getDB();
-  await db.run(`DELETE FROM exams WHERE id = $1`, [req.params.id]);
+  const f = examStaffFilter(req);
+  const id = Number(req.params.id);
+
+  if (f.teacherOnly) {
+    // Only delete if teacher owns the course
+    const owns = await db.get(`
+      SELECT e.id FROM exams e JOIN courses c ON c.id = e.course_id
+      WHERE e.id = $1 AND c.teacher_id = $2
+    `, [id, f.uid]);
+    if (!owns) {
+      req.flash('error', 'Not authorized.');
+      return res.redirect('/sis/admin/exams');
+    }
+  }
+
+  await db.run(`DELETE FROM exams WHERE id = $1`, [id]);
   req.flash('success', 'Exam deleted.');
   res.redirect('/sis/admin/exams');
 });
