@@ -389,6 +389,7 @@
         <nav class="sis-nav">
           <a href="/sis/students/new"><span class="icon">➕</span> Register Student</a>
           <a href="/sis/admin/registrations" class="<%= currentPath === '/sis/admin/registrations' ? 'active' : '' %>"><span class="icon">📝</span> Course Registrations</a>
+                     <a href="/sis/admin/documents" class="<%= currentPath === '/sis/admin/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Requests</a>
           <a href="/sis/classes"><span class="icon">🏫</span> Classes</a>
         </nav>
       </details>
@@ -470,7 +471,7 @@
       <details>
         <summary>📨 Requests</summary>
         <nav class="sis-nav">
-          <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📄</span> Document Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+                    <a href="/sis/my/documents" class="<%= currentPath === '/sis/my/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Request</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎫</span> Guidance Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>

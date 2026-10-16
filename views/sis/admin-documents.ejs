@@ -1,0 +1,218 @@
+<%- include('partials/head', {
+  title: 'Document Requests',
+  heading: 'Document Requests',
+  subtitle: 'Mark student document requests as ready or rejected.'
+}) %>
+
+<h3 class="doc-sec-title">
+  ⏳ Pending Requests
+  <% if (pending.length > 0) { %><span class="doc-sec-count"><%= pending.length %></span><% } %>
+</h3>
+
+<% if (pending.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No pending document requests. All caught up ✅</div>
+<% } else { %>
+  <div class="doc-admin-grid">
+    <% pending.forEach(r => { %>
+      <div class="doc-admin-card">
+        <div class="doc-admin-head">
+          <div>
+            <div class="doc-admin-student"><%= r.student_name || r.student_username %></div>
+            <div class="doc-admin-email"><%= r.student_email || '—' %></div>
+          </div>
+          <div class="doc-admin-date">
+            <%= new Date(r.requested_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) %>
+          </div>
+        </div>
+
+        <div class="doc-admin-body">
+          <div class="doc-admin-lbl">Document Type</div>
+          <div class="doc-admin-type"><%= r.document_type %></div>
+
+          <% if (r.reason) { %>
+            <div class="doc-admin-lbl" style="margin-top:.75rem;">Reason</div>
+            <div class="doc-admin-reason"><%= r.reason %></div>
+          <% } %>
+        </div>
+
+        <div class="doc-admin-actions">
+          <button class="doc-admin-btn doc-admin-ready" type="button"
+            onclick="markReady(<%= r.id %>)">✓ Mark Ready</button>
+          <button class="doc-admin-btn doc-admin-reject" type="button"
+            onclick="markReject(<%= r.id %>)">✕ Reject</button>
+        </div>
+
+        <form method="POST" action="/sis/admin/documents/<%= r.id %>/ready" id="ready-<%= r.id %>" style="display:none;">
+          <input type="hidden" name="admin_notes" id="ready-notes-<%= r.id %>" value="">
+        </form>
+        <form method="POST" action="/sis/admin/documents/<%= r.id %>/reject" id="rej-<%= r.id %>" style="display:none;">
+          <input type="hidden" name="admin_notes" id="rej-notes-<%= r.id %>" value="">
+        </form>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<h3 class="doc-sec-title" style="margin-top:2rem;">🕐 Recently Handled</h3>
+
+<% if (handled.length === 0) { %>
+  <div class="sis-empty" style="padding:1.5rem;">Nothing handled yet.</div>
+<% } else { %>
+  <div class="doc-admin-table-wrap">
+    <table class="doc-admin-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Document</th>
+          <th style="width:110px;text-align:center;">Status</th>
+          <th style="width:130px;">Reviewed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% handled.forEach(r => { %>
+          <tr>
+            <td><strong><%= r.student_name || r.student_username %></strong></td>
+            <td><%= r.document_type %></td>
+            <td style="text-align:center;">
+              <% if (r.status === 'ready') { %>
+                <span class="doc-badge doc-badge-ready">✅ Ready</span>
+              <% } else { %>
+                <span class="doc-badge doc-badge-rejected">❌ Rejected</span>
+              <% } %>
+            </td>
+            <td style="color:#64748b;font-size:.82rem;">
+              <%= r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) : '—' %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<style>
+  .doc-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .doc-sec-count {
+    background: #f59e0b; color: #fff;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  .doc-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .doc-admin-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #f59e0b;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .doc-admin-head {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: .75rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: .85rem;
+  }
+  .doc-admin-student { font-weight: 800; color: #0f172a; font-size: .95rem; }
+  .doc-admin-email { color: #64748b; font-size: .78rem; margin-top: 2px; word-break: break-all; }
+  .doc-admin-date { color: #94a3b8; font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+
+  .doc-admin-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #94a3b8;
+    font-weight: 800; margin-bottom: .25rem;
+  }
+  .doc-admin-type {
+    font-weight: 700; color: #0891b2; font-size: .95rem;
+    margin-bottom: .5rem;
+  }
+  .doc-admin-reason {
+    color: #475569; font-size: .85rem; line-height: 1.5;
+    background: #f8fafc; padding: .6rem .75rem;
+    border-radius: 6px; word-break: break-word;
+  }
+  .doc-admin-body { margin-bottom: 1rem; }
+
+  .doc-admin-actions {
+    display: flex; gap: .5rem;
+  }
+  .doc-admin-btn {
+    flex: 1; padding: .6rem;
+    border: none; border-radius: 8px;
+    font-weight: 800; font-size: .82rem;
+    cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .doc-admin-ready {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+  }
+  .doc-admin-ready:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,185,129,.35); }
+  .doc-admin-reject {
+    background: #fff; color: #991b1b;
+    border: 1.5px solid #fecaca;
+  }
+  .doc-admin-reject:hover { background: #fee2e2; }
+
+  .doc-admin-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .doc-admin-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .doc-admin-table thead { background: #f8fafc; }
+  .doc-admin-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .doc-admin-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .doc-badge {
+    display: inline-block; padding: 3px 10px;
+    font-size: .72rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+  }
+  .doc-badge-ready    { background: #d1fae5; color: #065f46; }
+  .doc-badge-rejected { background: #fee2e2; color: #991b1b; }
+
+  @media (max-width: 700px) {
+    .doc-admin-grid { grid-template-columns: 1fr; }
+    .doc-admin-table-wrap { overflow-x: auto; }
+    .doc-admin-table { min-width: 550px; }
+  }
+</style>
+
+<script>
+  function markReady(id) {
+    var note = prompt('Optional note for the student (e.g. "Pick up at registrar office"):');
+    if (note === null) return;
+    document.getElementById('ready-notes-' + id).value = note || '';
+    document.getElementById('ready-' + id).submit();
+  }
+  function markReject(id) {
+    var note = prompt('Reason for rejection:');
+    if (note === null) return;
+    document.getElementById('rej-notes-' + id).value = note || '';
+    document.getElementById('rej-' + id).submit();
+  }
+</script>
+
+<%- include('partials/foot') %>

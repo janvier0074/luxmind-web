@@ -1176,4 +1176,129 @@ router.get('/sis/my/profile', studentGuard, async (req, res) => {
   });
 });
 
+// ============================================================
+//                 DOCUMENT REQUESTS
+// ============================================================
+
+const DOC_TYPES = [
+  { value: 'enrollment_certificate', label: 'Enrollment Certificate' },
+  { value: 'transcript',             label: 'Official Transcript' },
+  { value: 'student_id_card',        label: 'Student ID Card' },
+  { value: 'recommendation_letter',  label: 'Recommendation Letter' },
+  { value: 'attendance_certificate', label: 'Attendance Certificate' },
+  { value: 'graduation_letter',      label: 'Graduation Letter' },
+  { value: 'other',                  label: 'Other (specify below)' },
+];
+
+// Student — see list + submit new
+router.get('/sis/my/documents', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const requests = await db.all(`
+    SELECT * FROM document_requests
+    WHERE student_id = $1
+    ORDER BY requested_at DESC
+  `, [uid]);
+
+  res.render('sis/my-documents', {
+    title: 'Document Requests',
+    heading: 'Document Requests',
+    subtitle: 'Request official documents from the registrar.',
+    requests,
+    docTypes: DOC_TYPES,
+  });
+});
+
+router.post('/sis/my/documents/request', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const { document_type, reason } = req.body;
+
+  if (!document_type) {
+    req.flash('error', 'Please choose a document type.');
+    return res.redirect('/sis/my/documents');
+  }
+
+  const label = (DOC_TYPES.find(d => d.value === document_type) || {}).label || document_type;
+
+  await db.run(
+    `INSERT INTO document_requests (student_id, document_type, reason, status)
+     VALUES ($1, $2, $3, 'pending')`,
+    [uid, label, reason || null]
+  );
+
+  req.flash('success', 'Request submitted. You will be notified once ready.');
+  res.redirect('/sis/my/documents');
+});
+
+router.post('/sis/my/documents/cancel/:id', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  await db.run(
+    `DELETE FROM document_requests WHERE id = $1 AND student_id = $2 AND status = 'pending'`,
+    [req.params.id, uid]
+  );
+  req.flash('success', 'Request cancelled.');
+  res.redirect('/sis/my/documents');
+});
+
+// Admin — review
+router.get('/sis/admin/documents', guard, async (req, res) => {
+  const db = getDB();
+
+  const pending = await db.all(`
+    SELECT dr.*, u.full_name AS student_name, u.username AS student_username,
+           u.email AS student_email
+    FROM document_requests dr
+    JOIN users u ON u.id = dr.student_id
+    WHERE dr.status = 'pending'
+    ORDER BY dr.requested_at ASC
+  `);
+
+  const handled = await db.all(`
+    SELECT dr.*, u.full_name AS student_name, u.username AS student_username
+    FROM document_requests dr
+    JOIN users u ON u.id = dr.student_id
+    WHERE dr.status IN ('ready','rejected')
+    ORDER BY dr.reviewed_at DESC
+    LIMIT 30
+  `);
+
+  res.render('sis/admin-documents', {
+    title: 'Document Requests',
+    heading: 'Document Requests',
+    subtitle: 'Mark student document requests as ready or rejected.',
+    pending, handled,
+  });
+});
+
+router.post('/sis/admin/documents/:id/ready', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(
+    `UPDATE document_requests
+     SET status = 'ready', reviewed_at = NOW(), reviewed_by = $1, admin_notes = $2
+     WHERE id = $3`,
+    [req.session.user.id, req.body.admin_notes || null, req.params.id]
+  );
+  req.flash('success', 'Marked as ready.');
+  res.redirect('/sis/admin/documents');
+});
+
+router.post('/sis/admin/documents/:id/reject', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(
+    `UPDATE document_requests
+     SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1, admin_notes = $2
+     WHERE id = $3`,
+    [req.session.user.id, req.body.admin_notes || null, req.params.id]
+  );
+  req.flash('success', 'Request rejected.');
+  res.redirect('/sis/admin/documents');
+});
+
+
+
+
+
 module.exports = router;
