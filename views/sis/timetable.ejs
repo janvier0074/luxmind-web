@@ -55,7 +55,32 @@
             <tr>
               <td><span class="tt-code"><%= code %></span></td>
               <td><span class="tt-name"><%= c.title %></span></td>
-              <td><span class="tt-instr"><%= c.teacher_name || 'LuxMind' %></span></td>
+                            <td>
+                <%
+                  const instrList = teachersByCourse[c.id] || [];
+                  if (instrList.length === 0 && c.teacher_name) {
+                    // Fallback for courses not in course_teachers
+                %>
+                  <span class="tt-instr"><%= c.teacher_name %></span>
+                <% } else if (instrList.length === 0) { %>
+                  <span class="tt-instr">LuxMind</span>
+                <% } else { %>
+                  <div class="tt-instr-list">
+                    <% instrList.forEach((t, idx) => { %>
+                      <div class="tt-instr-row">
+                        <span class="tt-instr-dot <%= t.role === 'instructor' ? 'primary' : (t.role === 'co-instructor' ? 'co' : 'assistant') %>"></span>
+                        <span class="tt-instr"><%= t.full_name || t.username %></span>
+                        <% if (t.role !== 'instructor') { %>
+                          <span class="tt-instr-role"><%= t.role.replace('-', ' ') %></span>
+                        <% } %>
+                        <% if (t.section) { %>
+                          <span class="tt-instr-section"><%= t.section %></span>
+                        <% } %>
+                      </div>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </td>
               <td class="c"><span class="tt-group"><%= group %></span></td>
               <td class="c">
                 <a href="/sis/my/attendance" class="tt-att" style="color:<%= attColor %>;background:<%= attColor %>15;border-color:<%= attColor %>40;">
@@ -217,6 +242,26 @@
   .tt-instr {
     color: #475569;
     font-size: .82rem;
+  }
+  .tt-instr-list { display: flex; flex-direction: column; gap: .25rem; }
+  .tt-instr-row { display: flex; align-items: center; gap: .4rem; font-size: .82rem; }
+  .tt-instr-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .tt-instr-dot.primary { background: #0891b2; }
+  .tt-instr-dot.co { background: #f59e0b; }
+  .tt-instr-dot.assistant { background: #94a3b8; }
+  .tt-instr-role {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .08em; color: #94a3b8;
+    font-weight: 800;
+    background: #f1f5f9;
+    padding: 1px 6px; border-radius: 4px;
+  }
+  .tt-instr-section {
+    font-size: .65rem; font-family: ui-monospace, monospace;
+    color: #475569; font-weight: 700;
   }
   .tt-group {
     display: inline-block;

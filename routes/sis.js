@@ -607,6 +607,28 @@ router.get('/sis/my/timetable', studentGuard, async (req, res) => {
     ORDER BY c.title
   `, [uid, uid]);
 
+  // Fetch all instructors for each course (multi-teacher support)
+  const allCourseTeachers = await db.all(`
+    SELECT ct.course_id, ct.role, ct.section,
+           u.id, u.full_name, u.username
+    FROM course_teachers ct
+    JOIN users u ON u.id = ct.teacher_id
+    ORDER BY ct.course_id, ct.role
+  `);
+
+  // Group instructors by course_id
+  const teachersByCourse = {};
+  for (const row of allCourseTeachers) {
+    if (!teachersByCourse[row.course_id]) teachersByCourse[row.course_id] = [];
+    teachersByCourse[row.course_id].push({
+      id: row.id,
+      full_name: row.full_name,
+      username: row.username,
+      role: row.role,
+      section: row.section,
+    });
+  }
+
   const deadlines = await db.all(`
     SELECT * FROM (
       SELECT 'assignment' AS kind, a.id, a.title, a.deadline AS event_at, c.title AS course
@@ -631,7 +653,7 @@ router.get('/sis/my/timetable', studentGuard, async (req, res) => {
     title: 'My Timetable',
     heading: 'My Timetable',
     subtitle: 'Your courses and upcoming deadlines.',
-    courses, deadlines,
+    courses, deadlines, teachersByCourse,
   });
 });
 
