@@ -1936,5 +1936,105 @@ router.post('/sis/admin/exams/:id/delete', staffGuard, async (req, res) => {
   req.flash('success', 'Exam deleted.');
   res.redirect('/sis/admin/exams');
 });
+// ============================================================
+//                 ADMIN — MANAGE COURSE TEACHERS
+// ============================================================
+
+// List courses + their teachers
+router.get('/sis/admin/course-teachers', guard, async (req, res) => {
+  const db = getDB();
+
+  const courses = await db.all(`
+    SELECT c.id, c.title, c.description
+    FROM courses c
+    ORDER BY c.title
+  `);
+
+  const allLinks = await db.all(`
+    SELECT ct.course_id, ct.role, ct.section,
+           u.id AS teacher_id, u.full_name, u.username, u.email
+    FROM course_teachers ct
+    JOIN users u ON u.id = ct.teacher_id
+    ORDER BY ct.course_id, ct.role
+  `);
+
+  const teachersByCourse = {};
+  for (const l of allLinks) {
+    if (!teachersByCourse[l.course_id]) teachersByCourse[l.course_id] = [];
+    teachersByCourse[l.course_id].push(l);
+  }
+
+  const teachers = await db.all(`
+    SELECT id, full_name, username, email FROM users
+    WHERE role = 'teacher' AND is_active = 1
+    ORDER BY full_name
+  `);
+
+  res.render('sis/admin-course-teachers', {
+    title: 'Course Teachers',
+    heading: 'Course Teachers',
+    subtitle: 'Assign multiple instructors to each course.',
+    courses, teachersByCourse, teachers,
+  });
+});
+
+// Assign teacher to a course
+router.post('/sis/admin/course-teachers/:courseId/add', guard, async (req, res) => {
+  const db = getDB();
+  const courseId = Number(req.params.courseId);
+  const { teacher_id, role, section } = req.body;
+
+  if (!teacher_id) {
+    req.flash('error', 'Pick a teacher.');
+    return res.redirect('/sis/admin/course-teachers');
+  }
+
+  try {
+    await db.run(
+      `INSERT INTO course_teachers (course_id, teacher_id, role, section)
+       VALUES ($1, $2, $3, $4)`,
+      [
+        courseId,
+        Number(teacher_id),
+        role || 'instructor',
+        section ? section.trim() : null,
+      ]
+    );
+    req.flash('success', 'Teacher assigned.');
+  } catch (e) {
+    if (e.code === '23505') req.flash('error', 'That teacher is already assigned to this course.');
+    else req.flash('error', 'Could not assign teacher.');
+  }
+  res.redirect('/sis/admin/course-teachers');
+});
+
+// Remove teacher from course
+router.post('/sis/admin/course-teachers/:courseId/remove/:teacherId', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(
+    `DELETE FROM course_teachers WHERE course_id = $1 AND teacher_id = $2`,
+    [Number(req.params.courseId), Number(req.params.teacherId)]
+  );
+  req.flash('success', 'Teacher removed from course.');
+  res.redirect('/sis/admin/course-teachers');
+});
+
+// Change role
+router.post('/sis/admin/course-teachers/:courseId/role/:teacherId', guard, async (req, res) => {
+  const db = getDB();
+  const { role, section } = req.body;
+  await db.run(
+    `UPDATE course_teachers SET role = $1, section = $2
+     WHERE course_id = $3 AND teacher_id = $4`,
+    [
+      role || 'instructor',
+      section ? section.trim() : null,
+      Number(req.params.courseId),
+      Number(req.params.teacherId),
+    ]
+  );
+  req.flash('success', 'Role updated.');
+  res.redirect('/sis/admin/course-teachers');
+});
 
 module.exports = router;

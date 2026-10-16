@@ -65,7 +65,6 @@
     border-left-color: #06b6d4; font-weight: 600;
   }
   .sis-nav a .icon { font-size: 1rem; width: 20px; text-align: center; }
-  /* Nested collapsibles inside nav */
   .sis-sidebar details details { margin-left: .5rem; border-left: 1px solid rgba(148,163,184,.15); }
   .sis-sidebar details details > summary { padding-left: 1.5rem; font-size: .72rem; }
 
@@ -91,10 +90,7 @@
     padding: .6rem .8rem; border-radius: 6px;
   }
   .sis-back a:hover { background: rgba(6,182,212,.1); color: #67e8f9; }
- 
-  .sis-back a.lms-link:hover { background: linear-gradient(135deg, #0891b2, #0e7490); color: #fff; }
 
-  /* MAIN AREA */
   .sis-main { padding: 2rem 2.5rem; overflow-x: hidden; }
   .sis-topbar {
     display: flex; justify-content: space-between; align-items: center;
@@ -137,7 +133,6 @@
   .sis-stat-num { font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1; }
   .sis-stat-lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: #64748b; margin-top: .5rem; font-weight: 700; }
 
-  /* Tile grid (colorful) */
   .sis-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1.25rem; margin-bottom: 2rem; }
   .sis-tile {
     background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
@@ -145,10 +140,7 @@
     transition: all .2s; cursor: pointer; display: block; color: #0f172a;
     box-shadow: 0 2px 8px rgba(15,23,42,.04);
   }
-  .sis-tile:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 32px rgba(15,23,42,.15);
-  }
+  .sis-tile:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(15,23,42,.15); }
   .sis-tile-icon { font-size: 2.8rem; margin-bottom: .85rem; display: block; line-height: 1; }
   .sis-tile-label { font-weight: 800; font-size: 1rem; letter-spacing: -.01em; }
   .sis-tile-sub { font-size: .75rem; opacity: .85; margin-top: .3rem; font-weight: 500; }
@@ -234,7 +226,6 @@
   }
   .sis-moodle-btn:hover { opacity: .9; }
 
-  /* Welcome banner for dashboard */
   .sis-welcome {
     background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
     color: #fff; padding: 2rem 2.25rem; border-radius: 14px;
@@ -247,111 +238,61 @@
   .sis-welcome-user { text-align: right; font-size: .85rem; opacity: .9; }
   .sis-welcome-user strong { display: block; font-size: 1rem; margin-bottom: .15rem; }
 
-   /* ============ GLOBAL OVERFLOW PROTECTION ============ */
   img, table, pre { max-width: 100%; }
   .sis-main, .sis-card, .sis-stat, .sis-tile { min-width: 0; }
   .sis-page-title, .sis-card h3, .sis-tile-label {
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-    hyphens: auto;
+    overflow-wrap: break-word; word-wrap: break-word; hyphens: auto;
   }
-  .sis-table {
-    display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
+  .sis-table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .sis-table thead, .sis-table tbody { display: table; width: 100%; min-width: 600px; }
 
-  /* ============ HAMBURGER BUTTON (hidden on desktop) ============ */
   .sis-hamburger {
     display: none;
-    position: fixed;
-    top: 1rem;
-    left: 1rem;
-    z-index: 200;
+    position: fixed; top: 1rem; left: 1rem; z-index: 200;
     background: linear-gradient(135deg, #0f2942, #0891b2);
-    color: #fff;
-    border: none;
-    width: 44px;
-    height: 44px;
-    border-radius: 10px;
-    font-size: 1.4rem;
-    cursor: pointer;
+    color: #fff; border: none;
+    width: 44px; height: 44px; border-radius: 10px;
+    font-size: 1.4rem; cursor: pointer;
     box-shadow: 0 6px 18px rgba(6,182,212,.35);
-    align-items: center;
-    justify-content: center;
-    font-family: inherit;
+    align-items: center; justify-content: center; font-family: inherit;
   }
   .sis-hamburger:active { transform: scale(.95); }
 
-  /* ============ DRAWER BACKDROP ============ */
   .sis-backdrop {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(15,23,42,.5);
-    z-index: 99;
+    display: none; position: fixed; inset: 0;
+    background: rgba(15,23,42,.5); z-index: 99;
     backdrop-filter: blur(2px);
   }
   .sis-backdrop.show { display: block; }
 
-  /* ============ MOBILE ============ */
   @media (max-width: 900px) {
     .sis-shell { grid-template-columns: 1fr; }
-
     .sis-hamburger { display: flex; }
-
     .sis-sidebar {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 280px;
-      max-width: 85vw;
-      height: 100vh;
-      z-index: 100;
-      transform: translateX(-100%);
+      position: fixed; top: 0; left: 0;
+      width: 280px; max-width: 85vw; height: 100vh;
+      z-index: 100; transform: translateX(-100%);
       transition: transform .25s cubic-bezier(.4,0,.2,1);
       box-shadow: 4px 0 24px rgba(0,0,0,.15);
     }
     .sis-sidebar.open { transform: translateX(0); }
-
-    .sis-main {
-      padding: 4.5rem 1rem 1.5rem;
-      overflow-x: hidden;
-    }
-
-    .sis-topbar {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: .75rem;
-    }
+    .sis-main { padding: 4.5rem 1rem 1.5rem; overflow-x: hidden; }
+    .sis-topbar { flex-direction: column; align-items: flex-start; gap: .75rem; }
     .sis-user { width: 100%; justify-content: space-between; }
-
-    .sis-stat-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: .75rem;
-    }
+    .sis-stat-grid { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
     .sis-stat { padding: 1rem; }
     .sis-stat-num { font-size: 1.5rem; }
     .sis-stat-lbl { font-size: .65rem; }
-
-    .sis-tiles {
-      grid-template-columns: repeat(2, 1fr);
-      gap: .75rem;
-    }
+    .sis-tiles { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
     .sis-tile { padding: 1.25rem .75rem; }
     .sis-tile-icon { font-size: 2.2rem; margin-bottom: .55rem; }
     .sis-tile-label { font-size: .85rem; }
     .sis-tile-sub { font-size: .68rem; }
-
     .sis-card { padding: 1.1rem; margin-bottom: 1rem; }
     .sis-card h3 { font-size: .98rem; }
     .sis-page-title { font-size: 1.4rem; }
     .sis-page-sub { font-size: .82rem; }
-
     .sis-btn { padding: .55rem 1rem; font-size: .82rem; }
-
-    /* Forms on mobile */
     .sis-input, .sis-select, .sis-textarea { font-size: 16px; padding: .7rem .8rem; }
   }
 
@@ -372,7 +313,7 @@
       <div class="sis-brand-logo">S</div>
       <div class="sis-brand-text">
         <div class="sis-brand-title">LuxMind SIS</div>
-                <div class="sis-brand-sub">
+        <div class="sis-brand-sub">
           <%= user && user.role === 'admin' ? 'Admin Portal' : (user && user.role === 'teacher' ? 'Faculty Portal' : 'Student Portal') %>
         </div>
       </div>
@@ -386,16 +327,18 @@
         <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Attendance</a>
       </nav>
 
-            <details open>
+      <details open>
         <summary>Registry</summary>
         <nav class="sis-nav">
           <a href="/sis/students/new"><span class="icon">➕</span> Register Student</a>
           <a href="/sis/admin/registrations" class="<%= currentPath === '/sis/admin/registrations' ? 'active' : '' %>"><span class="icon">📝</span> Course Registrations</a>
-                     <a href="/sis/admin/documents" class="<%= currentPath === '/sis/admin/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Requests</a>
-                    <a href="/sis/admin/classes" class="<%= currentPath && currentPath.startsWith('/sis/admin/classes') ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
-                        <a href="/sis/admin/exams" class="<%= currentPath && currentPath.startsWith('/sis/admin/exams') ? 'active' : '' %>"><span class="icon">📝</span> Exams</a>
+          <a href="/sis/admin/documents" class="<%= currentPath === '/sis/admin/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Requests</a>
+          <a href="/sis/admin/classes" class="<%= currentPath && currentPath.startsWith('/sis/admin/classes') ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
+          <a href="/sis/admin/course-teachers" class="<%= currentPath === '/sis/admin/course-teachers' ? 'active' : '' %>"><span class="icon">👨‍🏫</span> Course Teachers</a>
+          <a href="/sis/admin/exams" class="<%= currentPath && currentPath.startsWith('/sis/admin/exams') ? 'active' : '' %>"><span class="icon">📝</span> Exams</a>
         </nav>
       </details>
+
       <details>
         <summary>Finance</summary>
         <nav class="sis-nav">
@@ -411,6 +354,7 @@
           <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
+
     <% } else if (user && user.role === 'teacher') { %>
       <div class="sis-nav-label">Faculty</div>
       <nav class="sis-nav">
@@ -418,16 +362,10 @@
         <a href="/sis/attendance" class="<%= currentPath && currentPath.startsWith('/sis/attendance') ? 'active' : '' %>"><span class="icon">📅</span> Take Attendance</a>
       </nav>
 
-            <details open>
+      <details open>
         <summary>🏫 My Classes</summary>
         <nav class="sis-nav">
           <a href="/sis/admin/classes" class="<%= currentPath && currentPath.startsWith('/sis/admin/classes') ? 'active' : '' %>"><span class="icon">🏫</span> My Classes</a>
-          <a href="/sis/admin/exams" class="<%= currentPath && currentPath.startsWith('/sis/admin/exams') ? 'active' : '' %>"><span class="icon">📝</span> My Exams</a>
-        </nav>
-      </details>
-      <details>
-        <summary>📝 Exams</summary>
-        <nav class="sis-nav">
           <a href="/sis/admin/exams" class="<%= currentPath && currentPath.startsWith('/sis/admin/exams') ? 'active' : '' %>"><span class="icon">📝</span> My Exams</a>
         </nav>
       </details>
@@ -448,7 +386,8 @@
           <a href="https://luxmind.onrender.com/notifications"><span class="icon">🔔</span> Notifications</a>
         </nav>
       </details>
-         <% } else if (user && user.role === 'student') { %>
+
+    <% } else if (user && user.role === 'student') { %>
       <div class="sis-nav-label">Student</div>
 
       <a href="/sis/my" class="sis-nav-single <%= currentPath === '/sis/my' ? 'active' : '' %>">
@@ -461,13 +400,14 @@
           <a href="/sis/my/timetable" class="<%= currentPath === '/sis/my/timetable' ? 'active' : '' %>"><span class="icon">📅</span> Timetable</a>
           <a href="/sis/my/attendance" class="<%= currentPath === '/sis/my/attendance' ? 'active' : '' %>"><span class="icon">📋</span> Attendance Detail</a>
           <a href="/sis/my/grades" class="<%= currentPath === '/sis/my/grades' ? 'active' : '' %>"><span class="icon">🏆</span> My Grades</a>
-                    <a href="/sis/my/registration" class="<%= currentPath === '/sis/my/registration' ? 'active' : '' %>"><span class="icon">📝</span> Course Registration</a>
+          <a href="/sis/my/registration" class="<%= currentPath === '/sis/my/registration' ? 'active' : '' %>"><span class="icon">📝</span> Course Registration</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">➕</span> Additional Course <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-                <a href="/sis/my/transcript" class="<%= currentPath === '/sis/my/transcript' ? 'active' : '' %>"><span class="icon">📜</span> Transcript</a>
+          <a href="/sis/my/transcript" class="<%= currentPath === '/sis/my/transcript' ? 'active' : '' %>"><span class="icon">📜</span> Transcript</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📖</span> Curriculum <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
-                </details>
+        </nav>
+      </details>
 
-            <details>
+      <details>
         <summary>📝 Exam</summary>
         <nav class="sis-nav">
           <a href="/sis/my/exams" class="<%= currentPath === '/sis/my/exams' ? 'active' : '' %>"><span class="icon">📅</span> Exam Program</a>
@@ -476,22 +416,18 @@
       </details>
 
       <details>
-        </nav>
-      </details>
-
-      <details>
         <summary>💰 Accounting</summary>
         <nav class="sis-nav">
           <a href="/sis/my/fees" class="<%= currentPath === '/sis/my/fees' ? 'active' : '' %>"><span class="icon">💵</span> My Fees</a>
           <a href="/sis/my/fees"><span class="icon">💳</span> Payment History</a>
-                    <a href="/sis/my/cgpa" class="<%= currentPath === '/sis/my/cgpa' ? 'active' : '' %>"><span class="icon">🧮</span> CGPA Calculator</a>
+          <a href="/sis/my/cgpa" class="<%= currentPath === '/sis/my/cgpa' ? 'active' : '' %>"><span class="icon">🧮</span> CGPA Calculator</a>
         </nav>
       </details>
 
       <details>
         <summary>📨 Requests</summary>
         <nav class="sis-nav">
-                    <a href="/sis/my/documents" class="<%= currentPath === '/sis/my/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Request</a>
+          <a href="/sis/my/documents" class="<%= currentPath === '/sis/my/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Request</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">🎫</span> Guidance Request <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
@@ -499,53 +435,13 @@
       <details>
         <summary>ℹ️ My Info</summary>
         <nav class="sis-nav">
-                   <a href="/sis/my/profile" class="<%= currentPath === '/sis/my/profile' ? 'active' : '' %>"><span class="icon">👤</span> My Profile</a>
+          <a href="/sis/my/profile" class="<%= currentPath === '/sis/my/profile' ? 'active' : '' %>"><span class="icon">👤</span> My Profile</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📞</span> Contact Info <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
         </nav>
       </details>
     <% } %>
 
-
-    <script>
-      (function () {
-        var btn = document.getElementById('sisMenuBtn');
-        var sidebar = document.getElementById('sisSidebar');
-        var backdrop = document.getElementById('sisBackdrop');
-        if (!btn || !sidebar || !backdrop) return;
-
-        function open() {
-          sidebar.classList.add('open');
-          backdrop.classList.add('show');
-          document.body.style.overflow = 'hidden';
-        }
-        function close() {
-          sidebar.classList.remove('open');
-          backdrop.classList.remove('show');
-          document.body.style.overflow = '';
-        }
-
-        btn.addEventListener('click', function (e) {
-          e.stopPropagation();
-          if (sidebar.classList.contains('open')) close(); else open();
-        });
-        backdrop.addEventListener('click', close);
-
-        // Close drawer when a nav link is clicked (mobile UX)
-        sidebar.querySelectorAll('a').forEach(function (a) {
-          a.addEventListener('click', function () {
-            if (window.innerWidth <= 900) close();
-          });
-        });
-
-        // Close on Escape
-        document.addEventListener('keydown', function (e) {
-          if (e.key === 'Escape') close();
-        });
-      })();
-    </script>
-
     <div class="sis-back">
-      
       <a href="/logout">🚪 Logout</a>
     </div>
   </aside>
@@ -575,3 +471,39 @@
     <% if (flash.success && flash.success.length) { %>
       <div class="sis-flash sis-flash-success">✓ <%= flash.success[0] %></div>
     <% } %>
+
+    <script>
+      (function () {
+        var btn = document.getElementById('sisMenuBtn');
+        var sidebar = document.getElementById('sisSidebar');
+        var backdrop = document.getElementById('sisBackdrop');
+        if (!btn || !sidebar || !backdrop) return;
+
+        function open() {
+          sidebar.classList.add('open');
+          backdrop.classList.add('show');
+          document.body.style.overflow = 'hidden';
+        }
+        function close() {
+          sidebar.classList.remove('open');
+          backdrop.classList.remove('show');
+          document.body.style.overflow = '';
+        }
+
+        btn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (sidebar.classList.contains('open')) close(); else open();
+        });
+        backdrop.addEventListener('click', close);
+
+        sidebar.querySelectorAll('a').forEach(function (a) {
+          a.addEventListener('click', function () {
+            if (window.innerWidth <= 900) close();
+          });
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') close();
+        });
+      })();
+    </script>

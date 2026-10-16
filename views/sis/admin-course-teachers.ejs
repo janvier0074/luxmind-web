@@ -1,0 +1,277 @@
+<%- include('partials/head', {
+  title: 'Course Teachers',
+  heading: 'Course Teachers',
+  subtitle: 'Assign multiple instructors to each course.'
+}) %>
+
+<% if (courses.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">
+    No courses yet. Create one first.
+  </div>
+<% } else { %>
+  <div class="ct-list">
+    <% courses.forEach(c => {
+      const links = teachersByCourse[c.id] || [];
+    %>
+      <div class="ct-course">
+        <div class="ct-course-head">
+          <div class="ct-course-title"><%= c.title %></div>
+          <div class="ct-course-count">
+            <span class="ct-count-badge"><%= links.length %> teacher<%= links.length === 1 ? '' : 's' %></span>
+          </div>
+        </div>
+
+        <!-- Assigned teachers -->
+        <% if (links.length === 0) { %>
+          <div class="ct-empty">No teachers assigned yet.</div>
+        <% } else { %>
+          <div class="ct-assigned">
+            <% links.forEach(l => {
+              const roleClass = l.role === 'instructor' ? 'role-primary' :
+                                l.role === 'co-instructor' ? 'role-co' : 'role-assistant';
+            %>
+              <div class="ct-teacher">
+                <div class="ct-avatar">
+                  <%= (l.full_name || l.username || '?').charAt(0).toUpperCase() %>
+                </div>
+                <div class="ct-teacher-body">
+                  <div class="ct-teacher-name"><%= l.full_name || l.username %></div>
+                  <div class="ct-teacher-meta">
+                    @<%= l.username %>
+                    <% if (l.email) { %> · <%= l.email %><% } %>
+                  </div>
+                </div>
+
+                <form method="POST"
+                  action="/sis/admin/course-teachers/<%= c.id %>/role/<%= l.teacher_id %>"
+                  class="ct-role-form">
+                  <select class="ct-role-select" name="role" onchange="this.form.submit()">
+                    <option value="instructor"   <%= l.role === 'instructor' ? 'selected' : '' %>>Instructor</option>
+                    <option value="co-instructor"<%= l.role === 'co-instructor' ? 'selected' : '' %>>Co-Instructor</option>
+                    <option value="assistant"    <%= l.role === 'assistant' ? 'selected' : '' %>>Assistant</option>
+                  </select>
+                  <input type="hidden" name="section" value="<%= l.section || '' %>">
+                </form>
+
+                <div class="ct-role-pill <%= roleClass %>">
+                  <%= l.role.replace('-', ' ') %><% if (l.section) { %> · <%= l.section %><% } %>
+                </div>
+
+                <form method="POST"
+                  action="/sis/admin/course-teachers/<%= c.id %>/remove/<%= l.teacher_id %>"
+                  onsubmit="return confirm('Remove this teacher from the course?');">
+                  <button class="ct-remove" type="submit" title="Remove">✕</button>
+                </form>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+
+        <!-- Add teacher form -->
+        <form method="POST" action="/sis/admin/course-teachers/<%= c.id %>/add" class="ct-add-form">
+          <div class="ct-add-field">
+            <label class="ct-lbl">Add Teacher</label>
+            <select class="ct-input" name="teacher_id" required>
+              <option value="">— Pick a teacher —</option>
+              <% teachers.forEach(t => { %>
+                <option value="<%= t.id %>"><%= t.full_name || t.username %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="ct-add-field">
+            <label class="ct-lbl">Role</label>
+            <select class="ct-input" name="role">
+              <option value="instructor">Instructor</option>
+              <option value="co-instructor">Co-Instructor</option>
+              <option value="assistant">Assistant</option>
+            </select>
+          </div>
+          <div class="ct-add-field">
+            <label class="ct-lbl">Section (optional)</label>
+            <input class="ct-input" name="section" placeholder="e.g. GR01" maxlength="10">
+          </div>
+          <div class="ct-add-field ct-add-btn">
+            <button class="ct-add-submit" type="submit">➕ Assign</button>
+          </div>
+        </form>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  .ct-list {
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  .ct-course {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .ct-course-head {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: .75rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+  }
+  .ct-course-title {
+    font-weight: 900; color: #0f172a;
+    font-size: 1.05rem;
+    letter-spacing: -.01em;
+    word-break: break-word;
+  }
+  .ct-count-badge {
+    background: #e0f2fe; color: #0369a1;
+    font-size: .7rem; font-weight: 800;
+    padding: 3px 10px; border-radius: 100px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ct-empty {
+    color: #94a3b8; font-size: .85rem;
+    padding: .75rem;
+    font-style: italic;
+  }
+
+  /* Assigned teachers */
+  .ct-assigned {
+    display: flex; flex-direction: column; gap: .5rem;
+    margin-bottom: 1rem;
+  }
+  .ct-teacher {
+    display: grid;
+    grid-template-columns: 40px 1fr auto auto auto;
+    gap: .65rem;
+    align-items: center;
+    padding: .6rem .8rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    transition: all .15s;
+  }
+  .ct-teacher:hover { background: #f0f9ff; border-color: #bae6fd; }
+
+  .ct-avatar {
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: .95rem;
+    font-family: Georgia, serif;
+    flex-shrink: 0;
+  }
+  .ct-teacher-body { min-width: 0; }
+  .ct-teacher-name {
+    font-weight: 700; color: #0f172a;
+    font-size: .88rem;
+    word-break: break-word;
+    line-height: 1.2;
+  }
+  .ct-teacher-meta {
+    color: #64748b; font-size: .72rem;
+    margin-top: .15rem;
+    word-break: break-word;
+  }
+
+  .ct-role-form { display: flex; }
+  .ct-role-select {
+    padding: .35rem .55rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: .72rem;
+    font-weight: 700;
+    font-family: inherit;
+    color: #475569;
+    background: #fff;
+    cursor: pointer;
+  }
+  .ct-role-select:focus { outline: none; border-color: #06b6d4; }
+
+  .ct-role-pill {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .06em; font-weight: 800;
+    padding: 3px 8px; border-radius: 100px;
+    white-space: nowrap;
+  }
+  .role-primary   { background: #d1fae5; color: #065f46; }
+  .role-co        { background: #fef3c7; color: #92400e; }
+  .role-assistant { background: #e2e8f0; color: #475569; }
+
+  .ct-remove {
+    background: #fef2f2; color: #991b1b;
+    border: none; width: 30px; height: 30px;
+    border-radius: 8px; font-size: .78rem;
+    font-weight: 800; cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+    flex-shrink: 0;
+  }
+  .ct-remove:hover { background: #fecaca; }
+
+  /* Add form */
+  .ct-add-form {
+    display: grid;
+    grid-template-columns: 2fr 1.3fr 1fr auto;
+    gap: .6rem;
+    align-items: end;
+    padding-top: 1rem;
+    border-top: 1px dashed #e2e8f0;
+  }
+  .ct-add-field { display: flex; flex-direction: column; min-width: 0; }
+  .ct-lbl {
+    font-size: .62rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #64748b; margin-bottom: .3rem;
+  }
+  .ct-input {
+    width: 100%; padding: .55rem .7rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    background: #fff; font-size: .82rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .ct-input:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .ct-add-btn { display: flex; }
+  .ct-add-submit {
+    padding: .55rem 1rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 8px;
+    font-size: .8rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 10px rgba(6,182,212,.25);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .ct-add-submit:hover { transform: translateY(-1px); }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .ct-course { padding: 1rem; }
+
+    .ct-teacher {
+      grid-template-columns: 38px 1fr auto;
+      gap: .55rem;
+      padding: .6rem .7rem;
+    }
+    .ct-avatar { width: 38px; height: 38px; font-size: .9rem; }
+    .ct-role-form { grid-column: 2 / 3; }
+    .ct-role-pill { grid-column: 2 / 3; }
+    .ct-remove { grid-row: 1; grid-column: 3; }
+
+    .ct-add-form { grid-template-columns: 1fr; }
+    .ct-add-submit { width: 100%; }
+  }
+</style>
+
+<%- include('partials/foot') %>
