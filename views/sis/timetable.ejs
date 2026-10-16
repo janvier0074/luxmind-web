@@ -4,16 +4,19 @@
   subtitle: 'Your courses, instructors and quick links.'
 }) %>
 
+<!-- Top bar -->
 <div class="tt-topbar">
-  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back</a>
+  <a class="tt-back" href="/sis/my">← Back</a>
   <div class="tt-toggle">
     <button type="button" class="tt-toggle-btn active" id="btnList">List</button>
     <button type="button" class="tt-toggle-btn" id="btnCalendar">Calendar</button>
   </div>
 </div>
 
+<!-- Notice -->
 <div class="tt-notice">
-  ⓘ Students with attendance below the required threshold may not be eligible to take the final exam. Check your Attendance Detail regularly.
+  <span class="tt-notice-icon">ⓘ</span>
+  Students with attendance below the required threshold may not be eligible to take the final exam. Please check your Attendance Detail regularly.
 </div>
 
 <!-- =================== LIST VIEW =================== -->
@@ -21,16 +24,24 @@
   <% if (courses.length === 0) { %>
     <div class="sis-empty" style="padding:2rem;">You haven't enrolled in any course yet.</div>
   <% } else { %>
-    <div class="sis-card" style="padding:0;overflow:hidden;">
-      <table class="sis-table tt-list-table">
+    <div class="tt-list-wrap">
+      <table class="tt-list">
+        <colgroup>
+          <col style="width: 100px;">
+          <col>
+          <col style="width: 180px;">
+          <col style="width: 70px;">
+          <col style="width: 110px;">
+          <col style="width: 110px;">
+        </colgroup>
         <thead>
           <tr>
-            <th style="width:100px;">Code</th>
+            <th>Course Code</th>
             <th>Course Name</th>
-            <th style="width:160px;">Instructor</th>
-            <th style="width:70px;text-align:center;">Group</th>
-            <th style="width:110px;text-align:center;">Attendance</th>
-            <th style="width:100px;text-align:center;">Moodle</th>
+            <th>Course Instructor</th>
+            <th class="c">Group</th>
+            <th class="c">Attendance</th>
+            <th class="c">Moodle</th>
           </tr>
         </thead>
         <tbody>
@@ -42,17 +53,19 @@
             const lmsUrl = 'https://luxmind.onrender.com/login?next=' + encodeURIComponent('/courses/' + c.id);
           %>
             <tr>
-              <td style="font-family:ui-monospace,monospace;font-weight:800;color:#0891b2;font-size:.8rem;"><%= code %></td>
-              <td><strong style="font-size:.88rem;"><%= c.title %></strong></td>
-              <td style="color:#334155;font-size:.82rem;"><%= c.teacher_name || 'LuxMind' %></td>
-              <td style="text-align:center;font-family:ui-monospace,monospace;font-size:.78rem;color:#475569;"><%= group %></td>
-              <td style="text-align:center;">
-                <a href="/sis/my/attendance" style="display:inline-flex;width:46px;height:26px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:6px;align-items:center;justify-content:center;font-size:.75rem;font-weight:900;text-decoration:none;">
+              <td><span class="tt-code"><%= code %></span></td>
+              <td><span class="tt-name"><%= c.title %></span></td>
+              <td><span class="tt-instr"><%= c.teacher_name || 'LuxMind' %></span></td>
+              <td class="c"><span class="tt-group"><%= group %></span></td>
+              <td class="c">
+                <a href="/sis/my/attendance" class="tt-att" style="color:<%= attColor %>;background:<%= attColor %>15;border-color:<%= attColor %>40;">
                   <%= pct %>%
                 </a>
               </td>
-              <td style="text-align:center;">
-                <a class="sis-moodle-btn" href="<%= lmsUrl %>" title="Open in Moodle">Moodle</a>
+              <td class="c">
+                <a class="tt-moodle" href="<%= lmsUrl %>" title="Open in Moodle">
+                  <span class="tt-moodle-dot"></span> Moodle
+                </a>
               </td>
             </tr>
           <% }) %>
@@ -111,91 +124,231 @@
 </div>
 
 <style>
+  /* ============ TOP BAR ============ */
   .tt-topbar {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 1rem; gap: 1rem; flex-wrap: wrap;
   }
+  .tt-back {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .5rem 1rem;
+    background: #fff; color: #0f2942;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: .82rem; font-weight: 700; text-decoration: none;
+    transition: all .15s;
+  }
+  .tt-back:hover { background: #f8fafc; border-color: #06b6d4; color: #0891b2; }
+
   .tt-toggle {
     display: inline-flex; background: #fff;
-    border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;
+    border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
   }
   .tt-toggle-btn {
     background: transparent; border: none;
-    padding: .45rem .9rem; font-size: .78rem; font-weight: 700;
-    color: #64748b; cursor: pointer; font-family: inherit; transition: all .15s;
+    padding: .5rem 1.1rem; font-size: .78rem; font-weight: 700;
+    color: #64748b; cursor: pointer; font-family: inherit;
+    transition: all .15s;
   }
   .tt-toggle-btn.active {
     background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff;
   }
 
+  /* ============ NOTICE ============ */
   .tt-notice {
+    display: flex; align-items: flex-start; gap: .6rem;
     background: #f0f9ff; border-left: 3px solid #06b6d4;
-    padding: .7rem .9rem; border-radius: 6px;
-    color: #0c4a6e; font-size: .78rem;
-    margin-bottom: 1rem; line-height: 1.5;
+    padding: .75rem 1rem; border-radius: 8px;
+    color: #0c4a6e; font-size: .82rem;
+    margin-bottom: 1.25rem; line-height: 1.55;
   }
+  .tt-notice-icon { font-size: 1rem; color: #0891b2; flex-shrink: 0; }
 
-  /* Compact list table */
-  .tt-list-table th {
-    padding: .55rem .75rem !important;
-    font-size: .65rem !important;
-    letter-spacing: .08em;
+  /* ============ LIST TABLE ============ */
+  .tt-list-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
   }
-  .tt-list-table td {
-    padding: .55rem .75rem !important;
-    font-size: .85rem;
+  .tt-list {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  .tt-list thead {
+    background: #f8fafc;
+  }
+  .tt-list th {
+    text-align: left;
+    padding: .7rem .9rem;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+    white-space: nowrap;
+  }
+  .tt-list th.c { text-align: center; }
+  .tt-list td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
     vertical-align: middle;
+    font-size: .85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tt-list td.c { text-align: center; }
+  .tt-list tbody tr:last-child td { border-bottom: none; }
+  .tt-list tbody tr:hover { background: #f8fafc; }
+
+  .tt-code {
+    font-family: ui-monospace, monospace;
+    font-weight: 800;
+    color: #0891b2;
+    font-size: .8rem;
+    letter-spacing: -.01em;
+  }
+  .tt-name {
+    font-weight: 700;
+    color: #0f172a;
+    font-size: .88rem;
+  }
+  .tt-instr {
+    color: #475569;
+    font-size: .82rem;
+  }
+  .tt-group {
+    display: inline-block;
+    font-family: ui-monospace, monospace;
+    font-size: .72rem;
+    font-weight: 700;
+    color: #475569;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 4px;
+  }
+  .tt-att {
+    display: inline-block;
+    padding: .28rem .55rem;
+    border-radius: 6px;
+    border: 1px solid;
+    font-size: .76rem;
+    font-weight: 800;
+    text-decoration: none;
+    font-family: ui-monospace, monospace;
+    min-width: 44px;
+  }
+  .tt-moodle {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff !important;
+    border-radius: 6px;
+    font-size: .76rem;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all .15s;
+  }
+  .tt-moodle:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,185,129,.35); }
+  .tt-moodle-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #fff; opacity: .85;
   }
 
-  /* Compact calendar grid */
+  /* ============ CALENDAR ============ */
   .tt-cal-wrap {
-    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
-    overflow-x: auto; box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow-x: auto;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
   }
-  .tt-cal { width: 100%; border-collapse: collapse; min-width: 780px; }
+  .tt-cal {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+    table-layout: fixed;
+  }
   .tt-cal thead th {
-    background: #0f2942; color: #fff;
-    padding: .5rem .35rem;
-    font-size: .68rem; font-weight: 800;
-    letter-spacing: .06em; text-transform: uppercase; text-align: center;
+    background: #0f2942;
+    color: #fff;
+    padding: .55rem .4rem;
+    font-size: .68rem;
+    font-weight: 800;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,.08);
   }
-  .tt-cal-time-col { width: 58px; }
+  .tt-cal thead th:last-child { border-right: none; }
+  .tt-cal-time-col { width: 60px; }
   .tt-cal tbody td {
-    border: 1px solid #e2e8f0; padding: 2px;
-    height: 32px; vertical-align: top;
+    border: 1px solid #e2e8f0;
+    padding: 2px;
+    height: 34px;
+    vertical-align: top;
   }
   .tt-cal-time {
-    background: #f8fafc; color: #475569;
+    background: #f8fafc;
+    color: #475569;
     font-family: ui-monospace, monospace;
-    font-size: .68rem; font-weight: 700;
-    text-align: center; vertical-align: middle !important; white-space: nowrap;
+    font-size: .68rem;
+    font-weight: 700;
+    text-align: center;
+    vertical-align: middle !important;
+    white-space: nowrap;
   }
   .tt-cal-cell { background: #fff; }
   .tt-cal-event {
-    display: block; padding: .2rem .4rem;
+    display: block;
+    padding: .2rem .4rem;
     background: linear-gradient(135deg, #0891b2, #0e7490);
-    color: #fff; border-radius: 4px; text-decoration: none;
-    font-size: .65rem; line-height: 1.15; font-weight: 600;
+    color: #fff !important;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: .65rem;
+    line-height: 1.2;
+    font-weight: 600;
+    margin-bottom: 2px;
     overflow: hidden;
+    transition: all .12s;
   }
+  .tt-cal-event:last-child { margin-bottom: 0; }
   .tt-cal-event:hover { background: linear-gradient(135deg, #06b6d4, #0891b2); }
   .tt-cal-code {
-    display: block; font-family: ui-monospace, monospace;
-    font-size: .58rem; font-weight: 800; opacity: .85;
+    display: block;
+    font-family: ui-monospace, monospace;
+    font-size: .58rem;
+    font-weight: 800;
+    opacity: .85;
+    letter-spacing: -.02em;
   }
   .tt-cal-name {
-    display: block; font-weight: 700;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    display: block;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
+  /* ============ MOBILE ============ */
   @media (max-width: 700px) {
-    .tt-topbar { flex-direction: column; align-items: stretch; }
+    .tt-topbar { flex-direction: column; align-items: stretch; gap: .75rem; }
+    .tt-back { justify-content: center; }
     .tt-toggle { width: 100%; }
     .tt-toggle-btn { flex: 1; }
+
+    .tt-notice { font-size: .75rem; padding: .65rem .8rem; }
+
+    /* List table on mobile becomes compact — horizontal scroll */
+    .tt-list-wrap { overflow-x: auto; }
+    .tt-list { min-width: 700px; }
+
     .tt-cal { min-width: 640px; }
-    .tt-cal tbody td { height: 26px; }
+    .tt-cal tbody td { height: 28px; }
     .tt-cal-event { font-size: .58rem; padding: .15rem .3rem; }
-    .tt-notice { font-size: .72rem; padding: .6rem .75rem; }
+    .tt-cal-code { font-size: .52rem; }
   }
 </style>
 
