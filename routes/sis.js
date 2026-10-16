@@ -1298,6 +1298,132 @@ router.post('/sis/admin/documents/:id/reject', guard, async (req, res) => {
 });
 
 
+// ============================================================
+//                 CGPA CALCULATOR
+// ============================================================
+
+const GPA_MAP = {
+  'A+': 4.0, 'A': 4.0, 'A-': 3.7,
+  'B+': 3.3, 'B': 3.0, 'B-': 2.7,
+  'C+': 2.3, 'C': 2.0, 'C-': 1.7,
+  'D+': 1.3, 'D': 1.0, 'F': 0.0,
+};
+const GRADE_OPTIONS = Object.keys(GPA_MAP);
+
+router.get('/sis/my/cgpa', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const entries = await db.all(`
+    SELECT * FROM cgpa_entries
+    WHERE student_id = $1
+    ORDER BY created_at DESC
+  `, [uid]);
+
+  // Group by semester
+  const bySemester = {};
+  let totalPoints = 0;
+  let totalCredits = 0;
+
+  for (const e of entries) {
+    const sem = e.semester || 'Unsorted';
+    if (!bySemester[sem]) bySemester[sem] = [];
+    bySemester[sem].push(e);
+    const gpa = GPA_MAP[e.grade] || 0;
+    totalPoints += gpa * Number(e.credits);
+    totalCredits += Number(e.credits);
+  }
+
+  const cgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
+
+  // Semester GPAs
+  const semesterStats = Object.keys(bySemester).map(sem => {
+    const list = bySemester[sem];
+    let pts = 0, cr = 0;
+    for (const e of list) {
+      pts += (GPA_MAP[e.grade] || 0) * Number(e.credits);
+      cr += Number(e.credits);
+    }
+    return {
+      name: sem,
+      gpa: cr > 0 ? (pts / cr).toFixed(2) : '0.00',
+      credits: cr,
+      count: list.length,
+    };
+  });
+
+  // What you need next term — target CGPA scenarios
+  // Assume next semester = 15 credits (typical)
+  const nextCredits = 15;
+  const targets = [2.0, 2.5, 3.0, 3.5, 4.0].map(target => {
+    // (totalPoints + x * nextCredits) / (totalCredits + nextCredits) = target
+    // x = (target * (totalCredits + nextCredits) - totalPoints) / nextCredits
+    const x = (target * (totalCredits + nextCredits) - totalPoints) / nextCredits;
+    let achievable = x <= 4.0 && x >= 0;
+    let needed = x > 4.0 ? 'Not possible' : (x < 0 ? 'Already guaranteed' : x.toFixed(2));
+    return { target, needed, achievable };
+  });
+
+    res.render('sis/my-cgpa', {
+    title: 'CGPA Calculator',
+    heading: 'CGPA Calculator',
+    subtitle: 'Track your GPA and plan your next semester.',
+    entries,
+    bySemester,
+    semesterStats,
+    cgpa,
+    totalCredits,
+    totalPoints,
+    gradeOptions: GRADE_OPTIONS,
+    targets,
+    nextCredits,
+    GPA_MAP,
+  });
+});
+
+router.post('/sis/my/cgpa/add', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const { course_name, credits, grade, semester } = req.body;
+
+  if (!course_name || !credits || !grade) {
+    req.flash('error', 'Course name, credits, and grade are required.');
+    return res.redirect('/sis/my/cgpa');
+  }
+
+  if (!GPA_MAP[grade]) {
+    req.flash('error', 'Invalid grade.');
+    return res.redirect('/sis/my/cgpa');
+  }
+
+  await db.run(
+    `INSERT INTO cgpa_entries (student_id, course_name, credits, grade, semester)
+     VALUES ($1, $2, $3, $4, $5)`,
+    [uid, course_name.trim(), Number(credits), grade, semester ? semester.trim() : null]
+  );
+
+  req.flash('success', 'Course added.');
+  res.redirect('/sis/my/cgpa');
+});
+
+router.post('/sis/my/cgpa/delete/:id', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  await db.run(
+    `DELETE FROM cgpa_entries WHERE id = $1 AND student_id = $2`,
+    [req.params.id, uid]
+  );
+  req.flash('success', 'Entry removed.');
+  res.redirect('/sis/my/cgpa');
+});
+
+router.post('/sis/my/cgpa/clear', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  await db.run(`DELETE FROM cgpa_entries WHERE student_id = $1`, [uid]);
+  req.flash('success', 'All entries cleared.');
+  res.redirect('/sis/my/cgpa');
+});
 
 
 
