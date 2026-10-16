@@ -372,7 +372,9 @@
       <div class="sis-brand-logo">S</div>
       <div class="sis-brand-text">
         <div class="sis-brand-title">LuxMind SIS</div>
-        <div class="sis-brand-sub">Student Portal</div>
+                <div class="sis-brand-sub">
+          <%= user && user.role === 'admin' ? 'Admin Portal' : (user && user.role === 'teacher' ? 'Faculty Portal' : 'Student Portal') %>
+        </div>
       </div>
     </div>
 
