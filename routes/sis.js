@@ -1625,5 +1625,201 @@ router.post('/sis/admin/classes/:id/remove/:studentId', guard, async (req, res) 
   res.redirect('/sis/admin/classes/' + id);
 });
 
+// ============================================================
+//                 EXAMS
+// ============================================================
+
+// Student — Exam Program (upcoming + past)
+router.get('/sis/my/exams', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const exams = await db.all(`
+    SELECT e.*, c.title AS course_title, u.full_name AS teacher_name,
+           r.score, r.grade
+    FROM exams e
+    JOIN courses c ON c.id = e.course_id
+    JOIN enrollments en ON en.course_id = c.id AND en.user_id = $1
+    LEFT JOIN users u ON u.id = c.teacher_id
+    LEFT JOIN exam_results r ON r.exam_id = e.id AND r.student_id = $2
+    ORDER BY e.exam_date ASC
+  `, [uid, uid]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const upcoming = exams.filter(e => e.exam_date >= today);
+  const past = exams.filter(e => e.exam_date < today);
+
+  res.render('sis/my-exams', {
+    title: 'Exam Program',
+    heading: 'Exam Program',
+    subtitle: 'Your exam schedule and results.',
+    upcoming, past,
+  });
+});
+
+// Student — Exam Result
+router.get('/sis/my/exams/results', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const results = await db.all(`
+    SELECT e.title, e.exam_date, e.max_score, c.title AS course_title,
+           r.score, r.grade, r.notes, r.recorded_at
+    FROM exam_results r
+    JOIN exams e ON e.id = r.exam_id
+    JOIN courses c ON c.id = e.course_id
+    WHERE r.student_id = $1
+    ORDER BY e.exam_date DESC
+  `, [uid]);
+
+  // Average
+  let totalPct = 0, cnt = 0;
+  for (const r of results) {
+    if (r.score !== null && r.max_score > 0) {
+      totalPct += (Number(r.score) / Number(r.max_score)) * 100;
+      cnt++;
+    }
+  }
+  const avgPct = cnt > 0 ? Math.round(totalPct / cnt) : 0;
+
+  res.render('sis/my-exam-results', {
+    title: 'Exam Result',
+    heading: 'Exam Results',
+    subtitle: 'Your exam scores and grades.',
+    results, avgPct,
+  });
+});
+
+// ============================================================
+//                 ADMIN — EXAMS
+// ============================================================
+router.get('/sis/admin/exams', guard, async (req, res) => {
+  const db = getDB();
+
+  const exams = await db.all(`
+    SELECT e.*, c.title AS course_title,
+           (SELECT COUNT(*) FROM exam_results WHERE exam_id = e.id) AS result_count,
+           (SELECT COUNT(*) FROM enrollments WHERE course_id = e.course_id) AS student_count
+    FROM exams e
+    JOIN courses c ON c.id = e.course_id
+    ORDER BY e.exam_date DESC
+  `);
+
+  const courses = await db.all(`SELECT id, title FROM courses ORDER BY title`);
+
+  res.render('sis/admin-exams', {
+    title: 'Exams',
+    heading: 'Exam Management',
+    subtitle: 'Schedule exams and record results.',
+    exams, courses,
+  });
+});
+
+router.post('/sis/admin/exams/new', guard, async (req, res) => {
+  const db = getDB();
+  const { course_id, title, exam_date, start_time, duration_minutes, room, max_score } = req.body;
+
+  if (!course_id || !title || !exam_date) {
+    req.flash('error', 'Course, title, and date are required.');
+    return res.redirect('/sis/admin/exams');
+  }
+
+  await db.run(
+    `INSERT INTO exams (course_id, title, exam_date, start_time, duration_minutes, room, max_score, created_by)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+    [
+      Number(course_id),
+      title.trim(),
+      exam_date,
+      start_time || null,
+      duration_minutes ? Number(duration_minutes) : 60,
+      room || null,
+      max_score ? Number(max_score) : 100,
+      req.session.user.id,
+    ]
+  );
+
+  req.flash('success', 'Exam created.');
+  res.redirect('/sis/admin/exams');
+});
+
+router.get('/sis/admin/exams/:id', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const exam = await db.get(`
+    SELECT e.*, c.title AS course_title
+    FROM exams e JOIN courses c ON c.id = e.course_id
+    WHERE e.id = $1
+  `, [id]);
+
+  if (!exam) return res.status(404).render('errors/404');
+
+  const students = await db.all(`
+    SELECT u.id, u.full_name, u.username, sp.admission_number,
+           r.score, r.grade, r.notes
+    FROM enrollments en
+    JOIN users u ON u.id = en.user_id
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    LEFT JOIN exam_results r ON r.exam_id = $1 AND r.student_id = u.id
+    WHERE en.course_id = $2
+    ORDER BY u.full_name
+  `, [id, exam.course_id]);
+
+  res.render('sis/admin-exam-detail', {
+    title: exam.title,
+    heading: exam.title,
+    subtitle: exam.course_title,
+    exam, students,
+  });
+});
+
+router.post('/sis/admin/exams/:id/results', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const exam = await db.get(`SELECT max_score FROM exams WHERE id = $1`, [id]);
+  if (!exam) return res.status(404).render('errors/404');
+
+  const scores = req.body['score_'];
+  for (const key of Object.keys(req.body)) {
+    const m = key.match(/^score_(\d+)$/);
+    if (!m) continue;
+    const studentId = Number(m[1]);
+    const rawScore = req.body[key];
+    if (rawScore === '' || rawScore === null || rawScore === undefined) {
+      // Clear if blank
+      await db.run(`DELETE FROM exam_results WHERE exam_id = $1 AND student_id = $2`, [id, studentId]);
+      continue;
+    }
+    const score = Number(rawScore);
+    const pct = Number(exam.max_score) > 0 ? (score / Number(exam.max_score)) * 100 : 0;
+    let grade = 'F';
+    if (pct >= 90) grade = 'A';
+    else if (pct >= 80) grade = 'B';
+    else if (pct >= 70) grade = 'C';
+    else if (pct >= 60) grade = 'D';
+
+    const notes = req.body['notes_' + studentId] || null;
+
+    await db.run(
+      `INSERT INTO exam_results (exam_id, student_id, score, grade, notes, recorded_by)
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT (exam_id, student_id)
+       DO UPDATE SET score = $3, grade = $4, notes = $5, recorded_by = $6, recorded_at = NOW()`,
+      [id, studentId, score, grade, notes, req.session.user.id]
+    );
+  }
+
+  req.flash('success', 'Results saved.');
+  res.redirect('/sis/admin/exams/' + id);
+});
+
+router.post('/sis/admin/exams/:id/delete', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM exams WHERE id = $1`, [req.params.id]);
+  req.flash('success', 'Exam deleted.');
+  res.redirect('/sis/admin/exams');
+});
 
 module.exports = router;

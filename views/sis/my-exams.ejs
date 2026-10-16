@@ -1,0 +1,226 @@
+<%- include('partials/head', {
+  title: 'Exam Program',
+  heading: 'Exam Program',
+  subtitle: 'Your exam schedule and results.'
+}) %>
+
+<div class="ex-tabs">
+  <a class="ex-tab active" href="/sis/my/exams">📅 Exam Program</a>
+  <a class="ex-tab" href="/sis/my/exams/results">🏆 Exam Results</a>
+</div>
+
+<!-- UPCOMING -->
+<h3 class="ex-sec-title">
+  Upcoming Exams
+  <% if (upcoming.length > 0) { %><span class="ex-sec-count"><%= upcoming.length %></span><% } %>
+</h3>
+
+<% if (upcoming.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No upcoming exams scheduled.</div>
+<% } else { %>
+  <div class="ex-grid">
+    <% upcoming.forEach(e => { %>
+      <div class="ex-card">
+        <div class="ex-card-date">
+          <div class="ex-date-day"><%= new Date(e.exam_date).getDate() %></div>
+          <div class="ex-date-month"><%= new Date(e.exam_date).toLocaleDateString('en-GB', { month:'short' }) %></div>
+          <div class="ex-date-year"><%= new Date(e.exam_date).getFullYear() %></div>
+        </div>
+        <div class="ex-card-body">
+          <div class="ex-card-title"><%= e.title %></div>
+          <div class="ex-card-course">📚 <%= e.course_title %></div>
+          <div class="ex-card-meta">
+            <% if (e.start_time) { %><span>⏰ <%= e.start_time %></span><% } %>
+            <% if (e.duration_minutes) { %><span>⏱ <%= e.duration_minutes %> min</span><% } %>
+            <% if (e.room) { %><span>📍 <%= e.room %></span><% } %>
+          </div>
+          <% if (e.teacher_name) { %>
+            <div class="ex-card-teacher">👨‍🏫 <%= e.teacher_name %></div>
+          <% } %>
+        </div>
+        <div class="ex-card-badge">Scheduled</div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<!-- PAST -->
+<h3 class="ex-sec-title" style="margin-top:2rem;">
+  Past Exams
+  <% if (past.length > 0) { %><span class="ex-sec-count ex-sec-count-past"><%= past.length %></span><% } %>
+</h3>
+
+<% if (past.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No past exams.</div>
+<% } else { %>
+  <div class="ex-grid">
+    <% past.forEach(e => {
+      const pct = (e.score !== null && e.max_score > 0) ? Math.round((Number(e.score) / Number(e.max_score)) * 100) : null;
+      const gradeClass = !e.grade ? 'g-empty' :
+        e.grade === 'A' ? 'g-a' :
+        e.grade === 'B' ? 'g-b' :
+        e.grade === 'C' ? 'g-c' :
+        e.grade === 'D' ? 'g-d' : 'g-f';
+    %>
+      <div class="ex-card ex-card-past">
+        <div class="ex-card-date ex-card-date-past">
+          <div class="ex-date-day"><%= new Date(e.exam_date).getDate() %></div>
+          <div class="ex-date-month"><%= new Date(e.exam_date).toLocaleDateString('en-GB', { month:'short' }) %></div>
+          <div class="ex-date-year"><%= new Date(e.exam_date).getFullYear() %></div>
+        </div>
+        <div class="ex-card-body">
+          <div class="ex-card-title"><%= e.title %></div>
+          <div class="ex-card-course">📚 <%= e.course_title %></div>
+          <% if (e.score !== null) { %>
+            <div class="ex-card-result">
+              <span class="ex-result-score"><%= e.score %>/<%= e.max_score %></span>
+              <span class="ex-result-pct"><%= pct %>%</span>
+            </div>
+          <% } else { %>
+            <div class="ex-card-meta"><span class="ex-pending">⏳ Result pending</span></div>
+          <% } %>
+        </div>
+        <% if (e.grade) { %>
+          <div class="ex-card-grade <%= gradeClass %>"><%= e.grade %></div>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  .ex-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1.5rem;
+  }
+  .ex-tab {
+    padding: .6rem 1.1rem; border-radius: 8px;
+    background: #fff; border: 1px solid #e2e8f0;
+    color: #475569; font-weight: 700; font-size: .82rem;
+    text-decoration: none; transition: all .15s;
+  }
+  .ex-tab.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border-color: transparent;
+  }
+  .ex-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .ex-sec-count {
+    background: #0891b2; color: #fff;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+  .ex-sec-count-past { background: #64748b; }
+
+  .ex-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+  }
+  .ex-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #06b6d4;
+    border-radius: 12px;
+    padding: 1.1rem;
+    display: grid;
+    grid-template-columns: 70px 1fr auto;
+    gap: 1rem;
+    align-items: center;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    transition: all .15s;
+  }
+  .ex-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); }
+  .ex-card-past { border-left-color: #64748b; }
+
+  .ex-card-date {
+    width: 70px; text-align: center;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    border-radius: 10px;
+    padding: .65rem .4rem;
+  }
+  .ex-card-date-past {
+    background: linear-gradient(135deg, #64748b, #475569);
+  }
+  .ex-date-day { font-size: 1.5rem; font-weight: 900; line-height: 1; }
+  .ex-date-month { font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .08em; margin-top: .1rem; }
+  .ex-date-year { font-size: .65rem; opacity: .8; margin-top: .1rem; }
+
+  .ex-card-body { min-width: 0; }
+  .ex-card-title {
+    font-weight: 800; color: #0f172a;
+    font-size: .98rem; margin-bottom: .3rem;
+    word-break: break-word;
+  }
+  .ex-card-course {
+    color: #64748b; font-size: .82rem;
+    margin-bottom: .5rem;
+    word-break: break-word;
+  }
+  .ex-card-meta {
+    display: flex; flex-wrap: wrap; gap: .5rem .85rem;
+    font-size: .75rem; color: #475569;
+  }
+  .ex-card-teacher {
+    color: #0891b2; font-size: .75rem;
+    margin-top: .35rem;
+    font-weight: 600;
+  }
+  .ex-card-result {
+    display: flex; align-items: baseline; gap: .6rem;
+    margin-top: .3rem;
+  }
+  .ex-result-score {
+    font-family: ui-monospace, monospace;
+    font-weight: 800; color: #0f172a;
+    font-size: .95rem;
+  }
+  .ex-result-pct {
+    color: #0891b2; font-weight: 800;
+    font-size: .85rem;
+  }
+  .ex-pending { color: #f59e0b; font-weight: 700; }
+
+  .ex-card-badge {
+    background: #e0f2fe; color: #0369a1;
+    font-size: .68rem; font-weight: 800;
+    padding: 3px 9px; border-radius: 100px;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .ex-card-grade {
+    width: 44px; height: 44px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.15rem;
+    font-family: Georgia, serif;
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .g-a { background: linear-gradient(135deg, #10b981, #059669); }
+  .g-b { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+  .g-c { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .g-d { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .g-f { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .g-empty { background: #e2e8f0; color: #94a3b8; }
+
+  @media (max-width: 700px) {
+    .ex-tabs { flex-direction: column; }
+    .ex-tab { text-align: center; }
+    .ex-grid { grid-template-columns: 1fr; }
+    .ex-card {
+      grid-template-columns: 60px 1fr auto;
+      padding: .9rem;
+      gap: .75rem;
+    }
+    .ex-card-date { width: 60px; padding: .5rem .3rem; }
+    .ex-date-day { font-size: 1.25rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,430 @@
+<%- include('partials/head', {
+  title: exam.title,
+  heading: exam.title,
+  subtitle: exam.course_title
+}) %>
+
+<div style="margin-bottom:1.25rem;">
+  <a class="exd-back" href="/sis/admin/exams">← Back to Exams</a>
+</div>
+
+<!-- Exam header -->
+<div class="exd-hero">
+  <div class="exd-hero-info">
+    <div class="exd-hero-title"><%= exam.title %></div>
+    <div class="exd-hero-course">📚 <%= exam.course_title %></div>
+    <div class="exd-hero-meta">
+      <span>📅 <%= new Date(exam.exam_date).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) %></span>
+      <% if (exam.start_time) { %><span>⏰ <%= exam.start_time %></span><% } %>
+      <% if (exam.duration_minutes) { %><span>⏱ <%= exam.duration_minutes %> min</span><% } %>
+      <% if (exam.room) { %><span>📍 <%= exam.room %></span><% } %>
+    </div>
+  </div>
+  <div class="exd-hero-stat">
+    <div class="exd-hero-stat-num"><%= exam.max_score %></div>
+    <div class="exd-hero-stat-lbl">Max Score</div>
+  </div>
+</div>
+
+<!-- Entry form -->
+<form method="POST" action="/sis/admin/exams/<%= exam.id %>/results">
+
+  <div class="exd-panel">
+    <div class="exd-panel-head">
+      <span class="exd-panel-icon">📝</span>
+      <div>
+        <h3>Enter Student Scores</h3>
+        <p>Leave a score blank to clear the result for that student.</p>
+      </div>
+    </div>
+
+    <% if (students.length === 0) { %>
+      <div class="sis-empty" style="padding:1.5rem;">No students enrolled in this course.</div>
+    <% } else { %>
+      <div class="exd-table-wrap">
+        <table class="exd-table">
+          <colgroup>
+            <col style="width:60px;">
+            <col>
+            <col style="width:130px;">
+            <col style="width:100px;">
+            <col style="width:110px;">
+            <col>
+          </colgroup>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Student</th>
+              <th style="text-align:center;">Score (max <%= exam.max_score %>)</th>
+              <th style="text-align:center;">Grade</th>
+              <th style="text-align:center;">Percent</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% students.forEach((s, i) => {
+              const score = s.score !== null && s.score !== undefined ? Number(s.score) : '';
+              const pct = (score !== '' && exam.max_score > 0) ? Math.round((score / exam.max_score) * 100) : null;
+              const gradeClass = !s.grade ? 'g-empty' :
+                s.grade === 'A' ? 'g-a' :
+                s.grade === 'B' ? 'g-b' :
+                s.grade === 'C' ? 'g-c' :
+                s.grade === 'D' ? 'g-d' : 'g-f';
+            %>
+              <tr>
+                <td class="exd-num"><%= i + 1 %></td>
+                <td>
+                  <div class="exd-student">
+                    <div class="exd-avatar"><%= (s.full_name || s.username || '?').charAt(0).toUpperCase() %></div>
+                    <div class="exd-student-info">
+                      <div class="exd-student-name"><%= s.full_name || s.username %></div>
+                      <div class="exd-student-meta">@<%= s.username %><% if (s.admission_number) { %> · <%= s.admission_number %><% } %></div>
+                    </div>
+                  </div>
+                </td>
+                <td style="text-align:center;">
+                  <input class="exd-score-input"
+                    type="number"
+                    name="score_<%= s.id %>"
+                    value="<%= score %>"
+                    min="0"
+                    max="<%= exam.max_score %>"
+                    step="0.5"
+                    placeholder="—"
+                    data-student="<%= s.id %>"
+                    data-max="<%= exam.max_score %>">
+                </td>
+                <td style="text-align:center;">
+                  <span class="exd-grade <%= gradeClass %>" id="grade-<%= s.id %>"><%= s.grade || '—' %></span>
+                </td>
+                <td style="text-align:center;">
+                  <span class="exd-pct" id="pct-<%= s.id %>"><%= pct !== null ? pct + '%' : '—' %></span>
+                </td>
+                <td>
+                  <input class="exd-notes-input"
+                    type="text"
+                    name="notes_<%= s.id %>"
+                    value="<%= s.notes || '' %>"
+                    placeholder="Optional"
+                    maxlength="100">
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="exd-actions">
+        <button class="exd-submit" type="submit">💾 Save All Results</button>
+        <a class="exd-cancel" href="/sis/admin/exams">Cancel</a>
+      </div>
+    <% } %>
+  </div>
+
+</form>
+
+<!-- Legend -->
+<div class="exd-legend">
+  <div class="exd-legend-title">Grade Scale (auto-calculated)</div>
+  <div class="exd-legend-items">
+    <span><b class="g-a">A</b> 90–100%</span>
+    <span><b class="g-b">B</b> 80–89%</span>
+    <span><b class="g-c">C</b> 70–79%</span>
+    <span><b class="g-d">D</b> 60–69%</span>
+    <span><b class="g-f">F</b> below 60%</span>
+  </div>
+</div>
+
+<style>
+  /* Back */
+  .exd-back {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .5rem 1rem;
+    background: #fff; color: #0f2942;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: .82rem; font-weight: 700; text-decoration: none;
+    transition: all .15s;
+  }
+  .exd-back:hover { background: #f8fafc; border-color: #06b6d4; color: #0891b2; }
+
+  /* Hero */
+  .exd-hero {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 1rem;
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    border-radius: 14px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(6,182,212,.25);
+    position: relative; overflow: hidden;
+    flex-wrap: wrap;
+  }
+  .exd-hero::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 20% 30%, rgba(103,232,249,.25) 0%, transparent 45%);
+    pointer-events: none;
+  }
+  .exd-hero-info, .exd-hero-stat { position: relative; }
+  .exd-hero-title {
+    font-size: 1.5rem; font-weight: 900;
+    letter-spacing: -.02em;
+    margin-bottom: .35rem;
+    word-break: break-word;
+  }
+  .exd-hero-course {
+    color: #67e8f9; font-size: .92rem;
+    font-weight: 600; margin-bottom: .65rem;
+  }
+  .exd-hero-meta {
+    display: flex; gap: .5rem 1rem;
+    flex-wrap: wrap;
+    font-size: .78rem;
+    color: rgba(255,255,255,.85);
+  }
+  .exd-hero-stat { text-align: right; }
+  .exd-hero-stat-num {
+    font-family: Georgia, serif;
+    font-size: 2.5rem; font-weight: 900;
+    line-height: 1;
+  }
+  .exd-hero-stat-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .15em; color: rgba(255,255,255,.75);
+    font-weight: 800; margin-top: .35rem;
+  }
+
+  /* Panel */
+  .exd-panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.25rem;
+  }
+  .exd-panel-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .exd-panel-icon { font-size: 1.35rem; flex-shrink: 0; }
+  .exd-panel-head h3 {
+    font-size: 1rem; font-weight: 800;
+    color: #0f172a; letter-spacing: -.01em;
+  }
+  .exd-panel-head p {
+    font-size: .8rem; color: #64748b;
+    line-height: 1.5; margin-top: .2rem;
+  }
+
+  /* Table */
+  .exd-table-wrap { overflow-x: auto; }
+  .exd-table {
+    width: 100%; border-collapse: collapse;
+    table-layout: fixed;
+    min-width: 720px;
+  }
+  .exd-table thead { background: #f8fafc; }
+  .exd-table th {
+    text-align: left; padding: .75rem .8rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  .exd-table td {
+    padding: .7rem .8rem;
+    border-bottom: 1px solid #f1f5f9;
+    vertical-align: middle;
+    font-size: .85rem;
+  }
+  .exd-table tbody tr:hover { background: #f8fafc; }
+  .exd-num {
+    color: #94a3b8;
+    font-family: ui-monospace, monospace;
+    font-size: .78rem;
+    font-weight: 700;
+  }
+
+  .exd-student { display: flex; align-items: center; gap: .65rem; }
+  .exd-avatar {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: .95rem;
+    font-family: Georgia, serif;
+    flex-shrink: 0;
+  }
+  .exd-student-info { min-width: 0; }
+  .exd-student-name {
+    font-weight: 700; color: #0f172a;
+    font-size: .88rem;
+    word-break: break-word;
+  }
+  .exd-student-meta {
+    color: #64748b; font-size: .72rem;
+    margin-top: .1rem;
+    word-break: break-word;
+  }
+
+  .exd-score-input {
+    width: 100px;
+    padding: .5rem .6rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 8px;
+    text-align: center;
+    font-size: .9rem;
+    font-weight: 700;
+    font-family: ui-monospace, monospace;
+    color: #0f172a;
+    transition: all .15s;
+  }
+  .exd-score-input:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+
+  .exd-notes-input {
+    width: 100%;
+    padding: .5rem .7rem;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-family: inherit;
+    color: #0f172a;
+    transition: all .15s;
+  }
+  .exd-notes-input:focus {
+    outline: none; border-color: #06b6d4;
+  }
+
+  .exd-grade {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    font-weight: 900; font-size: .95rem;
+    font-family: Georgia, serif;
+    color: #fff;
+  }
+  .g-a { background: linear-gradient(135deg, #10b981, #059669); }
+  .g-b { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+  .g-c { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .g-d { background: linear-gradient(135deg, #f97316, #ea580c); }
+  .g-f { background: linear-gradient(135deg, #ef4444, #dc2626); }
+  .g-empty { background: #e2e8f0; color: #94a3b8; }
+
+  .exd-pct {
+    font-weight: 800;
+    font-family: ui-monospace, monospace;
+    color: #0891b2;
+    font-size: .9rem;
+  }
+
+  .exd-actions {
+    display: flex; gap: .65rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+  }
+  .exd-submit {
+    padding: .8rem 1.5rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: .88rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s;
+  }
+  .exd-submit:hover { transform: translateY(-2px); }
+  .exd-cancel {
+    padding: .8rem 1.25rem;
+    background: #fff; color: #0f2942;
+    border: 1.5px solid #e2e8f0; border-radius: 10px;
+    font-size: .88rem; font-weight: 700;
+    text-decoration: none; text-align: center;
+    transition: all .15s;
+  }
+  .exd-cancel:hover { background: #f8fafc; border-color: #94a3b8; }
+
+  /* Legend */
+  .exd-legend {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+  }
+  .exd-legend-title {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .14em; color: #94a3b8;
+    font-weight: 800; margin-bottom: .6rem;
+  }
+  .exd-legend-items {
+    display: flex; flex-wrap: wrap;
+    gap: .65rem 1.25rem;
+    font-size: .8rem; color: #475569;
+  }
+  .exd-legend-items b {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    width: 26px; height: 26px;
+    border-radius: 6px;
+    color: #fff;
+    font-family: Georgia, serif;
+    font-weight: 900;
+    margin-right: .35rem;
+    font-size: .8rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .exd-hero { padding: 1.25rem; }
+    .exd-hero-title { font-size: 1.2rem; }
+    .exd-hero-stat-num { font-size: 1.9rem; }
+
+    .exd-panel { padding: 1.15rem; }
+    .exd-actions { flex-direction: column; }
+    .exd-submit, .exd-cancel { text-align: center; width: 100%; }
+  }
+</style>
+
+<script>
+  // Live-update grade and percent as the admin types a score
+  document.querySelectorAll('.exd-score-input').forEach(function (input) {
+    input.addEventListener('input', function () {
+      var sid = input.getAttribute('data-student');
+      var max = Number(input.getAttribute('data-max')) || 100;
+      var val = input.value.trim();
+      var gradeEl = document.getElementById('grade-' + sid);
+      var pctEl = document.getElementById('pct-' + sid);
+
+      if (val === '' || isNaN(Number(val))) {
+        gradeEl.textContent = '—';
+        gradeEl.className = 'exd-grade g-empty';
+        pctEl.textContent = '—';
+        return;
+      }
+
+      var score = Number(val);
+      var pct = max > 0 ? Math.round((score / max) * 100) : 0;
+      var grade = 'F';
+      var cls = 'g-f';
+      if (pct >= 90) { grade = 'A'; cls = 'g-a'; }
+      else if (pct >= 80) { grade = 'B'; cls = 'g-b'; }
+      else if (pct >= 70) { grade = 'C'; cls = 'g-c'; }
+      else if (pct >= 60) { grade = 'D'; cls = 'g-d'; }
+
+      gradeEl.textContent = grade;
+      gradeEl.className = 'exd-grade ' + cls;
+      pctEl.textContent = pct + '%';
+    });
+  });
+</script>
+
+<%- include('partials/foot') %>

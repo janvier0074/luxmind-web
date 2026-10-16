@@ -393,6 +393,7 @@
           <a href="/sis/admin/registrations" class="<%= currentPath === '/sis/admin/registrations' ? 'active' : '' %>"><span class="icon">📝</span> Course Registrations</a>
                      <a href="/sis/admin/documents" class="<%= currentPath === '/sis/admin/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Requests</a>
                     <a href="/sis/admin/classes" class="<%= currentPath && currentPath.startsWith('/sis/admin/classes') ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
+                        <a href="/sis/admin/exams" class="<%= currentPath && currentPath.startsWith('/sis/admin/exams') ? 'active' : '' %>"><span class="icon">📝</span> Exams</a>
         </nav>
       </details>
       <details>
@@ -458,6 +459,17 @@
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">➕</span> Additional Course <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
                 <a href="/sis/my/transcript" class="<%= currentPath === '/sis/my/transcript' ? 'active' : '' %>"><span class="icon">📜</span> Transcript</a>
           <a href="#" style="opacity:.55;cursor:not-allowed;"><span class="icon">📖</span> Curriculum <em style="font-style:normal;font-size:.68rem;margin-left:auto;background:#1e3a5f;padding:1px 6px;border-radius:6px;">soon</em></a>
+                </details>
+
+            <details>
+        <summary>📝 Exam</summary>
+        <nav class="sis-nav">
+          <a href="/sis/my/exams" class="<%= currentPath === '/sis/my/exams' ? 'active' : '' %>"><span class="icon">📅</span> Exam Program</a>
+          <a href="/sis/my/exams/results" class="<%= currentPath === '/sis/my/exams/results' ? 'active' : '' %>"><span class="icon">🏆</span> Exam Result</a>
+        </nav>
+      </details>
+
+      <details>
         </nav>
       </details>
 
