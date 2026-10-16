@@ -1425,6 +1425,205 @@ router.post('/sis/my/cgpa/clear', studentGuard, async (req, res) => {
   res.redirect('/sis/my/cgpa');
 });
 
+// ============================================================
+//                 ADMIN — CLASSES MANAGEMENT
+// ============================================================
+
+// List + create form
+router.get('/sis/admin/classes', guard, async (req, res) => {
+  const db = getDB();
+
+  const classes = await db.all(`
+    SELECT c.*,
+           u.full_name AS teacher_name, u.username AS teacher_username,
+           (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) AS student_count,
+           (SELECT COUNT(*) FROM student_profiles WHERE class_level = c.name) AS profile_count
+    FROM classes c
+    LEFT JOIN users u ON u.id = c.teacher_id
+    ORDER BY c.name
+  `);
+
+  const teachers = await db.all(`
+    SELECT id, full_name, username FROM users
+    WHERE role = 'teacher' AND is_active = 1
+    ORDER BY full_name
+  `);
+
+  res.render('sis/admin-classes', {
+    title: 'Classes',
+    heading: 'Class Management',
+    subtitle: 'Create and organize classes for the institution.',
+    classes, teachers,
+  });
+});
+
+// Create
+router.post('/sis/admin/classes/new', guard, async (req, res) => {
+  const db = getDB();
+  const { name, level, room, capacity, teacher_id } = req.body;
+
+  if (!name || !name.trim()) {
+    req.flash('error', 'Class name is required.');
+    return res.redirect('/sis/admin/classes');
+  }
+
+  try {
+    await db.run(
+      `INSERT INTO classes (name, level, room, capacity, teacher_id)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        name.trim(),
+        level ? level.trim() : null,
+        room ? room.trim() : null,
+        capacity ? Number(capacity) : null,
+        teacher_id ? Number(teacher_id) : null,
+      ]
+    );
+    req.flash('success', 'Class created: ' + name.trim());
+  } catch (e) {
+    if (e.code === '23505') req.flash('error', 'A class with that name already exists.');
+    else req.flash('error', 'Could not create class.');
+  }
+  res.redirect('/sis/admin/classes');
+});
+
+// Detail
+router.get('/sis/admin/classes/:id', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const cls = await db.get(`
+    SELECT c.*, u.full_name AS teacher_name, u.username AS teacher_username, u.email AS teacher_email
+    FROM classes c
+    LEFT JOIN users u ON u.id = c.teacher_id
+    WHERE c.id = $1
+  `, [id]);
+
+  if (!cls) return res.status(404).render('errors/404');
+
+  // Students already in this class (via class_students)
+  const enrolled = await db.all(`
+    SELECT u.id, u.full_name, u.username, u.email,
+           sp.admission_number, sp.guardian_name, sp.guardian_phone, sp.status,
+           cs.enrolled_at
+    FROM class_students cs
+    JOIN users u ON u.id = cs.student_id
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE cs.class_id = $1
+    ORDER BY u.full_name
+  `, [id]);
+
+  // Students NOT in this class (candidates to add)
+  const candidates = await db.all(`
+    SELECT u.id, u.full_name, u.username, u.email,
+           sp.admission_number, sp.class_level
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.role = 'student'
+      AND u.is_active = 1
+      AND u.id NOT IN (SELECT student_id FROM class_students WHERE class_id = $1)
+    ORDER BY u.full_name
+  `, [id]);
+
+  const teachers = await db.all(`
+    SELECT id, full_name, username FROM users
+    WHERE role = 'teacher' AND is_active = 1
+    ORDER BY full_name
+  `);
+
+  res.render('sis/admin-class-detail', {
+    title: cls.name,
+    heading: cls.name,
+    subtitle: 'Class details and student roster.',
+    cls, enrolled, candidates, teachers,
+  });
+});
+
+// Update
+router.post('/sis/admin/classes/:id/edit', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const { name, level, room, capacity, teacher_id } = req.body;
+
+  try {
+    await db.run(
+      `UPDATE classes SET name = $1, level = $2, room = $3, capacity = $4, teacher_id = $5
+       WHERE id = $6`,
+      [
+        name.trim(),
+        level ? level.trim() : null,
+        room ? room.trim() : null,
+        capacity ? Number(capacity) : null,
+        teacher_id ? Number(teacher_id) : null,
+        id,
+      ]
+    );
+    req.flash('success', 'Class updated.');
+  } catch (e) {
+    req.flash('error', 'Could not update class.');
+  }
+  res.redirect('/sis/admin/classes/' + id);
+});
+
+// Delete
+router.post('/sis/admin/classes/:id/delete', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  await db.run(`DELETE FROM classes WHERE id = $1`, [id]);
+  req.flash('success', 'Class deleted.');
+  res.redirect('/sis/admin/classes');
+});
+
+// Assign student
+router.post('/sis/admin/classes/:id/assign', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const ids = Array.isArray(req.body.student_ids)
+    ? req.body.student_ids
+    : (req.body.student_ids ? [req.body.student_ids] : []);
+
+  if (ids.length === 0) {
+    req.flash('error', 'Select at least one student.');
+    return res.redirect('/sis/admin/classes/' + id);
+  }
+
+  const cls = await db.get(`SELECT name FROM classes WHERE id = $1`, [id]);
+
+  for (const sid of ids) {
+    try {
+      await db.run(
+        `INSERT INTO class_students (class_id, student_id) VALUES ($1, $2)
+         ON CONFLICT (class_id, student_id) DO NOTHING`,
+        [id, Number(sid)]
+      );
+      // Also set the student's class_level in student_profiles
+      if (cls && cls.name) {
+        await db.run(
+          `UPDATE student_profiles SET class_level = $1, updated_at = NOW() WHERE user_id = $2`,
+          [cls.name, Number(sid)]
+        );
+      }
+    } catch (e) { /* ignore */ }
+  }
+
+  req.flash('success', ids.length + ' student(s) added to ' + (cls ? cls.name : 'class') + '.');
+  res.redirect('/sis/admin/classes/' + id);
+});
+
+// Remove student
+router.post('/sis/admin/classes/:id/remove/:studentId', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const sid = Number(req.params.studentId);
+
+  await db.run(
+    `DELETE FROM class_students WHERE class_id = $1 AND student_id = $2`,
+    [id, sid]
+  );
+
+  req.flash('success', 'Student removed from class.');
+  res.redirect('/sis/admin/classes/' + id);
+});
 
 
 module.exports = router;

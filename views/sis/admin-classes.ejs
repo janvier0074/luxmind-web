@@ -1,0 +1,309 @@
+<%- include('partials/head', {
+  title: 'Classes',
+  heading: 'Class Management',
+  subtitle: 'Create and organize classes for the institution.'
+}) %>
+
+<!-- Create class card -->
+<div class="cl-card cl-new-card">
+  <div class="cl-card-head">
+    <span class="cl-card-icon">🏫</span>
+    <div>
+      <h3>Create a New Class</h3>
+      <p>Add a class section (e.g. Form 1A, Grade 10B).</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/sis/admin/classes/new" class="cl-form">
+    <div class="cl-field">
+      <label class="cl-lbl">Class Name *</label>
+      <input class="cl-input" type="text" name="name" required placeholder="e.g. Form 1A" maxlength="60">
+    </div>
+    <div class="cl-field">
+      <label class="cl-lbl">Level</label>
+      <input class="cl-input" type="text" name="level" placeholder="e.g. Form 1" maxlength="40">
+    </div>
+    <div class="cl-field">
+      <label class="cl-lbl">Room</label>
+      <input class="cl-input" type="text" name="room" placeholder="e.g. Room 101" maxlength="30">
+    </div>
+    <div class="cl-field">
+      <label class="cl-lbl">Capacity</label>
+      <input class="cl-input" type="number" name="capacity" min="1" max="200" placeholder="e.g. 40">
+    </div>
+    <div class="cl-field">
+      <label class="cl-lbl">Teacher</label>
+      <select class="cl-select" name="teacher_id">
+        <option value="">— None —</option>
+        <% teachers.forEach(t => { %>
+          <option value="<%= t.id %>"><%= t.full_name || t.username %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="cl-field cl-form-actions">
+      <button class="cl-submit" type="submit">➕ Create Class</button>
+    </div>
+  </form>
+</div>
+
+<!-- List -->
+<h3 class="cl-sec-title">
+  All Classes
+  <% if (classes.length > 0) { %><span class="cl-sec-count"><%= classes.length %></span><% } %>
+</h3>
+
+<% if (classes.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">
+    No classes yet. Create the first one above.
+  </div>
+<% } else { %>
+  <div class="cl-grid">
+    <% classes.forEach(c => { %>
+      <div class="cl-item">
+        <div class="cl-item-head">
+          <div class="cl-item-name"><%= c.name %></div>
+          <a class="cl-item-open" href="/sis/admin/classes/<%= c.id %>" title="Open">→</a>
+        </div>
+
+        <div class="cl-item-meta">
+          <% if (c.level) { %>
+            <div class="cl-item-row"><span class="cl-item-lbl">Level</span><span><%= c.level %></span></div>
+          <% } %>
+          <% if (c.room) { %>
+            <div class="cl-item-row"><span class="cl-item-lbl">Room</span><span><%= c.room %></span></div>
+          <% } %>
+          <div class="cl-item-row">
+            <span class="cl-item-lbl">Teacher</span>
+            <span><%= c.teacher_name || c.teacher_username || '—' %></span>
+          </div>
+          <div class="cl-item-row">
+            <span class="cl-item-lbl">Capacity</span>
+            <span><%= c.capacity || '—' %></span>
+          </div>
+        </div>
+
+        <div class="cl-item-stats">
+          <div class="cl-stat">
+            <div class="cl-stat-num"><%= c.student_count %></div>
+            <div class="cl-stat-lbl">Students</div>
+          </div>
+        </div>
+
+        <div class="cl-item-actions">
+          <a class="cl-btn cl-btn-primary" href="/sis/admin/classes/<%= c.id %>">Manage →</a>
+          <form method="POST" action="/sis/admin/classes/<%= c.id %>/delete" style="display:inline;"
+            onsubmit="return confirm('Delete this class? Students will NOT be deleted.');">
+            <button class="cl-btn cl-btn-danger" type="submit">🗑️</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  /* ============ CARD ============ */
+  .cl-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.75rem;
+  }
+  .cl-new-card {
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%);
+    border-color: #bae6fd;
+  }
+  .cl-card-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .cl-card-icon { font-size: 1.75rem; flex-shrink: 0; }
+  .cl-card-head h3 {
+    font-size: 1.05rem; font-weight: 800;
+    color: #0f172a; margin-bottom: .2rem;
+  }
+  .cl-card-head p {
+    font-size: .82rem; color: #64748b;
+    line-height: 1.5;
+  }
+
+  /* ============ FORM ============ */
+  .cl-form {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr .8fr 1.2fr auto;
+    gap: .75rem;
+    align-items: end;
+  }
+  .cl-field { display: flex; flex-direction: column; min-width: 0; }
+  .cl-lbl {
+    font-size: .68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .4rem;
+  }
+  .cl-input, .cl-select {
+    width: 100%; padding: .7rem .85rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fff; font-size: .88rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .cl-input:focus, .cl-select:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .cl-form-actions { display: flex; }
+  .cl-submit {
+    width: 100%;
+    padding: .7rem 1.1rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: .85rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .cl-submit:hover { transform: translateY(-2px); }
+
+  /* ============ SECTION ============ */
+  .cl-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .cl-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  /* ============ GRID ============ */
+  .cl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .cl-item {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #06b6d4;
+    border-radius: 12px;
+    padding: 1.25rem;
+    display: flex; flex-direction: column;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    transition: all .15s;
+  }
+  .cl-item:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); transform: translateY(-2px); }
+
+  .cl-item-head {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: .5rem;
+    margin-bottom: 1rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .cl-item-name {
+    font-weight: 900; color: #0f172a;
+    font-size: 1.1rem;
+    letter-spacing: -.01em;
+    word-break: break-word;
+  }
+  .cl-item-open {
+    flex-shrink: 0;
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    background: #f0f9ff; color: #0891b2;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 800;
+    transition: all .15s;
+  }
+  .cl-item-open:hover { background: #06b6d4; color: #fff; }
+
+  .cl-item-meta { flex: 1; }
+  .cl-item-row {
+    display: flex; justify-content: space-between;
+    padding: .35rem 0;
+    font-size: .85rem;
+    border-bottom: 1px dashed #f1f5f9;
+  }
+  .cl-item-row:last-child { border-bottom: none; }
+  .cl-item-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .1em; color: #94a3b8;
+    font-weight: 800;
+    align-self: center;
+  }
+
+  .cl-item-stats {
+    display: grid;
+    grid-template-columns: 1fr;
+    margin: .85rem 0 1rem;
+    padding-top: .85rem;
+    border-top: 1px solid #f1f5f9;
+  }
+  .cl-stat { text-align: center; }
+  .cl-stat-num {
+    font-family: Georgia, serif;
+    font-size: 1.5rem; font-weight: 800;
+    color: #0891b2; line-height: 1;
+  }
+  .cl-stat-lbl {
+    font-size: .62rem; text-transform: uppercase;
+    letter-spacing: .14em; color: #94a3b8;
+    font-weight: 800; margin-top: .3rem;
+  }
+
+  .cl-item-actions {
+    display: flex; gap: .5rem;
+    margin-top: auto;
+  }
+  .cl-btn {
+    padding: .55rem .9rem;
+    border-radius: 8px;
+    font-size: .82rem;
+    font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    text-decoration: none;
+    border: none;
+    transition: all .15s;
+    text-align: center;
+  }
+  .cl-btn-primary {
+    flex: 1;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    box-shadow: 0 4px 10px rgba(6,182,212,.25);
+  }
+  .cl-btn-primary:hover { transform: translateY(-1px); }
+  .cl-btn-danger {
+    background: #fee2e2; color: #991b1b;
+    padding: .55rem .75rem;
+  }
+  .cl-btn-danger:hover { background: #fecaca; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 900px) {
+    .cl-form { grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .cl-form-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 700px) {
+    .cl-card { padding: 1.15rem; }
+    .cl-card-head { gap: .6rem; }
+    .cl-card-icon { font-size: 1.4rem; }
+    .cl-card-head h3 { font-size: .95rem; }
+
+    .cl-form { grid-template-columns: 1fr; }
+    .cl-submit { padding: .75rem; }
+
+    .cl-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<%- include('partials/foot') %>

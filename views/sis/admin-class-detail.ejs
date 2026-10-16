@@ -1,0 +1,390 @@
+<%- include('partials/head', {
+  title: cls.name,
+  heading: cls.name,
+  subtitle: 'Class details and student roster.'
+}) %>
+
+<div style="margin-bottom:1.25rem;">
+  <a class="cl-back" href="/sis/admin/classes">← Back to Classes</a>
+</div>
+
+<!-- ============ HEADER CARD ============ -->
+<div class="cd-header">
+  <div class="cd-header-info">
+    <div class="cd-big-name"><%= cls.name %></div>
+    <div class="cd-big-meta">
+      <% if (cls.level) { %><span class="cd-tag cd-tag-cyan"><%= cls.level %></span><% } %>
+      <% if (cls.room) { %><span class="cd-tag cd-tag-slate">🏠 <%= cls.room %></span><% } %>
+      <% if (cls.capacity) { %><span class="cd-tag cd-tag-gold">👥 Capacity <%= cls.capacity %></span><% } %>
+    </div>
+  </div>
+  <div class="cd-header-stat">
+    <div class="cd-hs-num"><%= enrolled.length %></div>
+    <div class="cd-hs-lbl">Students</div>
+  </div>
+</div>
+
+<!-- ============ EDIT ============ -->
+<div class="cd-panel">
+  <div class="cd-panel-head">
+    <span class="cd-panel-icon">✏️</span>
+    <h3>Edit Class Details</h3>
+  </div>
+
+  <form method="POST" action="/sis/admin/classes/<%= cls.id %>/edit" class="cd-form">
+    <div class="cd-field">
+      <label class="cd-lbl">Class Name *</label>
+      <input class="cd-input" name="name" value="<%= cls.name %>" required>
+    </div>
+    <div class="cd-field">
+      <label class="cd-lbl">Level</label>
+      <input class="cd-input" name="level" value="<%= cls.level || '' %>">
+    </div>
+    <div class="cd-field">
+      <label class="cd-lbl">Room</label>
+      <input class="cd-input" name="room" value="<%= cls.room || '' %>">
+    </div>
+    <div class="cd-field">
+      <label class="cd-lbl">Capacity</label>
+      <input class="cd-input" type="number" name="capacity" value="<%= cls.capacity || '' %>" min="1" max="200">
+    </div>
+    <div class="cd-field">
+      <label class="cd-lbl">Teacher</label>
+      <select class="cd-select" name="teacher_id">
+        <option value="">— None —</option>
+        <% teachers.forEach(t => { %>
+          <option value="<%= t.id %>" <%= cls.teacher_id === t.id ? 'selected' : '' %>>
+            <%= t.full_name || t.username %>
+          </option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="cd-field cd-form-actions">
+      <button class="cd-submit" type="submit">💾 Save Changes</button>
+    </div>
+  </form>
+</div>
+
+<!-- ============ ADD STUDENTS ============ -->
+<div class="cd-panel">
+  <div class="cd-panel-head">
+    <span class="cd-panel-icon">➕</span>
+    <div>
+      <h3>Add Students to <%= cls.name %></h3>
+      <p>Select one or more students to enroll in this class.</p>
+    </div>
+  </div>
+
+  <% if (candidates.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">All active students are already in this class.</div>
+  <% } else { %>
+    <form method="POST" action="/sis/admin/classes/<%= cls.id %>/assign" id="assignForm">
+      <div class="cd-candidates">
+        <% candidates.forEach(s => { %>
+          <label class="cd-candidate">
+            <input type="checkbox" name="student_ids" value="<%= s.id %>">
+            <div class="cd-candidate-body">
+              <div class="cd-candidate-name"><%= s.full_name || s.username %></div>
+              <div class="cd-candidate-meta">
+                @<%= s.username %>
+                <% if (s.admission_number) { %> · <%= s.admission_number %><% } %>
+                <% if (s.class_level) { %> · Currently: <%= s.class_level %><% } %>
+              </div>
+            </div>
+          </label>
+        <% }) %>
+      </div>
+
+      <div class="cd-add-actions">
+        <button class="cd-submit cd-submit-green" type="submit">✓ Add Selected to Class</button>
+      </div>
+    </form>
+  <% } %>
+</div>
+
+<!-- ============ ROSTER ============ -->
+<div class="cd-panel">
+  <div class="cd-panel-head cd-panel-head-flex">
+    <div style="display:flex;align-items:center;gap:.75rem;">
+      <span class="cd-panel-icon">🎓</span>
+      <h3>Class Roster (<%= enrolled.length %>)</h3>
+    </div>
+  </div>
+
+  <% if (enrolled.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">No students in this class yet.</div>
+  <% } else { %>
+    <div class="cd-roster">
+      <% enrolled.forEach(s => { %>
+        <div class="cd-student">
+          <div class="cd-student-avatar">
+            <%= (s.full_name || s.username || '?').charAt(0).toUpperCase() %>
+          </div>
+          <div class="cd-student-body">
+            <div class="cd-student-name"><%= s.full_name || s.username %></div>
+            <div class="cd-student-meta">
+              @<%= s.username %>
+              <% if (s.admission_number) { %> · ID <%= s.admission_number %><% } %>
+            </div>
+            <% if (s.guardian_name) { %>
+              <div class="cd-student-meta cd-student-guardian">
+                👨‍👩‍👧 <%= s.guardian_name %><%= s.guardian_phone ? ' · ' + s.guardian_phone : '' %>
+              </div>
+            <% } %>
+          </div>
+          <form method="POST" action="/sis/admin/classes/<%= cls.id %>/remove/<%= s.id %>"
+            onsubmit="return confirm('Remove this student from the class?');">
+            <button class="cd-remove" type="submit" title="Remove">✕</button>
+          </form>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<style>
+  /* ============ BACK ============ */
+  .cl-back {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: .5rem 1rem;
+    background: #fff; color: #0f2942;
+    border: 1px solid #e2e8f0; border-radius: 8px;
+    font-size: .82rem; font-weight: 700; text-decoration: none;
+    transition: all .15s;
+  }
+  .cl-back:hover { background: #f8fafc; border-color: #06b6d4; color: #0891b2; }
+
+  /* ============ HEADER ============ */
+  .cd-header {
+    position: relative;
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    border-radius: 14px;
+    padding: 1.75rem 1.75rem;
+    margin-bottom: 1.5rem;
+    color: #fff;
+    box-shadow: 0 12px 28px rgba(6,182,212,.25);
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .cd-header::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle at 20% 30%, rgba(103,232,249,.25) 0%, transparent 45%);
+    border-radius: 14px; pointer-events: none;
+  }
+  .cd-header-info, .cd-header-stat { position: relative; }
+  .cd-big-name {
+    font-size: 1.75rem; font-weight: 900;
+    letter-spacing: -.02em;
+    margin-bottom: .5rem;
+    word-break: break-word;
+  }
+  .cd-big-meta { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .cd-tag {
+    display: inline-block;
+    padding: .3rem .7rem;
+    border-radius: 100px;
+    font-size: .7rem; font-weight: 800;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,.2);
+  }
+  .cd-tag-cyan { background: rgba(6,182,212,.35); border-color: rgba(103,232,249,.5); }
+  .cd-tag-gold { background: rgba(245,158,11,.35); border-color: rgba(251,191,36,.5); }
+
+  .cd-header-stat { text-align: right; }
+  .cd-hs-num {
+    font-family: Georgia, serif;
+    font-size: 2.5rem; font-weight: 900;
+    line-height: 1; color: #fff;
+  }
+  .cd-hs-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .15em; color: rgba(255,255,255,.75);
+    font-weight: 800; margin-top: .35rem;
+  }
+
+  /* ============ PANEL ============ */
+  .cd-panel {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.25rem;
+  }
+  .cd-panel-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .cd-panel-head-flex { justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .75rem; }
+  .cd-panel-icon { font-size: 1.35rem; flex-shrink: 0; }
+  .cd-panel-head h3 {
+    font-size: 1rem; font-weight: 800;
+    color: #0f172a; letter-spacing: -.01em;
+  }
+  .cd-panel-head p {
+    font-size: .8rem; color: #64748b;
+    line-height: 1.5; margin-top: .2rem;
+  }
+
+  /* ============ FORM ============ */
+  .cd-form {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr .8fr 1.2fr auto;
+    gap: .75rem;
+    align-items: end;
+  }
+  .cd-field { display: flex; flex-direction: column; min-width: 0; }
+  .cd-lbl {
+    font-size: .68rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .4rem;
+  }
+  .cd-input, .cd-select {
+    width: 100%; padding: .7rem .85rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 9px;
+    background: #fff; font-size: .88rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .cd-input:focus, .cd-select:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .cd-form-actions { display: flex; }
+  .cd-submit {
+    padding: .7rem 1.25rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: .85rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .cd-submit:hover { transform: translateY(-2px); }
+  .cd-submit-green {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 6px 14px rgba(16,185,129,.3);
+  }
+
+  /* ============ CANDIDATES ============ */
+  .cd-candidates {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: .65rem;
+    margin-bottom: 1rem;
+  }
+  .cd-candidate {
+    display: flex; align-items: center; gap: .65rem;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: .75rem .9rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .cd-candidate:hover { border-color: #06b6d4; background: #f0f9ff; }
+  .cd-candidate input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: #06b6d4;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .cd-candidate-body { min-width: 0; flex: 1; }
+  .cd-candidate-name {
+    font-weight: 700; color: #0f172a;
+    font-size: .88rem;
+    word-break: break-word;
+  }
+  .cd-candidate-meta {
+    color: #64748b; font-size: .74rem;
+    margin-top: .15rem;
+    word-break: break-word;
+  }
+
+  .cd-add-actions { display: flex; }
+
+  /* ============ ROSTER ============ */
+  .cd-roster {
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .cd-student {
+    display: grid;
+    grid-template-columns: 46px 1fr auto;
+    gap: .85rem;
+    align-items: center;
+    padding: .7rem .9rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    transition: all .15s;
+  }
+  .cd-student:hover { box-shadow: 0 3px 12px rgba(15,23,42,.06); }
+  .cd-student-avatar {
+    width: 46px; height: 46px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.15rem;
+    font-family: Georgia, serif;
+  }
+  .cd-student-body { min-width: 0; }
+  .cd-student-name {
+    font-weight: 800; color: #0f172a;
+    font-size: .93rem;
+    word-break: break-word;
+    line-height: 1.3;
+  }
+  .cd-student-meta {
+    color: #64748b; font-size: .76rem;
+    margin-top: .2rem;
+    word-break: break-word;
+  }
+  .cd-student-guardian { color: #0891b2; font-weight: 600; }
+
+  .cd-remove {
+    background: #fef2f2; color: #991b1b;
+    border: none; width: 32px; height: 32px;
+    border-radius: 8px; font-size: .85rem;
+    font-weight: 800; cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .cd-remove:hover { background: #fecaca; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 900px) {
+    .cd-form { grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .cd-form-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 700px) {
+    .cd-header { padding: 1.25rem; }
+    .cd-big-name { font-size: 1.4rem; }
+    .cd-hs-num { font-size: 2rem; }
+
+    .cd-panel { padding: 1.15rem; }
+    .cd-form { grid-template-columns: 1fr; }
+    .cd-submit { width: 100%; }
+
+    .cd-candidates { grid-template-columns: 1fr; }
+    .cd-add-actions { display: block; }
+
+    .cd-student {
+      grid-template-columns: 42px 1fr auto;
+      gap: .6rem;
+      padding: .65rem .75rem;
+    }
+    .cd-student-avatar { width: 42px; height: 42px; font-size: 1rem; }
+    .cd-student-name { font-size: .88rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>

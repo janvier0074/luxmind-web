@@ -390,7 +390,7 @@
           <a href="/sis/students/new"><span class="icon">➕</span> Register Student</a>
           <a href="/sis/admin/registrations" class="<%= currentPath === '/sis/admin/registrations' ? 'active' : '' %>"><span class="icon">📝</span> Course Registrations</a>
                      <a href="/sis/admin/documents" class="<%= currentPath === '/sis/admin/documents' ? 'active' : '' %>"><span class="icon">📄</span> Document Requests</a>
-          <a href="/sis/classes"><span class="icon">🏫</span> Classes</a>
+                    <a href="/sis/admin/classes" class="<%= currentPath && currentPath.startsWith('/sis/admin/classes') ? 'active' : '' %>"><span class="icon">🏫</span> Classes</a>
         </nav>
       </details>
       <details>
