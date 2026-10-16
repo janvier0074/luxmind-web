@@ -8,6 +8,8 @@ const { sendWelcome } = require('../services/emailService');
 
 const router = express.Router();
 
+const HOME_PATH = process.env.APP_MODE === 'sis' ? '/sis' : '/dashboard';
+
 // ---------- LOGIN PAGE ----------
 router.get('/login', (req, res) => {
   if (req.session.user) return res.redirect(HOME_PATH);
