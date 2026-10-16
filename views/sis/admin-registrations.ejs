@@ -1,0 +1,185 @@
+<%- include('partials/head', {
+  title: 'Course Registrations',
+  heading: 'Course Registrations',
+  subtitle: 'Approve or reject student registration requests.'
+}) %>
+
+<h3 class="reg-sec-title">⏳ Pending Requests (<%= pending.length %>)</h3>
+
+<% if (pending.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No pending requests. All caught up ✅</div>
+<% } else { %>
+  <div class="reg-admin-grid">
+    <% pending.forEach(r => { %>
+      <div class="reg-admin-card">
+        <div class="reg-admin-head">
+          <div>
+            <div class="reg-admin-student"><%= r.student_name || r.student_username %></div>
+            <div class="reg-admin-email"><%= r.student_email || '—' %></div>
+          </div>
+          <div class="reg-admin-date">
+            <%= new Date(r.requested_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) %>
+          </div>
+        </div>
+
+        <div class="reg-admin-course">
+          <div class="reg-admin-lbl">Requested Course</div>
+          <div class="reg-admin-course-title"><%= r.course_title %></div>
+        </div>
+
+        <div class="reg-admin-actions">
+          <form method="POST" action="/sis/admin/registrations/<%= r.id %>/approve" style="flex:1;">
+            <button class="reg-approve" type="submit">✓ Approve</button>
+          </form>
+          <form method="POST" action="/sis/admin/registrations/<%= r.id %>/reject" style="flex:1;" id="reject-<%= r.id %>">
+            <input type="hidden" name="notes" id="notes-<%= r.id %>" value="">
+            <button class="reg-reject" type="button" onclick="rejectReg(<%= r.id %>)">✕ Reject</button>
+          </form>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<h3 class="reg-sec-title" style="margin-top:2rem;">🕐 Recently Handled</h3>
+
+<% if (recentlyHandled.length === 0) { %>
+  <div class="sis-empty" style="padding:1.5rem;">Nothing handled yet.</div>
+<% } else { %>
+  <div class="reg-admin-table-wrap">
+    <table class="reg-admin-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Course</th>
+          <th style="width:110px;text-align:center;">Status</th>
+          <th style="width:130px;">Reviewed</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% recentlyHandled.forEach(r => { %>
+          <tr>
+            <td><strong><%= r.student_name || r.student_username %></strong></td>
+            <td><%= r.course_title %></td>
+            <td style="text-align:center;">
+              <% if (r.status === 'approved') { %>
+                <span class="reg-badge reg-badge-approved">✅ Approved</span>
+              <% } else { %>
+                <span class="reg-badge reg-badge-rejected">❌ Rejected</span>
+              <% } %>
+            </td>
+            <td style="color:#64748b;font-size:.82rem;">
+              <%= r.reviewed_at ? new Date(r.reviewed_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) : '—' %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<style>
+  .reg-sec-title {
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+
+  .reg-admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+  .reg-admin-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-left: 4px solid #f59e0b;
+    border-radius: 12px; padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .reg-admin-head {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: .75rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: .85rem;
+  }
+  .reg-admin-student { font-weight: 800; color: #0f172a; font-size: .95rem; }
+  .reg-admin-email { color: #64748b; font-size: .78rem; margin-top: 2px; word-break: break-all; }
+  .reg-admin-date { color: #94a3b8; font-size: .75rem; font-weight: 700; flex-shrink: 0; }
+
+  .reg-admin-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #94a3b8;
+    font-weight: 800; margin-bottom: .25rem;
+  }
+  .reg-admin-course-title {
+    font-weight: 700; color: #0891b2; font-size: .95rem;
+    margin-bottom: 1rem;
+  }
+
+  .reg-admin-actions { display: flex; gap: .5rem; }
+  .reg-approve {
+    width: 100%; padding: .6rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; border: none; border-radius: 8px;
+    font-weight: 800; font-size: .85rem;
+    cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .reg-approve:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,185,129,.35); }
+  .reg-reject {
+    width: 100%; padding: .6rem;
+    background: #fff; color: #991b1b;
+    border: 1.5px solid #fecaca; border-radius: 8px;
+    font-weight: 800; font-size: .85rem;
+    cursor: pointer; font-family: inherit;
+    transition: all .15s;
+  }
+  .reg-reject:hover { background: #fee2e2; }
+
+  .reg-admin-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .reg-admin-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .reg-admin-table thead { background: #f8fafc; }
+  .reg-admin-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .reg-admin-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  .reg-badge {
+    display: inline-block; padding: 3px 10px;
+    font-size: .72rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+  }
+  .reg-badge-approved { background: #d1fae5; color: #065f46; }
+  .reg-badge-rejected { background: #fee2e2; color: #991b1b; }
+
+  @media (max-width: 700px) {
+    .reg-admin-grid { grid-template-columns: 1fr; }
+    .reg-admin-table-wrap { overflow-x: auto; }
+    .reg-admin-table { min-width: 550px; }
+  }
+</style>
+
+<script>
+  function rejectReg(id) {
+    var reason = prompt('Reason for rejection (optional):');
+    if (reason === null) return;
+    document.getElementById('notes-' + id).value = reason || '';
+    document.getElementById('reject-' + id).submit();
+  }
+</script>
+
+<%- include('partials/foot') %>

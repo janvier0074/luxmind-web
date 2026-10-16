@@ -926,6 +926,210 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
     },
   });
 });
+// ============================================================
+//                 COURSE REGISTRATION
+// ============================================================
+
+// Student — see available courses + their own registrations
+router.get('/sis/my/registration', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // Courses the student is NOT enrolled in yet
+  const available = await db.all(`
+    SELECT c.*,
+           u.full_name AS teacher_name,
+           (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count,
+           (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) AS student_count,
+           cr.id AS reg_id,
+           cr.status AS reg_status
+    FROM courses c
+    LEFT JOIN users u ON u.id = c.teacher_id
+    LEFT JOIN course_registrations cr
+      ON cr.course_id = c.id AND cr.student_id = $1
+    WHERE c.id NOT IN (
+      SELECT course_id FROM enrollments WHERE user_id = $2
+    )
+    ORDER BY c.title
+  `, [uid, uid]);
+
+  // Student's existing registrations (pending/rejected)
+  const pending = await db.all(`
+    SELECT cr.*, c.title AS course_title, c.id AS course_id
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    WHERE cr.student_id = $1
+    ORDER BY cr.requested_at DESC
+  `, [uid]);
+
+  // Enrolled courses
+  const enrolled = await db.all(`
+    SELECT c.id, c.title, c.description,
+           u.full_name AS teacher_name,
+           (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count
+    FROM courses c
+    JOIN enrollments e ON e.course_id = c.id
+    LEFT JOIN users u ON u.id = c.teacher_id
+    WHERE e.user_id = $1
+    ORDER BY c.title
+  `, [uid]);
+
+  res.render('sis/my-registration', {
+    title: 'Course Registration',
+    heading: 'Course Registration',
+    subtitle: 'Enroll in new courses or review your requests.',
+    available, pending, enrolled,
+  });
+});
+
+// Student — submit a registration request
+router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const courseId = Number(req.body.course_id);
+
+  if (!courseId) {
+    req.flash('error', 'Please select a course.');
+    return res.redirect('/sis/my/registration');
+  }
+
+  // Check already enrolled
+  const alreadyIn = await db.get(
+    `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
+    [uid, courseId]
+  );
+  if (alreadyIn) {
+    req.flash('error', 'You are already enrolled in this course.');
+    return res.redirect('/sis/my/registration');
+  }
+
+  // Check existing request
+  const existing = await db.get(
+    `SELECT id, status FROM course_registrations WHERE student_id = $1 AND course_id = $2`,
+    [uid, courseId]
+  );
+  if (existing) {
+    if (existing.status === 'pending') {
+      req.flash('error', 'You already have a pending request for this course.');
+    } else if (existing.status === 'rejected') {
+      // Allow re-request — update the row
+      await db.run(
+        `UPDATE course_registrations
+         SET status = 'pending', requested_at = NOW(), reviewed_at = NULL, reviewed_by = NULL, notes = NULL
+         WHERE id = $1`,
+        [existing.id]
+      );
+      req.flash('success', 'Request resubmitted.');
+    }
+    return res.redirect('/sis/my/registration');
+  }
+
+  await db.run(
+    `INSERT INTO course_registrations (student_id, course_id, status)
+     VALUES ($1, $2, 'pending')`,
+    [uid, courseId]
+  );
+
+  req.flash('success', 'Registration request submitted. Waiting for admin approval.');
+  res.redirect('/sis/my/registration');
+});
+
+// Student — cancel a pending request
+router.post('/sis/my/registration/cancel/:id', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  await db.run(
+    `DELETE FROM course_registrations WHERE id = $1 AND student_id = $2 AND status = 'pending'`,
+    [req.params.id, uid]
+  );
+  req.flash('success', 'Request cancelled.');
+  res.redirect('/sis/my/registration');
+});
+
+// ============================================================
+//                 ADMIN — review registrations
+// ============================================================
+router.get('/sis/admin/registrations', guard, async (req, res) => {
+  const db = getDB();
+
+  const pending = await db.all(`
+    SELECT cr.*, c.title AS course_title,
+           u.full_name AS student_name, u.username AS student_username,
+           u.email AS student_email
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    JOIN users u ON u.id = cr.student_id
+    WHERE cr.status = 'pending'
+    ORDER BY cr.requested_at DESC
+  `);
+
+  const recentlyHandled = await db.all(`
+    SELECT cr.*, c.title AS course_title,
+           u.full_name AS student_name, u.username AS student_username
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    JOIN users u ON u.id = cr.student_id
+    WHERE cr.status IN ('approved','rejected')
+    ORDER BY cr.reviewed_at DESC
+    LIMIT 20
+  `);
+
+  res.render('sis/admin-registrations', {
+    title: 'Course Registrations',
+    heading: 'Course Registrations',
+    subtitle: 'Approve or reject student registration requests.',
+    pending, recentlyHandled,
+  });
+});
+
+router.post('/sis/admin/registrations/:id/approve', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const reg = await db.get(`SELECT * FROM course_registrations WHERE id = $1`, [id]);
+  if (!reg) {
+    req.flash('error', 'Registration not found.');
+    return res.redirect('/sis/admin/registrations');
+  }
+
+  // Enroll the student (skip if already enrolled)
+  const already = await db.get(
+    `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
+    [reg.student_id, reg.course_id]
+  );
+  if (!already) {
+    await db.run(
+      `INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2)`,
+      [reg.student_id, reg.course_id]
+    );
+  }
+
+  await db.run(
+    `UPDATE course_registrations
+     SET status = 'approved', reviewed_at = NOW(), reviewed_by = $1
+     WHERE id = $2`,
+    [req.session.user.id, id]
+  );
+
+  req.flash('success', 'Registration approved and student enrolled.');
+  res.redirect('/sis/admin/registrations');
+});
+
+router.post('/sis/admin/registrations/:id/reject', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const notes = req.body.notes || null;
+
+  await db.run(
+    `UPDATE course_registrations
+     SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1, notes = $2
+     WHERE id = $3`,
+    [req.session.user.id, notes, id]
+  );
+
+  req.flash('success', 'Registration rejected.');
+  res.redirect('/sis/admin/registrations');
+});
 
 
 module.exports = router;

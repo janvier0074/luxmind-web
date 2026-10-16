@@ -1,0 +1,219 @@
+<%- include('partials/head', {
+  title: 'Course Registration',
+  heading: 'Course Registration',
+  subtitle: 'Enroll in new courses or review your requests.'
+}) %>
+
+<div class="reg-tabs">
+  <button class="reg-tab active" data-tab="enrolled">✅ My Courses (<%= enrolled.length %>)</button>
+  <button class="reg-tab" data-tab="available">➕ Available (<%= available.length %>)</button>
+  <button class="reg-tab" data-tab="requests">⏳ Requests (<%= pending.length %>)</button>
+</div>
+
+<!-- ============ ENROLLED ============ -->
+<div class="reg-panel active" id="tab-enrolled">
+  <% if (enrolled.length === 0) { %>
+    <div class="sis-empty" style="padding:2rem;">You're not enrolled in any courses yet. Check the Available tab to register.</div>
+  <% } else { %>
+    <div class="reg-grid">
+      <% enrolled.forEach(c => { %>
+        <div class="reg-card reg-card-enrolled">
+          <div class="reg-card-title"><%= c.title %></div>
+          <div class="reg-card-meta">👨‍🏫 <%= c.teacher_name || 'LuxMind' %></div>
+          <div class="reg-card-meta">📖 <%= c.lesson_count %> lessons</div>
+          <div class="reg-card-actions">
+            <a class="sis-btn sis-btn-outline" href="/courses/<%= c.id %>" style="flex:1;text-align:center;">View in SIS</a>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<!-- ============ AVAILABLE ============ -->
+<div class="reg-panel" id="tab-available">
+  <% if (available.length === 0) { %>
+    <div class="sis-empty" style="padding:2rem;">No new courses available. You're enrolled in everything!</div>
+  <% } else { %>
+    <div class="reg-grid">
+      <% available.forEach(c => {
+        const alreadyRequested = c.reg_status === 'pending';
+      %>
+        <div class="reg-card">
+          <div class="reg-card-title"><%= c.title %></div>
+          <% if (c.description) { %>
+            <div class="reg-card-desc"><%= c.description.slice(0, 100) %><%= c.description.length > 100 ? '…' : '' %></div>
+          <% } %>
+          <div class="reg-card-meta">👨‍🏫 <%= c.teacher_name || 'LuxMind' %></div>
+          <div class="reg-card-meta">📖 <%= c.lesson_count %> lessons · 👥 <%= c.student_count %> students</div>
+
+          <% if (alreadyRequested) { %>
+            <div class="reg-card-actions">
+              <div class="reg-badge reg-badge-pending" style="flex:1;text-align:center;padding:.5rem;">⏳ Request pending</div>
+            </div>
+          <% } else { %>
+            <form method="POST" action="/sis/my/registration/request" class="reg-card-actions">
+              <input type="hidden" name="course_id" value="<%= c.id %>">
+              <button class="sis-btn sis-btn-gold" type="submit" style="flex:1;">Register →</button>
+            </form>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<!-- ============ REQUESTS ============ -->
+<div class="reg-panel" id="tab-requests">
+  <% if (pending.length === 0) { %>
+    <div class="sis-empty" style="padding:2rem;">No registration requests yet.</div>
+  <% } else { %>
+    <div class="sis-card" style="padding:0;overflow:hidden;">
+      <table class="reg-table">
+        <thead>
+          <tr>
+            <th>Course</th>
+            <th style="width:110px;text-align:center;">Status</th>
+            <th style="width:130px;">Requested</th>
+            <th style="width:120px;text-align:right;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% pending.forEach(r => { %>
+            <tr>
+              <td><strong><%= r.course_title %></strong></td>
+              <td style="text-align:center;">
+                <% if (r.status === 'pending') { %>
+                  <span class="reg-badge reg-badge-pending">⏳ Pending</span>
+                <% } else if (r.status === 'approved') { %>
+                  <span class="reg-badge reg-badge-approved">✅ Approved</span>
+                <% } else { %>
+                  <span class="reg-badge reg-badge-rejected">❌ Rejected</span>
+                <% } %>
+              </td>
+              <td style="color:#64748b;font-size:.82rem;">
+                <%= new Date(r.requested_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+              </td>
+              <td style="text-align:right;">
+                <% if (r.status === 'pending') { %>
+                  <form method="POST" action="/sis/my/registration/cancel/<%= r.id %>" style="display:inline;" onsubmit="return confirm('Cancel this request?');">
+                    <button class="reg-cancel" type="submit">Cancel</button>
+                  </form>
+                <% } else if (r.status === 'rejected' && r.notes) { %>
+                  <span style="color:#64748b;font-size:.75rem;" title="<%= r.notes %>">Reason: <%= r.notes.slice(0, 30) %></span>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<style>
+  .reg-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap;
+  }
+  .reg-tab {
+    background: #fff; border: 1px solid #e2e8f0;
+    padding: .6rem 1.1rem; border-radius: 8px;
+    font-size: .82rem; font-weight: 700; color: #475569;
+    cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .reg-tab.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border-color: transparent;
+  }
+  .reg-panel { display: none; }
+  .reg-panel.active { display: block; }
+
+  .reg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+  }
+  .reg-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    display: flex; flex-direction: column;
+    transition: all .15s;
+  }
+  .reg-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); transform: translateY(-2px); }
+  .reg-card-enrolled { border-left: 4px solid #10b981; }
+  .reg-card-title {
+    font-weight: 800; color: #0f172a; font-size: 1rem;
+    margin-bottom: .5rem; line-height: 1.3;
+  }
+  .reg-card-desc {
+    color: #64748b; font-size: .82rem;
+    line-height: 1.5; margin-bottom: .65rem;
+  }
+  .reg-card-meta {
+    color: #475569; font-size: .8rem;
+    margin-bottom: .35rem;
+  }
+  .reg-card-actions {
+    display: flex; gap: .5rem;
+    margin-top: auto; padding-top: 1rem;
+  }
+
+  .reg-badge {
+    display: inline-block; padding: 3px 10px;
+    font-size: .72rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+  }
+  .reg-badge-pending { background: #fef3c7; color: #92400e; }
+  .reg-badge-approved { background: #d1fae5; color: #065f46; }
+  .reg-badge-rejected { background: #fee2e2; color: #991b1b; }
+
+  .reg-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .reg-table thead { background: #f8fafc; }
+  .reg-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .reg-table td {
+    padding: .8rem .9rem; border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+  }
+  .reg-cancel {
+    background: #fee2e2; color: #991b1b;
+    border: none; padding: .35rem .8rem;
+    border-radius: 6px; font-size: .75rem;
+    font-weight: 700; cursor: pointer; font-family: inherit;
+  }
+  .reg-cancel:hover { background: #fecaca; }
+
+  @media (max-width: 700px) {
+    .reg-tabs { flex-direction: column; }
+    .reg-tab { width: 100%; text-align: left; }
+    .reg-grid { grid-template-columns: 1fr; }
+    .sis-card { overflow-x: auto; }
+    .reg-table { min-width: 500px; }
+  }
+</style>
+
+<script>
+  (function () {
+    var tabs = document.querySelectorAll('.reg-tab');
+    var panels = document.querySelectorAll('.reg-panel');
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var name = tab.getAttribute('data-tab');
+        tabs.forEach(function (t) { t.classList.remove('active'); });
+        panels.forEach(function (p) { p.classList.remove('active'); });
+        tab.classList.add('active');
+        var panel = document.getElementById('tab-' + name);
+        if (panel) panel.classList.add('active');
+      });
+    });
+  })();
+</script>
+
+<%- include('partials/foot') %>
