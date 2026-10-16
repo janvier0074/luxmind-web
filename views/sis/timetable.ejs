@@ -4,112 +4,209 @@
   subtitle: 'Your courses, instructors and quick links.'
 }) %>
 
-<div style="margin-bottom:1.5rem;">
-  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Overview</a>
+<!-- Top bar: Back + List/Calendar toggle -->
+<div class="tt-topbar">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back</a>
+  <div class="tt-toggle">
+    <button type="button" class="tt-toggle-btn active" id="btnList">List</button>
+    <button type="button" class="tt-toggle-btn" id="btnCalendar">Calendar</button>
+  </div>
 </div>
 
-<div class="sis-card" style="padding:0;overflow:hidden;">
-  <table class="sis-table">
-    <thead>
-      <tr>
-        <th style="width:90px;">Code</th>
-        <th>Course Name</th>
-        <th>Instructor</th>
-        <th style="width:90px;text-align:center;">Syllabus</th>
-        <th style="width:110px;text-align:center;">Attendance</th>
-        <th style="width:100px;text-align:center;">Moodle</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% if (courses.length === 0) { %>
-        <tr>
-          <td colspan="6" style="text-align:center;padding:2.5rem;color:#64748b;">
-            You haven't enrolled in any course yet.
-            <a href="https://luxmind.onrender.com/explore" style="color:#0891b2;font-weight:700;"> Browse courses →</a>
-          </td>
-        </tr>
-      <% } else { %>
-        <% courses.forEach((c, i) => {
-          const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
-          const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
-          const attColor = pct >= 75 ? '#10b981' : (pct >= 50 ? '#f59e0b' : '#ef4444');
-          const lmsUrl = 'https://luxmind.onrender.com/courses/' + c.id;
-        %>
-          <tr>
-            <td>
-              <a href="<%= lmsUrl %>" style="text-decoration:none;font-family:ui-monospace,monospace;font-weight:800;color:#0891b2;font-size:.85rem;" title="Open in LMS">
-                <%= code %>
-              </a>
-            </td>
-            <td>
-              <a href="<%= lmsUrl %>" style="text-decoration:none;color:inherit;display:block;" title="Open in LMS">
-                <div style="font-weight:700;color:#0f172a;"><%= c.title %> <span style="font-size:.75rem;color:#0891b2;font-weight:600;">↗</span></div>
-                <% if (c.description) { %>
-                  <div style="color:#64748b;font-size:.8rem;margin-top:.2rem;"><%= c.description.slice(0, 80) %><%= c.description.length > 80 ? '…' : '' %></div>
-                <% } %>
-              </a>
-            </td>
-            <td style="color:#334155;font-size:.88rem;"><%= c.teacher_name || 'LuxMind' %></td>
-            <td style="text-align:center;">
-              <a href="<%= lmsUrl %>" title="Syllabus & lessons" style="display:inline-flex;width:32px;height:32px;background:#e0f2fe;color:#0369a1;border-radius:6px;align-items:center;justify-content:center;text-decoration:none;font-size:.95rem;">📘</a>
-            </td>
-            <td style="text-align:center;">
-              <a href="/sis/my/attendance" title="My attendance" style="display:inline-flex;text-decoration:none;">
-                <span style="display:inline-flex;width:36px;height:32px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:6px;align-items:center;justify-content:center;font-size:.78rem;font-weight:800;"><%= pct %>%</span>
-              </a>
-            </td>
-            <td style="text-align:center;">
-              <a class="sis-moodle-btn" href="https://luxmind.onrender.com/login?next=<%= encodeURIComponent('/courses/' + c.id) %>" title="Open in LuxMind LMS">
-  🟢 Open
-</a>
-            </td>
-          </tr>
-        <% }) %>
-      <% } %>
-    </tbody>
-  </table>
+<!-- Notice -->
+<div class="tt-notice">
+  ⓘ Students with attendance below the required threshold may not be eligible to take the final exam. Check your Attendance Detail regularly.
 </div>
 
-<div class="sis-card">
-  <h3>📅 Upcoming Deadlines</h3>
-  <% if (deadlines.length === 0) { %>
-    <div class="sis-empty" style="padding:1.5rem;">Nothing due soon. Enjoy the break ✨</div>
+<!-- =================== LIST VIEW =================== -->
+<div id="viewList">
+  <% if (courses.length === 0) { %>
+    <div class="sis-empty" style="padding:2rem;">You haven't enrolled in any course yet.</div>
   <% } else { %>
-    <table class="sis-table">
-      <thead>
-        <tr>
-          <th>When</th>
-          <th>Type</th>
-          <th>Title</th>
-          <th>Course</th>
-          <th style="text-align:right;">Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% deadlines.forEach(d => {
-          const when = new Date(d.event_at);
-          const hours = (when - new Date()) / 3600000;
-          const urgent = hours < 24 ? 'sis-badge-inactive' : (hours < 72 ? 'sis-badge-gold' : 'sis-badge-active');
-        %>
+    <div class="sis-card" style="padding:0;overflow:hidden;">
+      <table class="sis-table tt-list-table">
+        <thead>
           <tr>
-            <td style="font-family:ui-monospace,monospace;font-size:.85rem;">
-              <%= when.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short' }) %>
-              <span style="color:#64748b;"><%= when.toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' }) %></span>
-            </td>
-            <td><span class="sis-badge <%= urgent %>"><%= d.kind === 'quiz' ? 'Quiz' : 'Assignment' %></span></td>
-            <td><strong><%= d.title %></strong></td>
-            <td style="color:#64748b;"><%= d.course %></td>
-            <td style="text-align:right;">
-              <a class="sis-btn sis-btn-outline" style="padding:.35rem .8rem;font-size:.78rem;"
-                href="https://luxmind.onrender.com<%= d.kind === 'assignment' ? '/student/assignments/' + d.id : '/student/quiz/' + d.id %>">
-                Open →
-              </a>
-            </td>
+            <th style="width:110px;">Course Code</th>
+            <th>Course Name</th>
+            <th>Course Instructor</th>
+            <th style="width:80px;text-align:center;">Group</th>
+            <th style="width:150px;text-align:center;">Attendance Detail</th>
+            <th style="width:110px;text-align:center;">Moodle</th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          <% courses.forEach((c) => {
+            const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
+            const group = 'GR' + String((c.id % 5) + 1).padStart(2, '0');
+            const pct = c.total_lessons > 0 ? Math.round((c.done_lessons / c.total_lessons) * 100) : 0;
+            const attColor = pct >= 75 ? '#10b981' : (pct >= 50 ? '#f59e0b' : '#ef4444');
+            const lmsUrl = 'https://luxmind.onrender.com/login?next=' + encodeURIComponent('/courses/' + c.id);
+          %>
+            <tr>
+              <td style="font-family:ui-monospace,monospace;font-weight:800;color:#0891b2;font-size:.85rem;"><%= code %></td>
+              <td><strong><%= c.title %></strong></td>
+              <td style="color:#334155;font-size:.9rem;"><%= c.teacher_name || 'LuxMind' %></td>
+              <td style="text-align:center;font-family:ui-monospace,monospace;font-size:.82rem;color:#475569;"><%= group %></td>
+              <td style="text-align:center;">
+                <a href="/sis/my/attendance" title="View attendance" style="display:inline-flex;width:50px;height:34px;background:<%= attColor %>22;color:<%= attColor %>;border-radius:8px;align-items:center;justify-content:center;font-size:.82rem;font-weight:900;text-decoration:none;">
+                  <%= pct %>%
+                </a>
+              </td>
+              <td style="text-align:center;">
+                <a class="sis-moodle-btn" href="<%= lmsUrl %>" title="Open in Moodle">🟢 Moodle</a>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
   <% } %>
 </div>
+
+<!-- =================== CALENDAR VIEW =================== -->
+<div id="viewCalendar" style="display:none;">
+  <% if (courses.length === 0) { %>
+    <div class="sis-empty" style="padding:2rem;">Nothing scheduled.</div>
+  <% } else { %>
+    <%
+      const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+      const SLOTS = ['08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00'];
+      const grid = {};
+      DAYS.forEach(d => { grid[d] = {}; SLOTS.forEach(s => grid[d][s] = []); });
+      courses.forEach(c => {
+        const day = DAYS[c.id % 6];
+        const slot = SLOTS[(c.id * 3) % 9];
+        const code = 'LXM' + String(100 + (c.id % 900)).padStart(4, '0');
+        const group = 'GR' + String((c.id % 5) + 1).padStart(2, '0');
+        grid[day][slot].push({ code, group, title: c.title, id: c.id });
+      });
+    %>
+    <div class="tt-cal-wrap">
+      <table class="tt-cal">
+        <thead>
+          <tr>
+            <th class="tt-cal-time-col"></th>
+            <% DAYS.forEach(d => { %><th><%= d %></th><% }) %>
+          </tr>
+        </thead>
+        <tbody>
+          <% SLOTS.forEach(slot => { %>
+            <tr>
+              <td class="tt-cal-time"><%= slot %></td>
+              <% DAYS.forEach(day => { const items = grid[day][slot]; %>
+                <td class="tt-cal-cell">
+                  <% items.forEach(it => { %>
+                    <a class="tt-cal-event" href="https://luxmind.onrender.com/login?next=<%= encodeURIComponent('/courses/' + it.id) %>" title="<%= it.title %>">
+                      <span class="tt-cal-code"><%= it.code %> <%= it.group %></span>
+                      <span class="tt-cal-name"><%= it.title %></span>
+                    </a>
+                  <% }) %>
+                </td>
+              <% }) %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
+</div>
+
+<style>
+  .tt-topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.25rem; gap: 1rem; flex-wrap: wrap;
+  }
+  .tt-toggle {
+    display: inline-flex; background: #fff;
+    border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;
+  }
+  .tt-toggle-btn {
+    background: transparent; border: none;
+    padding: .55rem 1.1rem; font-size: .85rem; font-weight: 700;
+    color: #64748b; cursor: pointer; font-family: inherit; transition: all .15s;
+  }
+  .tt-toggle-btn.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff;
+  }
+
+  .tt-notice {
+    background: #f0f9ff; border-left: 4px solid #06b6d4;
+    padding: .9rem 1.1rem; border-radius: 8px;
+    color: #0c4a6e; font-size: .85rem;
+    margin-bottom: 1.5rem; line-height: 1.55;
+  }
+
+  /* Calendar grid */
+  .tt-cal-wrap {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    overflow-x: auto; box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .tt-cal { width: 100%; border-collapse: collapse; min-width: 900px; }
+  .tt-cal thead th {
+    background: #0f2942; color: #fff; padding: .75rem .5rem;
+    font-size: .75rem; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase; text-align: center;
+  }
+  .tt-cal-time-col { width: 70px; }
+  .tt-cal tbody td {
+    border: 1px solid #e2e8f0; padding: 4px;
+    height: 54px; vertical-align: top;
+  }
+  .tt-cal-time {
+    background: #f8fafc; color: #475569;
+    font-family: ui-monospace, monospace;
+    font-size: .75rem; font-weight: 700;
+    text-align: center; vertical-align: middle !important; white-space: nowrap;
+  }
+  .tt-cal-cell { background: #fff; }
+  .tt-cal-event {
+    display: block; padding: .35rem .5rem;
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff; border-radius: 6px; text-decoration: none;
+    font-size: .72rem; line-height: 1.25; margin-bottom: 3px; font-weight: 600;
+  }
+  .tt-cal-event:hover { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+  .tt-cal-code {
+    display: block; font-family: ui-monospace, monospace;
+    font-size: .65rem; font-weight: 800; opacity: .85;
+  }
+  .tt-cal-name {
+    display: block; font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  @media (max-width: 700px) {
+    .tt-topbar { flex-direction: column; align-items: stretch; }
+    .tt-toggle { width: 100%; }
+    .tt-toggle-btn { flex: 1; }
+    .tt-cal { min-width: 700px; }
+    .tt-cal tbody td { height: 46px; }
+    .tt-cal-event { font-size: .65rem; padding: .25rem .35rem; }
+    .tt-notice { font-size: .78rem; padding: .75rem .85rem; }
+  }
+</style>
+
+<script>
+  (function () {
+    var btnList = document.getElementById('btnList');
+    var btnCal = document.getElementById('btnCalendar');
+    var viewList = document.getElementById('viewList');
+    var viewCal = document.getElementById('viewCalendar');
+    if (!btnList || !btnCal) return;
+    btnList.addEventListener('click', function () {
+      viewList.style.display = 'block';
+      viewCal.style.display = 'none';
+      btnList.classList.add('active');
+      btnCal.classList.remove('active');
+    });
+    btnCal.addEventListener('click', function () {
+      viewList.style.display = 'none';
+      viewCal.style.display = 'block';
+      btnCal.classList.add('active');
+      btnList.classList.remove('active');
+    });
+  })();
+</script>
 
 <%- include('partials/foot') %>
