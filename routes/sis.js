@@ -1430,18 +1430,34 @@ router.post('/sis/my/cgpa/clear', studentGuard, async (req, res) => {
 // ============================================================
 
 // List + create form
-router.get('/sis/admin/classes', guard, async (req, res) => {
+router.get('/sis/admin/classes', staffGuard, async (req, res) => {
   const db = getDB();
+  const isTeacher = req.session.user.role === 'teacher';
+  const uid = req.session.user.id;
 
-  const classes = await db.all(`
-    SELECT c.*,
-           u.full_name AS teacher_name, u.username AS teacher_username,
-           (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) AS student_count,
-           (SELECT COUNT(*) FROM student_profiles WHERE class_level = c.name) AS profile_count
-    FROM classes c
-    LEFT JOIN users u ON u.id = c.teacher_id
-    ORDER BY c.name
-  `);
+  let classes;
+  if (isTeacher) {
+    classes = await db.all(`
+      SELECT c.*,
+             u.full_name AS teacher_name, u.username AS teacher_username,
+             (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM student_profiles WHERE class_level = c.name) AS profile_count
+      FROM classes c
+      LEFT JOIN users u ON u.id = c.teacher_id
+      WHERE c.teacher_id = $1
+      ORDER BY c.name
+    `, [uid]);
+  } else {
+    classes = await db.all(`
+      SELECT c.*,
+             u.full_name AS teacher_name, u.username AS teacher_username,
+             (SELECT COUNT(*) FROM class_students WHERE class_id = c.id) AS student_count,
+             (SELECT COUNT(*) FROM student_profiles WHERE class_level = c.name) AS profile_count
+      FROM classes c
+      LEFT JOIN users u ON u.id = c.teacher_id
+      ORDER BY c.name
+    `);
+  }
 
   const teachers = await db.all(`
     SELECT id, full_name, username FROM users
@@ -1451,9 +1467,10 @@ router.get('/sis/admin/classes', guard, async (req, res) => {
 
   res.render('sis/admin-classes', {
     title: 'Classes',
-    heading: 'Class Management',
-    subtitle: 'Create and organize classes for the institution.',
+    heading: isTeacher ? 'My Classes' : 'Class Management',
+    subtitle: isTeacher ? 'The classes assigned to you.' : 'Create and organize classes for the institution.',
     classes, teachers,
+    isTeacher,
   });
 });
 
