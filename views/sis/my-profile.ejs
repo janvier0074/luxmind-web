@@ -1,0 +1,389 @@
+<%- include('partials/head', {
+  title: 'My Profile',
+  heading: 'My Profile',
+  subtitle: 'Your personal and academic information.'
+}) %>
+
+<%
+  const initials = (profile.full_name || profile.username || '?').charAt(0).toUpperCase();
+  const age = profile.date_of_birth
+    ? Math.floor((Date.now() - new Date(profile.date_of_birth)) / (365.25 * 24 * 60 * 60 * 1000))
+    : null;
+%>
+
+<!-- ============ HERO CARD ============ -->
+<div class="pf-hero">
+  <div class="pf-hero-bg"></div>
+  <div class="pf-hero-body">
+    <div class="pf-avatar-wrap">
+      <% if (profile.photo_url) { %>
+        <img class="pf-avatar" src="<%= profile.photo_url %>" alt="">
+      <% } else { %>
+        <div class="pf-avatar pf-avatar-initials"><%= initials %></div>
+      <% } %>
+      <span class="pf-status-dot <%= profile.status === 'active' ? 'online' : 'offline' %>"></span>
+    </div>
+
+    <div class="pf-hero-info">
+      <h1 class="pf-hero-name"><%= profile.full_name || profile.username %></h1>
+      <div class="pf-hero-handle">@<%= profile.username %></div>
+      <div class="pf-hero-tags">
+        <span class="pf-tag pf-tag-cyan"><%= profile.class_level || 'No class' %></span>
+        <span class="pf-tag pf-tag-gold"><%= profile.status === 'active' ? 'Active Student' : 'Inactive' %></span>
+        <% if (profile.admission_number) { %>
+          <span class="pf-tag pf-tag-slate">ID · <%= profile.admission_number %></span>
+        <% } %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick stats under hero -->
+  <div class="pf-hero-stats">
+    <div class="pf-hero-stat">
+      <div class="pf-hero-stat-num"><%= enrolledCount %></div>
+      <div class="pf-hero-stat-lbl">Courses</div>
+    </div>
+    <div class="pf-hero-stat">
+      <div class="pf-hero-stat-num"><%= attendancePct %>%</div>
+      <div class="pf-hero-stat-lbl">Attendance</div>
+    </div>
+    <div class="pf-hero-stat">
+      <div class="pf-hero-stat-num"><%= age !== null ? age : '—' %></div>
+      <div class="pf-hero-stat-lbl">Age</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ INFO GRID ============ -->
+<div class="pf-grid">
+
+  <!-- Personal -->
+  <div class="pf-card">
+    <div class="pf-card-head">
+      <span class="pf-card-icon">👤</span>
+      <h3>Personal Information</h3>
+    </div>
+    <div class="pf-rows">
+      <div class="pf-row">
+        <div class="pf-row-lbl">Full Name</div>
+        <div class="pf-row-val"><%= profile.full_name || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Username</div>
+        <div class="pf-row-val mono">@<%= profile.username %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Email</div>
+        <div class="pf-row-val"><%= profile.email || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Date of Birth</div>
+        <div class="pf-row-val"><%= profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Gender</div>
+        <div class="pf-row-val" style="text-transform:capitalize;"><%= profile.gender || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Home Address</div>
+        <div class="pf-row-val"><%= profile.home_address || '—' %></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Academic -->
+  <div class="pf-card">
+    <div class="pf-card-head">
+      <span class="pf-card-icon">🎓</span>
+      <h3>Academic Record</h3>
+    </div>
+    <div class="pf-rows">
+      <div class="pf-row">
+        <div class="pf-row-lbl">Admission #</div>
+        <div class="pf-row-val mono"><%= profile.admission_number || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Class</div>
+        <div class="pf-row-val"><%= profile.class_level || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Admission Date</div>
+        <div class="pf-row-val"><%= profile.admission_date ? new Date(profile.admission_date).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) : '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Status</div>
+        <div class="pf-row-val">
+          <span class="pf-pill <%= profile.status === 'active' ? 'pf-pill-green' : 'pf-pill-red' %>">
+            <%= profile.status || 'unknown' %>
+          </span>
+        </div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Courses Enrolled</div>
+        <div class="pf-row-val"><%= enrolledCount %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Attendance Rate</div>
+        <div class="pf-row-val"><%= attendancePct %>%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Guardian -->
+  <div class="pf-card pf-card-wide">
+    <div class="pf-card-head">
+      <span class="pf-card-icon">👨‍👩‍👧</span>
+      <h3>Guardian Information</h3>
+    </div>
+    <div class="pf-rows-2col">
+      <div class="pf-row">
+        <div class="pf-row-lbl">Guardian Name</div>
+        <div class="pf-row-val"><%= profile.guardian_name || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Relationship</div>
+        <div class="pf-row-val"><%= profile.guardian_relationship || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Phone</div>
+        <div class="pf-row-val"><%= profile.guardian_phone || '—' %></div>
+      </div>
+      <div class="pf-row">
+        <div class="pf-row-lbl">Email</div>
+        <div class="pf-row-val"><%= profile.guardian_email || '—' %></div>
+      </div>
+    </div>
+  </div>
+
+  <% if (profile.medical_notes) { %>
+    <div class="pf-card pf-card-wide pf-card-warn">
+      <div class="pf-card-head">
+        <span class="pf-card-icon">⚠️</span>
+        <h3>Medical Notes</h3>
+      </div>
+      <div class="pf-medical"><%= profile.medical_notes %></div>
+    </div>
+  <% } %>
+
+</div>
+
+<!-- ============ ACCOUNT META ============ -->
+<div class="pf-meta">
+  <div class="pf-meta-item">
+    <div class="pf-meta-lbl">Member Since</div>
+    <div class="pf-meta-val"><%= new Date(profile.created_at).toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' }) %></div>
+  </div>
+  <% if (profile.last_seen) { %>
+    <div class="pf-meta-item">
+      <div class="pf-meta-lbl">Last Active</div>
+      <div class="pf-meta-val"><%= new Date(profile.last_seen).toLocaleString('en-GB', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }) %></div>
+    </div>
+  <% } %>
+</div>
+
+<!-- Actions -->
+<div class="pf-actions">
+  <a class="sis-btn sis-btn-outline" href="/sis/my">← Back to Dashboard</a>
+</div>
+
+<style>
+  /* ============ HERO ============ */
+  .pf-hero {
+    position: relative;
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 12px 32px rgba(6,182,212,.25);
+  }
+  .pf-hero-bg {
+    position: absolute; inset: 0;
+    background-image:
+      radial-gradient(circle at 20% 30%, rgba(103,232,249,.25) 0%, transparent 40%),
+      radial-gradient(circle at 85% 70%, rgba(6,182,212,.3) 0%, transparent 45%);
+    pointer-events: none;
+  }
+  .pf-hero-body {
+    position: relative;
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 2rem 2rem 1.5rem;
+    flex-wrap: wrap;
+  }
+  .pf-avatar-wrap { position: relative; flex-shrink: 0; }
+  .pf-avatar {
+    width: 96px; height: 96px;
+    border-radius: 24px;
+    object-fit: cover;
+    border: 4px solid rgba(255,255,255,.15);
+    background: #fff;
+  }
+  .pf-avatar-initials {
+    display: flex; align-items: center; justify-content: center;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    font-size: 2.5rem; font-weight: 900;
+    font-family: Georgia, serif;
+  }
+  .pf-status-dot {
+    position: absolute; bottom: 4px; right: 4px;
+    width: 20px; height: 20px;
+    border-radius: 50%; border: 3px solid #0f2942;
+  }
+  .pf-status-dot.online  { background: #10b981; }
+  .pf-status-dot.offline { background: #94a3b8; }
+
+  .pf-hero-info { flex: 1; min-width: 200px; color: #fff; }
+  .pf-hero-name {
+    font-size: 1.6rem; font-weight: 900;
+    letter-spacing: -.02em; margin-bottom: .25rem;
+    word-break: break-word;
+  }
+  .pf-hero-handle {
+    color: #67e8f9; font-family: ui-monospace, monospace;
+    font-size: .88rem; margin-bottom: .85rem;
+  }
+  .pf-hero-tags { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .pf-tag {
+    display: inline-block;
+    padding: .3rem .75rem;
+    border-radius: 100px;
+    font-size: .72rem; font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,.15);
+    color: #fff;
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,.2);
+  }
+  .pf-tag-cyan { background: rgba(6,182,212,.3); border-color: rgba(103,232,249,.4); }
+  .pf-tag-gold { background: rgba(245,158,11,.3); border-color: rgba(251,191,36,.4); }
+
+  /* Stats strip */
+  .pf-hero-stats {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    background: rgba(0,0,0,.15);
+    backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255,255,255,.1);
+  }
+  .pf-hero-stat {
+    padding: 1rem;
+    text-align: center;
+    border-right: 1px solid rgba(255,255,255,.08);
+  }
+  .pf-hero-stat:last-child { border-right: none; }
+  .pf-hero-stat-num {
+    font-family: Georgia, serif;
+    font-size: 1.75rem; font-weight: 800;
+    color: #fff; line-height: 1;
+  }
+  .pf-hero-stat-lbl {
+    font-size: .62rem; text-transform: uppercase;
+    letter-spacing: .14em; color: rgba(255,255,255,.7);
+    font-weight: 800; margin-top: .35rem;
+  }
+
+  /* ============ GRID ============ */
+  .pf-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .pf-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .pf-card-wide { grid-column: span 2; }
+  .pf-card-warn {
+    background: #fffbeb;
+    border-color: #fde68a;
+  }
+  .pf-card-head {
+    display: flex; align-items: center; gap: .6rem;
+    padding-bottom: .85rem;
+    border-bottom: 1px solid #f1f5f9;
+    margin-bottom: 1rem;
+  }
+  .pf-card-icon { font-size: 1.15rem; }
+  .pf-card-head h3 {
+    font-size: 1rem; font-weight: 800;
+    color: #0f172a; letter-spacing: -.01em;
+  }
+
+  .pf-rows { display: flex; flex-direction: column; gap: .85rem; }
+  .pf-rows-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem .85rem;
+  }
+  .pf-row-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #94a3b8;
+    font-weight: 800; margin-bottom: .25rem;
+  }
+  .pf-row-val {
+    font-size: .93rem; color: #0f172a;
+    font-weight: 700; word-break: break-word;
+    line-height: 1.4;
+  }
+  .pf-row-val.mono { font-family: ui-monospace, monospace; font-size: .85rem; }
+
+  .pf-pill {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 100px; font-size: .72rem;
+    font-weight: 800; letter-spacing: .04em;
+    text-transform: capitalize;
+  }
+  .pf-pill-green { background: #d1fae5; color: #065f46; }
+  .pf-pill-red   { background: #fee2e2; color: #991b1b; }
+
+  .pf-medical {
+    color: #78350f; font-size: .92rem;
+    line-height: 1.55;
+  }
+
+  /* ============ META ============ */
+  .pf-meta {
+    display: flex; gap: 2rem; flex-wrap: wrap;
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .pf-meta-item { min-width: 150px; }
+  .pf-meta-lbl {
+    font-size: .62rem; text-transform: uppercase;
+    letter-spacing: .14em; color: #94a3b8;
+    font-weight: 800; margin-bottom: .2rem;
+  }
+  .pf-meta-val { font-size: .85rem; color: #475569; font-weight: 700; }
+
+  .pf-actions { margin-top: 1rem; }
+
+  /* ============ MOBILE ============ */
+  @media (max-width: 700px) {
+    .pf-hero-body { padding: 1.5rem 1.25rem 1.25rem; gap: 1rem; }
+    .pf-avatar { width: 76px; height: 76px; border-radius: 20px; }
+    .pf-avatar-initials { font-size: 2rem; }
+    .pf-hero-name { font-size: 1.3rem; }
+    .pf-hero-handle { font-size: .8rem; margin-bottom: .65rem; }
+
+    .pf-hero-stats { grid-template-columns: repeat(3, 1fr); }
+    .pf-hero-stat { padding: .75rem .35rem; }
+    .pf-hero-stat-num { font-size: 1.35rem; }
+    .pf-hero-stat-lbl { font-size: .55rem; }
+
+    .pf-grid { grid-template-columns: 1fr; gap: .85rem; }
+    .pf-card-wide { grid-column: span 1; }
+    .pf-card { padding: 1.15rem; }
+    .pf-rows-2col { grid-template-columns: 1fr; }
+
+    .pf-meta { flex-direction: column; gap: .85rem; padding: .85rem 1rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>

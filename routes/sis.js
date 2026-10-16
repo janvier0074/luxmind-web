@@ -1131,5 +1131,49 @@ router.post('/sis/admin/registrations/:id/reject', guard, async (req, res) => {
   res.redirect('/sis/admin/registrations');
 });
 
+// ============================================================
+//                 STUDENT — My Profile
+// ============================================================
+router.get('/sis/my/profile', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const profile = await db.get(`
+    SELECT u.id, u.username, u.full_name, u.email, u.created_at, u.last_seen,
+           sp.admission_number, sp.date_of_birth, sp.gender, sp.photo_url,
+           sp.guardian_name, sp.guardian_phone, sp.guardian_email, sp.guardian_relationship,
+           sp.home_address, sp.medical_notes, sp.class_level, sp.admission_date, sp.status
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.id = $1
+  `, [uid]);
+
+  if (!profile) return res.status(404).render('errors/404');
+
+  // Enrollment count
+  const enrollRow = await db.get(
+    `SELECT COUNT(*) c FROM enrollments WHERE user_id = $1`, [uid]
+  );
+
+  // Attendance summary
+  const attRow = await db.get(`
+    SELECT COUNT(*) AS total,
+           COUNT(*) FILTER (WHERE status='present') AS present
+    FROM attendance WHERE student_id = $1
+  `, [uid]);
+
+  const attendancePct = attRow.total > 0
+    ? Math.round((attRow.present / attRow.total) * 100)
+    : 0;
+
+  res.render('sis/my-profile', {
+    title: 'My Profile',
+    heading: 'My Profile',
+    subtitle: 'Your personal and academic information.',
+    profile,
+    enrolledCount: enrollRow.c,
+    attendancePct,
+  });
+});
 
 module.exports = router;
