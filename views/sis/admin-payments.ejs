@@ -1,0 +1,256 @@
+<%- include('partials/head', {
+  title: 'Record Payment',
+  heading: 'Payments',
+  subtitle: 'Record student payments and view history.'
+}) %>
+
+<!-- Tabs -->
+<div class="fees-tabs">
+  <a class="fees-tab" href="/sis/admin/fees">📋 Fee Structure</a>
+  <a class="fees-tab active" href="/sis/admin/fees/payments">💳 Record Payment</a>
+  <a class="fees-tab" href="/sis/admin/fees/balances">📊 Student Balances</a>
+</div>
+
+<!-- Form -->
+<div class="fees-card fees-new">
+  <div class="fees-card-head">
+    <span class="fees-icon">💵</span>
+    <div>
+      <h3>Record a New Payment</h3>
+      <p>Enter a payment received from a student.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/sis/admin/fees/payments/new" class="fees-form">
+    <div class="fees-field fees-field-wide">
+      <label class="fees-lbl">Student *</label>
+      <select class="fees-input" name="student_id" required>
+        <option value="">— Choose a student —</option>
+        <% students.forEach(s => { %>
+          <option value="<%= s.id %>"><%= s.full_name || s.username %> <%= s.class_level ? '(' + s.class_level + ')' : '' %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="fees-field">
+      <label class="fees-lbl">Amount (BIF) *</label>
+      <input class="fees-input" type="number" name="amount" required min="0" step="1000" placeholder="e.g. 150000">
+    </div>
+
+    <div class="fees-field">
+      <label class="fees-lbl">Term</label>
+      <input class="fees-input" name="term" placeholder="e.g. Term 1" maxlength="40">
+    </div>
+
+    <div class="fees-field">
+      <label class="fees-lbl">Method</label>
+      <select class="fees-input" name="method">
+        <option value="cash">Cash</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="mobile">Mobile Money</option>
+        <option value="cheque">Cheque</option>
+      </select>
+    </div>
+
+    <div class="fees-field">
+      <label class="fees-lbl">Receipt # (auto if blank)</label>
+      <input class="fees-input" name="receipt_number" placeholder="e.g. RCPT-123456" maxlength="30">
+    </div>
+
+    <div class="fees-field">
+      <label class="fees-lbl">Payment Date</label>
+      <input class="fees-input" type="date" name="paid_at" value="<%= new Date().toISOString().slice(0,10) %>">
+    </div>
+
+    <div class="fees-field fees-form-actions">
+      <button class="fees-submit" type="submit">Record Payment</button>
+    </div>
+  </form>
+</div>
+
+<!-- History -->
+<h3 class="fees-sec-title">
+  Payment History
+  <% if (payments.length > 0) { %><span class="fees-sec-count"><%= payments.length %></span><% } %>
+</h3>
+
+<% if (payments.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No payments recorded yet.</div>
+<% } else { %>
+  <div class="fees-table-wrap">
+    <table class="fees-table">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Student</th>
+          <th>Term</th>
+          <th>Method</th>
+          <th>Receipt #</th>
+          <th style="text-align:right;">Amount (BIF)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% payments.forEach(p => {
+          const methodClass = 
+            p.method === 'cash' ? 'pm-method-cash' :
+            p.method === 'bank' ? 'pm-method-bank' :
+            p.method === 'mobile' ? 'pm-method-mobile' : 'pm-method-cheque';
+        %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-size:.82rem;">
+              <%= new Date(p.paid_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+            </td>
+            <td><strong><%= p.student_name %></strong></td>
+            <td style="color:#64748b;"><%= p.term || '—' %></td>
+            <td>
+              <span class="pm-method <%= methodClass %>">
+                <%= p.method || 'cash' %>
+              </span>
+            </td>
+            <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:#475569;"><%= p.receipt_number %></td>
+            <td style="text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:#059669;">
+              <%= Number(p.amount).toLocaleString() %>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<style>
+  /* Reusing classes from admin-fees.ejs */
+  .fees-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .fees-tab {
+    padding: .6rem 1.1rem; border-radius: 8px;
+    background: #fff; border: 1px solid #e2e8f0;
+    color: #475569; font-weight: 700; font-size: .82rem;
+    text-decoration: none; transition: all .15s;
+  }
+  .fees-tab.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border-color: transparent;
+  }
+  .fees-tab:hover:not(.active) { background: #f8fafc; }
+
+  .fees-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 14px; padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.75rem;
+  }
+  .fees-new {
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%);
+    border-color: #bae6fd;
+  }
+  .fees-card-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem; padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .fees-icon { font-size: 1.65rem; flex-shrink: 0; }
+  .fees-card-head h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: .2rem; }
+  .fees-card-head p { font-size: .82rem; color: #64748b; line-height: 1.5; }
+
+  .fees-form {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr auto;
+    gap: .65rem; align-items: end;
+  }
+  .fees-field { display: flex; flex-direction: column; min-width: 0; }
+  .fees-field-wide { grid-column: span 1; }
+  .fees-lbl {
+    font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .35rem;
+  }
+  .fees-input {
+    width: 100%; padding: .65rem .8rem;
+    border: 1.5px solid #cbd5e1; border-radius: 9px;
+    background: #fff; font-size: .85rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .fees-input:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .fees-form-actions { display: flex; }
+  .fees-submit {
+    padding: .65rem 1.1rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: .82rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .fees-submit:hover { transform: translateY(-2px); }
+
+  .fees-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .fees-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  .fees-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .fees-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .fees-table thead { background: #f8fafc; }
+  .fees-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .fees-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* Payment method badges */
+  .pm-method {
+    display: inline-block; padding: 3px 9px;
+    font-size: .68rem; font-weight: 800;
+    text-transform: capitalize;
+    border-radius: 100px;
+    letter-spacing: .04em;
+  }
+  .pm-method-cash   { background: #dcfce7; color: #166534; }
+  .pm-method-bank   { background: #e0f2fe; color: #0369a1; }
+  .pm-method-mobile { background: #fef3c7; color: #92400e; }
+  .pm-method-cheque { background: #f3e8ff; color: #6b21a8; }
+
+  @media (max-width: 1100px) {
+    .fees-form { grid-template-columns: 1fr 1fr 1fr 1fr; }
+    .fees-field-wide { grid-column: 1 / -1; }
+    .fees-form-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 700px) {
+    .fees-tabs { flex-direction: column; }
+    .fees-tab { text-align: center; }
+    .fees-card { padding: 1.15rem; }
+    .fees-form { grid-template-columns: 1fr 1fr; }
+    .fees-submit { width: 100%; }
+    .fees-table-wrap { overflow-x: auto; }
+    .fees-table { min-width: 600px; }
+  }
+</style>
+
+<%- include('partials/foot') %>

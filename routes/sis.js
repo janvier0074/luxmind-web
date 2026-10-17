@@ -2211,4 +2211,164 @@ router.post('/sis/admin/withdrawals/:id/reject', guard, async (req, res) => {
   res.redirect('/sis/admin/withdrawals');
 });
 
+// ============================================================
+//                 ADMIN — FEE STRUCTURE
+// ============================================================
+
+router.get('/sis/admin/fees', guard, async (req, res) => {
+  const db = getDB();
+
+  const structures = await db.all(`
+    SELECT * FROM fee_structure
+    ORDER BY class_level, term
+  `);
+
+  const recentPayments = await db.all(`
+    SELECT p.*, u.full_name AS student_name, u.username
+    FROM payments p
+    JOIN users u ON u.id = p.student_id
+    ORDER BY p.paid_at DESC
+    LIMIT 5
+  `);
+
+  res.render('sis/admin-fees', {
+    title: 'Fees Management',
+    heading: 'Fee Structure',
+    subtitle: 'Manage tuition fees per class and term.',
+    structures, recentPayments,
+  });
+});
+
+router.post('/sis/admin/fees/structure/new', guard, async (req, res) => {
+  const db = getDB();
+  const { class_level, term, amount, academic_year, description } = req.body;
+
+  if (!class_level || !term || !amount) {
+    req.flash('error', 'Class, term, and amount are required.');
+    return res.redirect('/sis/admin/fees');
+  }
+
+  try {
+    await db.run(
+      `INSERT INTO fee_structure (class_level, term, amount, academic_year, description)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [class_level.trim(), term.trim(), Number(amount), academic_year || '2026', description || 'Tuition']
+    );
+    req.flash('success', 'Fee structure added.');
+  } catch (e) {
+    if (e.code === '23505') req.flash('error', 'Fee for this class/term already exists.');
+    else req.flash('error', 'Could not add fee.');
+  }
+  res.redirect('/sis/admin/fees');
+});
+
+router.post('/sis/admin/fees/structure/:id/delete', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM fee_structure WHERE id = $1`, [req.params.id]);
+  req.flash('success', 'Fee structure deleted.');
+  res.redirect('/sis/admin/fees');
+});
+
+// ============================================================
+//                 ADMIN — RECORD PAYMENTS
+// ============================================================
+
+router.get('/sis/admin/fees/payments', guard, async (req, res) => {
+  const db = getDB();
+
+  const students = await db.all(`
+    SELECT u.id, u.full_name, u.username, sp.class_level
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.role = 'student' AND u.is_active = 1
+    ORDER BY u.full_name
+  `);
+
+  const payments = await db.all(`
+    SELECT p.*, u.full_name AS student_name, u.username
+    FROM payments p
+    JOIN users u ON u.id = p.student_id
+    ORDER BY p.paid_at DESC LIMIT 50
+  `);
+
+  res.render('sis/admin-payments', {
+    title: 'Record Payment',
+    heading: 'Payments',
+    subtitle: 'Record student payments and view history.',
+    students, payments,
+  });
+});
+
+router.post('/sis/admin/fees/payments/new', guard, async (req, res) => {
+  const db = getDB();
+  const { student_id, amount, term, method, receipt_number, paid_at } = req.body;
+
+  if (!student_id || !amount) {
+    req.flash('error', 'Student and amount are required.');
+    return res.redirect('/sis/admin/fees/payments');
+  }
+
+  const receipt = receipt_number && receipt_number.trim()
+    ? receipt_number.trim()
+    : 'RCPT-' + Date.now().toString().slice(-6);
+
+  try {
+    await db.run(
+      `INSERT INTO payments (student_id, amount, term, method, receipt_number, paid_at, recorded_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [
+        Number(student_id),
+        Number(amount),
+        term || null,
+        method || 'cash',
+        receipt,
+        paid_at || new Date().toISOString().slice(0, 10),
+        req.session.user.id,
+      ]
+    );
+    req.flash('success', 'Payment recorded. Receipt: ' + receipt);
+  } catch (e) {
+    if (e.code === '23505') req.flash('error', 'Receipt number already exists.');
+    else req.flash('error', 'Could not record payment.');
+  }
+  res.redirect('/sis/admin/fees/payments');
+});
+
+// ============================================================
+//                 ADMIN — STUDENT BALANCES
+// ============================================================
+
+router.get('/sis/admin/fees/balances', guard, async (req, res) => {
+  const db = getDB();
+
+  const raw = await db.all(`
+    SELECT u.id, u.full_name, u.username,
+           sp.class_level,
+           COALESCE((SELECT SUM(amount) FROM fee_structure fs WHERE fs.class_level = sp.class_level), 0) AS total_owed,
+           COALESCE((SELECT SUM(amount) FROM payments p WHERE p.student_id = u.id), 0) AS total_paid
+    FROM users u
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    WHERE u.role = 'student' AND u.is_active = 1
+    ORDER BY u.full_name
+  `);
+
+  const students = raw.map(s => ({
+    ...s,
+    balance: Number(s.total_owed) - Number(s.total_paid),
+  }));
+
+  const totals = {
+    owed: students.reduce((sum, s) => sum + Number(s.total_owed), 0),
+    paid: students.reduce((sum, s) => sum + Number(s.total_paid), 0),
+    balance: students.reduce((sum, s) => sum + s.balance, 0),
+  };
+
+  res.render('sis/admin-balances', {
+    title: 'Student Balances',
+    heading: 'Student Balances',
+    subtitle: 'Track who has paid and who owes.',
+    students, totals,
+  });
+});
+
 module.exports = router;

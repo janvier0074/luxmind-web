@@ -1,0 +1,253 @@
+<%- include('partials/head', {
+  title: 'Student Balances',
+  heading: 'Student Balances',
+  subtitle: 'Track who has paid and who owes.'
+}) %>
+
+<!-- Tabs -->
+<div class="fees-tabs">
+  <a class="fees-tab" href="/sis/admin/fees">📋 Fee Structure</a>
+  <a class="fees-tab" href="/sis/admin/fees/payments">💳 Record Payment</a>
+  <a class="fees-tab active" href="/sis/admin/fees/balances">📊 Student Balances</a>
+</div>
+
+<!-- Summary stats -->
+<div class="bal-stat-grid">
+  <div class="bal-stat bal-stat-blue">
+    <div class="bal-stat-icon">📥</div>
+    <div class="bal-stat-num"><%= Number(totals.owed).toLocaleString() %></div>
+    <div class="bal-stat-lbl">Total Owed (BIF)</div>
+  </div>
+  <div class="bal-stat bal-stat-green">
+    <div class="bal-stat-icon">💰</div>
+    <div class="bal-stat-num"><%= Number(totals.paid).toLocaleString() %></div>
+    <div class="bal-stat-lbl">Total Collected (BIF)</div>
+  </div>
+  <div class="bal-stat bal-stat-<%= totals.balance > 0 ? 'red' : 'green' %>">
+    <div class="bal-stat-icon">📊</div>
+    <div class="bal-stat-num"><%= Number(totals.balance).toLocaleString() %></div>
+    <div class="bal-stat-lbl">Outstanding (BIF)</div>
+  </div>
+</div>
+
+<h3 class="fees-sec-title">
+  Student Balances
+  <% if (students.length > 0) { %><span class="fees-sec-count"><%= students.length %></span><% } %>
+</h3>
+
+<% if (students.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No active students yet.</div>
+<% } else { %>
+  <div class="fees-table-wrap">
+    <table class="fees-table bal-table">
+      <colgroup>
+        <col>
+        <col style="width:120px;">
+        <col style="width:160px;">
+        <col style="width:160px;">
+        <col style="width:180px;">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Class</th>
+          <th style="text-align:right;">Owed (BIF)</th>
+          <th style="text-align:right;">Paid (BIF)</th>
+          <th style="text-align:right;">Balance (BIF)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% students.forEach(s => {
+          const balance = Number(s.balance);
+          const balClass = balance > 0 ? 'bal-owed' : (balance < 0 ? 'bal-over' : 'bal-zero');
+          const balLabel = balance > 0 ? '+' + Number(balance).toLocaleString() :
+                           balance < 0 ? Number(balance).toLocaleString() : '✓ Paid';
+        %>
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;gap:.6rem;">
+                <div class="bal-avatar"><%= (s.full_name || s.username || '?').charAt(0).toUpperCase() %></div>
+                <div style="min-width:0;">
+                  <div class="bal-student-name"><%= s.full_name || s.username %></div>
+                  <div class="bal-student-user">@<%= s.username %></div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <% if (s.class_level) { %>
+                <span class="bal-class-badge"><%= s.class_level %></span>
+              <% } else { %>
+                <span style="color:#94a3b8;">—</span>
+              <% } %>
+            </td>
+            <td style="text-align:right;font-family:ui-monospace,monospace;color:#475569;">
+              <%= Number(s.total_owed).toLocaleString() %>
+            </td>
+            <td style="text-align:right;font-family:ui-monospace,monospace;color:#059669;font-weight:700;">
+              <%= Number(s.total_paid).toLocaleString() %>
+            </td>
+            <td style="text-align:right;">
+              <span class="bal-amount <%= balClass %>">
+                <%= balLabel %>
+              </span>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<style>
+  /* Tabs */
+  .fees-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .fees-tab {
+    padding: .6rem 1.1rem; border-radius: 8px;
+    background: #fff; border: 1px solid #e2e8f0;
+    color: #475569; font-weight: 700; font-size: .82rem;
+    text-decoration: none; transition: all .15s;
+  }
+  .fees-tab.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border-color: transparent;
+  }
+  .fees-tab:hover:not(.active) { background: #f8fafc; }
+
+  /* Summary stats */
+  .bal-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .bal-stat {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .bal-stat::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+  }
+  .bal-stat-blue::before  { background: linear-gradient(90deg, #06b6d4, #0891b2); }
+  .bal-stat-green::before { background: linear-gradient(90deg, #10b981, #059669); }
+  .bal-stat-red::before   { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .bal-stat-icon { font-size: 1.35rem; margin-bottom: .5rem; }
+  .bal-stat-num {
+    font-family: Georgia, serif;
+    font-size: 1.6rem; font-weight: 900;
+    color: #0f2942; line-height: 1;
+    word-break: break-all;
+  }
+  .bal-stat-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #64748b;
+    font-weight: 800; margin-top: .5rem;
+  }
+
+  /* Table */
+  .fees-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .fees-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .fees-table thead { background: #f8fafc; }
+  .fees-table th {
+    text-align: left; padding: .75rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .fees-table td {
+    padding: .7rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    vertical-align: middle;
+    overflow: hidden; text-overflow: ellipsis;
+  }
+  .fees-table tbody tr:hover { background: #f8fafc; }
+
+  .bal-avatar {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: .9rem;
+    font-family: Georgia, serif;
+    flex-shrink: 0;
+  }
+  .bal-student-name {
+    font-weight: 700; color: #0f172a;
+    font-size: .88rem;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bal-student-user {
+    color: #64748b; font-size: .72rem;
+    font-family: ui-monospace, monospace;
+    overflow: hidden; text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .bal-class-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    background: #e0f2fe; color: #0369a1;
+    font-size: .7rem; font-weight: 800;
+    border-radius: 100px;
+    letter-spacing: .04em;
+    white-space: nowrap;
+  }
+
+  .bal-amount {
+    display: inline-block;
+    padding: .35rem .65rem;
+    border-radius: 8px;
+    font-family: ui-monospace, monospace;
+    font-weight: 800;
+    font-size: .82rem;
+    white-space: nowrap;
+  }
+  .bal-owed  { background: #fee2e2; color: #991b1b; }
+  .bal-over  { background: #fef3c7; color: #92400e; }
+  .bal-zero  { background: #d1fae5; color: #065f46; }
+
+  .fees-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .fees-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  /* Mobile */
+  @media (max-width: 900px) {
+    .bal-stat-grid { grid-template-columns: 1fr; gap: .65rem; }
+    .bal-stat { padding: 1rem; }
+    .bal-stat-num { font-size: 1.3rem; }
+    .bal-stat-icon { font-size: 1.1rem; margin-bottom: .25rem; }
+
+    .fees-tabs { flex-direction: column; }
+    .fees-tab { text-align: center; }
+
+    .fees-table-wrap { overflow-x: auto; }
+    .bal-table { min-width: 640px; }
+  }
+</style>
+
+<%- include('partials/foot') %>

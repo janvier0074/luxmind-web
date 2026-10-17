@@ -340,11 +340,12 @@
         </nav>
       </details>
 
-      <details>
+            <details>
         <summary>Finance</summary>
         <nav class="sis-nav">
-          <a href="/sis/fees"><span class="icon">💰</span> Fees</a>
-          <a href="/sis/reports"><span class="icon">📊</span> Reports</a>
+          <a href="/sis/admin/fees" class="<%= currentPath === '/sis/admin/fees' ? 'active' : '' %>"><span class="icon">📋</span> Fee Structure</a>
+          <a href="/sis/admin/fees/payments" class="<%= currentPath === '/sis/admin/fees/payments' ? 'active' : '' %>"><span class="icon">💳</span> Record Payment</a>
+          <a href="/sis/admin/fees/balances" class="<%= currentPath === '/sis/admin/fees/balances' ? 'active' : '' %>"><span class="icon">📊</span> Student Balances</a>
         </nav>
       </details>
 

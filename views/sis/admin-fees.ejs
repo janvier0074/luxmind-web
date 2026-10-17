@@ -1,0 +1,269 @@
+<%- include('partials/head', {
+  title: 'Fee Structure',
+  heading: 'Fee Structure',
+  subtitle: 'Manage tuition fees per class and term.'
+}) %>
+
+<!-- Tabs -->
+<div class="fees-tabs">
+  <a class="fees-tab active" href="/sis/admin/fees">📋 Fee Structure</a>
+  <a class="fees-tab" href="/sis/admin/fees/payments">💳 Record Payment</a>
+  <a class="fees-tab" href="/sis/admin/fees/balances">📊 Student Balances</a>
+</div>
+
+<!-- Add form -->
+<div class="fees-card fees-new">
+  <div class="fees-card-head">
+    <span class="fees-icon">➕</span>
+    <div>
+      <h3>Add Fee Structure</h3>
+      <p>Set tuition amount for a specific class and term.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/sis/admin/fees/structure/new" class="fees-form">
+    <div class="fees-field">
+      <label class="fees-lbl">Class *</label>
+      <input class="fees-input" name="class_level" required placeholder="e.g. Form 1" maxlength="40">
+    </div>
+    <div class="fees-field">
+      <label class="fees-lbl">Term *</label>
+      <input class="fees-input" name="term" required placeholder="e.g. Term 1" maxlength="40">
+    </div>
+    <div class="fees-field">
+      <label class="fees-lbl">Amount (BIF) *</label>
+      <input class="fees-input" type="number" name="amount" required min="0" step="1000" placeholder="e.g. 150000">
+    </div>
+    <div class="fees-field">
+      <label class="fees-lbl">Academic Year</label>
+      <input class="fees-input" name="academic_year" placeholder="e.g. 2026" maxlength="15">
+    </div>
+    <div class="fees-field">
+      <label class="fees-lbl">Description</label>
+      <input class="fees-input" name="description" placeholder="e.g. Tuition" maxlength="60">
+    </div>
+    <div class="fees-field fees-form-actions">
+      <button class="fees-submit" type="submit">Save Fee</button>
+    </div>
+  </form>
+</div>
+
+<!-- List -->
+<h3 class="fees-sec-title">
+  Current Fee Structure
+  <% if (structures.length > 0) { %><span class="fees-sec-count"><%= structures.length %></span><% } %>
+</h3>
+
+<% if (structures.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No fee structure defined yet. Add one above.</div>
+<% } else { %>
+  <div class="fees-table-wrap">
+    <table class="fees-table">
+      <thead>
+        <tr>
+          <th>Class</th>
+          <th>Term</th>
+          <th>Year</th>
+          <th>Description</th>
+          <th style="text-align:right;">Amount (BIF)</th>
+          <th style="width:80px;text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% structures.forEach(s => { %>
+          <tr>
+            <td><strong><%= s.class_level %></strong></td>
+            <td><%= s.term %></td>
+            <td style="color:#64748b;font-size:.85rem;"><%= s.academic_year || '—' %></td>
+            <td style="color:#64748b;font-size:.85rem;"><%= s.description || 'Tuition' %></td>
+            <td style="text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:#0891b2;">
+              <%= Number(s.amount).toLocaleString() %>
+            </td>
+            <td style="text-align:center;">
+              <form method="POST" action="/sis/admin/fees/structure/<%= s.id %>/delete"
+                onsubmit="return confirm('Delete this fee?');" style="display:inline;">
+                <button class="fees-del" type="submit" title="Delete">✕</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<!-- Recent payments preview -->
+<% if (recentPayments.length > 0) { %>
+  <div style="margin-top:2rem;">
+    <h3 class="fees-sec-title">🕐 Recent Payments</h3>
+    <div class="fees-table-wrap">
+      <table class="fees-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Student</th>
+            <th>Term</th>
+            <th>Receipt</th>
+            <th style="text-align:right;">Amount (BIF)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% recentPayments.forEach(p => { %>
+            <tr>
+              <td style="font-family:ui-monospace,monospace;font-size:.82rem;">
+                <%= new Date(p.paid_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short' }) %>
+              </td>
+              <td><strong><%= p.student_name %></strong></td>
+              <td style="color:#64748b;"><%= p.term || '—' %></td>
+              <td style="font-family:ui-monospace,monospace;font-size:.78rem;color:#475569;"><%= p.receipt_number %></td>
+              <td style="text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:#059669;">
+                <%= Number(p.amount).toLocaleString() %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div style="text-align:right;margin-top:.75rem;">
+      <a class="fees-link" href="/sis/admin/fees/payments">View all payments →</a>
+    </div>
+  </div>
+<% } %>
+
+<style>
+  .fees-tabs {
+    display: flex; gap: .5rem; margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .fees-tab {
+    padding: .6rem 1.1rem; border-radius: 8px;
+    background: #fff; border: 1px solid #e2e8f0;
+    color: #475569; font-weight: 700; font-size: .82rem;
+    text-decoration: none; transition: all .15s;
+  }
+  .fees-tab.active {
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border-color: transparent;
+  }
+  .fees-tab:hover:not(.active) { background: #f8fafc; }
+
+  .fees-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 14px; padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.75rem;
+  }
+  .fees-new {
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%);
+    border-color: #bae6fd;
+  }
+  .fees-card-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .fees-icon { font-size: 1.65rem; flex-shrink: 0; }
+  .fees-card-head h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: .2rem; }
+  .fees-card-head p { font-size: .82rem; color: #64748b; line-height: 1.5; }
+
+  .fees-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr 1.5fr auto;
+    gap: .65rem;
+    align-items: end;
+  }
+  .fees-field { display: flex; flex-direction: column; min-width: 0; }
+  .fees-lbl {
+    font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .35rem;
+  }
+  .fees-input {
+    width: 100%; padding: .65rem .8rem;
+    border: 1.5px solid #cbd5e1; border-radius: 9px;
+    background: #fff; font-size: .85rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .fees-input:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .fees-form-actions { display: flex; }
+  .fees-submit {
+    padding: .65rem 1.1rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: .82rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .fees-submit:hover { transform: translateY(-2px); }
+
+  .fees-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .fees-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  .fees-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .fees-table {
+    width: 100%; border-collapse: collapse; table-layout: fixed;
+  }
+  .fees-table thead { background: #f8fafc; }
+  .fees-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .fees-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .fees-del {
+    background: #fef2f2; color: #991b1b;
+    border: none; width: 30px; height: 30px;
+    border-radius: 8px; font-size: .78rem;
+    font-weight: 800; cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .fees-del:hover { background: #fecaca; }
+
+  .fees-link {
+    color: #0891b2; font-weight: 700;
+    text-decoration: none; font-size: .85rem;
+  }
+  .fees-link:hover { text-decoration: underline; }
+
+  @media (max-width: 1000px) {
+    .fees-form { grid-template-columns: 1fr 1fr 1fr; }
+    .fees-form-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 700px) {
+    .fees-tabs { flex-direction: column; }
+    .fees-tab { text-align: center; }
+    .fees-card { padding: 1.15rem; }
+    .fees-form { grid-template-columns: 1fr; }
+    .fees-submit { width: 100%; }
+    .fees-table-wrap { overflow-x: auto; }
+    .fees-table { min-width: 600px; }
+  }
+</style>
+
+<%- include('partials/foot') %>
