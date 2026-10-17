@@ -358,6 +358,8 @@ router.post('/sis/students/new', guard, async (req, res) => {
   }
 });
 
+router.get('/sis/students/:id', guard, async (req, res) => {
+
   const student = await db.get(`
     SELECT u.id AS id, u.username, u.full_name, u.email, u.is_active, u.created_at, 
            sp.admission_number, sp.date_of_birth, sp.gender, sp.guardian_name, 
