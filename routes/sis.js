@@ -980,53 +980,59 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // Courses the student is NOT enrolled in yet
-  const available = await db.all(`
-    SELECT c.*,
-           u.full_name AS teacher_name,
-           (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count,
-           (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) AS student_count,
-           cr.id AS reg_id,
-           cr.status AS reg_status
-    FROM courses c
-    LEFT JOIN users u ON u.id = c.teacher_id
-    LEFT JOIN course_registrations cr
-      ON cr.course_id = c.id AND cr.student_id = $1
-    WHERE c.id NOT IN (
-      SELECT course_id FROM enrollments WHERE user_id = $2
-    )
-    ORDER BY c.title
-  `, [uid, uid]);
+  // 1. Financial Hold Check
+  const profile = await db.get(`SELECT class_level, current_semester FROM student_profiles WHERE user_id = $1`, [uid]);
+  const currentSem = profile?.current_semester || 1;
+  let balance = 0;
+  let hasHold = false;
+  
+  if (profile && profile.class_level) {
+    const level = profile.class_level.replace(/[-\s].*$/, '').trim();
+    const owedRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM fee_structure WHERE class_level = $1`, [level]);
+    const paidRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM payments WHERE student_id = $1`, [uid]);
+    balance = Number(owedRow.total) - Number(paidRow.total);
+    hasHold = balance > 0;
+  }
 
-  // Student's existing registrations (pending/rejected)
+  // 2. Fetch all curriculum courses up to current semester + 1
+  const curriculum = await db.all(`
+    SELECT * FROM curriculum 
+    WHERE program_level = $1 AND semester_number <= $2
+    ORDER BY semester_number, course_name
+  `, [profile?.class_level?.replace(/[-\s].*$/, '').trim() || 'Form 1', currentSem + 1]);
+
+  // 3. Fetch Course Sections (Groups) to get quotas
+  const sections = await db.all(`
+    SELECT s.*, u.full_name AS teacher_name,
+           (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
+    FROM course_sections s
+    LEFT JOIN users u ON u.id = s.teacher_id
+  `);
+
+  // 4. Fetch existing pending registrations (The Cart)
   const pending = await db.all(`
-    SELECT cr.*, c.title AS course_title, c.id AS course_id
+    SELECT cr.*, c.title AS course_title, s.group_name, s.id AS section_id, u.full_name AS teacher_name
     FROM course_registrations cr
     JOIN courses c ON c.id = cr.course_id
+    LEFT JOIN course_sections s ON s.id = cr.section_id
+    LEFT JOIN users u ON u.id = s.teacher_id
     WHERE cr.student_id = $1
-    ORDER BY cr.requested_at DESC
   `, [uid]);
 
-  // Enrolled courses
+  // 5. Fetch enrolled/completed courses
   const enrolled = await db.all(`
-    SELECT c.id, c.title, c.description,
-           u.full_name AS teacher_name,
-           (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count
-    FROM courses c
-    JOIN enrollments e ON e.course_id = c.id
-    LEFT JOIN users u ON u.id = c.teacher_id
+    SELECT c.title AS course_title FROM enrollments e
+    JOIN courses c ON c.id = e.course_id
     WHERE e.user_id = $1
-    ORDER BY c.title
   `, [uid]);
 
   res.render('sis/my-registration', {
     title: 'Course Registration',
     heading: 'Course Registration',
-    subtitle: 'Enroll in new courses or review your requests.',
-    available, pending, enrolled,
+    subtitle: 'Select your groups and submit to your advisor.',
+    curriculum, sections, pending, enrolled, currentSem, hasHold, balance
   });
 });
-
 // Student — submit a registration request
 router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
   const db = getDB();

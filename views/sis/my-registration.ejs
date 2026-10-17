@@ -1,219 +1,204 @@
 <%- include('partials/head', {
   title: 'Course Registration',
   heading: 'Course Registration',
-  subtitle: 'Enroll in new courses or review your requests.'
+  subtitle: 'Select your groups and submit to your advisor.'
 }) %>
 
-<div class="reg-tabs">
-  <button class="reg-tab active" data-tab="enrolled">✅ My Courses (<%= enrolled.length %>)</button>
-  <button class="reg-tab" data-tab="available">➕ Available (<%= available.length %>)</button>
-  <button class="reg-tab" data-tab="requests">⏳ Requests (<%= pending.length %>)</button>
+<% if (hasHold) { %>
+  <div style="background:#fee2e2; border-left:4px solid #ef4444; padding:1rem; border-radius:8px; margin-bottom:1.5rem; color:#991b1b;">
+    <strong>⚠️ Financial Hold:</strong> You owe <%= Number(balance).toLocaleString() %> BIF. You cannot register until this is cleared.
+  </div>
+<% } %>
+
+<!-- Legend -->
+<div class="reg-legend">
+  <div class="legend-item"><span class="legend-box box-avail"></span> Available</div>
+  <div class="legend-item"><span class="legend-box box-cart"></span> In Cart (Pending)</div>
+  <div class="legend-item"><span class="legend-box box-done"></span> Completed</div>
+  <div class="legend-item"><span class="legend-box box-locked"></span> Locked (Future)</div>
 </div>
 
-<!-- ============ ENROLLED ============ -->
-<div class="reg-panel active" id="tab-enrolled">
-  <% if (enrolled.length === 0) { %>
-    <div class="sis-empty" style="padding:2rem;">You're not enrolled in any courses yet. Check the Available tab to register.</div>
-  <% } else { %>
-    <div class="reg-grid">
-      <% enrolled.forEach(c => { %>
-        <div class="reg-card reg-card-enrolled">
-          <div class="reg-card-title"><%= c.title %></div>
-          <div class="reg-card-meta">👨‍🏫 <%= c.teacher_name || 'LuxMind' %></div>
-          <div class="reg-card-meta">📖 <%= c.lesson_count %> lessons</div>
-          <div class="reg-card-actions">
-            <a class="sis-btn sis-btn-outline" href="/courses/<%= c.id %>" style="flex:1;text-align:center;">View in SIS</a>
-          </div>
+<div class="reg-layout">
+  <!-- LEFT: Semester Curriculum -->
+  <div class="reg-main">
+    <% 
+      // Group curriculum by semester
+      const bySem = {};
+      for(let i=1; i<=6; i++) bySem[i] = [];
+      curriculum.forEach(c => {
+        if (bySem[c.semester_number]) bySem[c.semester_number].push(c);
+      });
+
+      for(let i=1; i<=6; i++) {
+        const isLocked = i > (currentSem + 1);
+    %>
+      <div class="sem-block <%= isLocked ? 'sem-locked' : '' %>">
+        <div class="sem-header">
+          <h3>Semester <%= i %></h3>
+          <% if (isLocked) { %><span class="lock-icon">🔒 Locked</span><% } %>
         </div>
-      <% }) %>
-    </div>
-  <% } %>
-</div>
 
-<!-- ============ AVAILABLE ============ -->
-<div class="reg-panel" id="tab-available">
-  <% if (available.length === 0) { %>
-    <div class="sis-empty" style="padding:2rem;">No new courses available. You're enrolled in everything!</div>
-  <% } else { %>
-    <div class="reg-grid">
-      <% available.forEach(c => {
-        const alreadyRequested = c.reg_status === 'pending';
-      %>
-        <div class="reg-card">
-          <div class="reg-card-title"><%= c.title %></div>
-          <% if (c.description) { %>
-            <div class="reg-card-desc"><%= c.description.slice(0, 100) %><%= c.description.length > 100 ? '…' : '' %></div>
-          <% } %>
-          <div class="reg-card-meta">👨‍🏫 <%= c.teacher_name || 'LuxMind' %></div>
-          <div class="reg-card-meta">📖 <%= c.lesson_count %> lessons · 👥 <%= c.student_count %> students</div>
+        <% if (bySem[i].length === 0) { %>
+          <div style="padding:1rem; color:#64748b; font-size:.85rem;">No courses defined for this semester yet.</div>
+        <% } else { %>
+          <div class="sem-courses">
+            <% bySem[i].forEach(curr => {
+              // Find matching course in DB
+              const courseSections = sections.filter(s => s.course_id === curr.id); 
+              const cartItem = pending.find(p => p.course_id === curr.id);
+              const isDone = enrolled.some(e => e.course_title === curr.course_name);
+              
+              let cardClass = 'card-avail';
+              if (isDone) cardClass = 'card-done';
+              else if (cartItem) cardClass = 'card-cart';
+              else if (isLocked) cardClass = 'card-locked';
+            %>
+              <div class="course-card <%= cardClass %>">
+                <div class="course-info">
+                  <div class="course-title"><%= curr.course_name %></div>
+                  <div class="course-meta">
+                    <span><%= curr.credits %> Credits</span>
+                    <span><%= curr.course_code %></span>
+                  </div>
+                </div>
 
-          <% if (alreadyRequested) { %>
-            <div class="reg-card-actions">
-              <div class="reg-badge reg-badge-pending" style="flex:1;text-align:center;padding:.5rem;">⏳ Request pending</div>
-            </div>
-          <% } else { %>
-            <form method="POST" action="/sis/my/registration/request" class="reg-card-actions">
-              <input type="hidden" name="course_id" value="<%= c.id %>">
-              <button class="sis-btn sis-btn-gold" type="submit" style="flex:1;">Register →</button>
-            </form>
-          <% } %>
-        </div>
-      <% }) %>
-    </div>
-  <% } %>
-</div>
-
-<!-- ============ REQUESTS ============ -->
-<div class="reg-panel" id="tab-requests">
-  <% if (pending.length === 0) { %>
-    <div class="sis-empty" style="padding:2rem;">No registration requests yet.</div>
-  <% } else { %>
-    <div class="sis-card" style="padding:0;overflow:hidden;">
-      <table class="reg-table">
-        <thead>
-          <tr>
-            <th>Course</th>
-            <th style="width:110px;text-align:center;">Status</th>
-            <th style="width:130px;">Requested</th>
-            <th style="width:120px;text-align:right;">Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          <% pending.forEach(r => { %>
-            <tr>
-              <td><strong><%= r.course_title %></strong></td>
-              <td style="text-align:center;">
-                <% if (r.status === 'pending') { %>
-                  <span class="reg-badge reg-badge-pending">⏳ Pending</span>
-                <% } else if (r.status === 'approved') { %>
-                  <span class="reg-badge reg-badge-approved">✅ Approved</span>
+                <% if (isDone) { %>
+                  <div class="status-badge badge-done">✅ Completed</div>
+                <% } else if (cartItem) { %>
+                  <div class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</div>
+                <% } else if (isLocked) { %>
+                  <div class="status-badge badge-locked">🔒 Not Available Yet</div>
                 <% } else { %>
-                  <span class="reg-badge reg-badge-rejected">❌ Rejected</span>
+                  <!-- Show Groups -->
+                  <div class="groups-list">
+                    <% courseSections.forEach(s => { 
+                      const isFull = s.enrolled_count >= s.max_capacity;
+                      const seatsLeft = s.max_capacity - s.enrolled_count;
+                    %>
+                      <form method="POST" action="/sis/my/registration/request" class="group-form">
+                        <input type="hidden" name="course_id" value="<%= curr.id %>">
+                        <input type="hidden" name="section_id" value="<%= s.id %>">
+                        <button type="submit" class="group-btn" <%= isFull || hasHold ? 'disabled' : '' %>>
+                          <span class="grp-name"><%= s.group_name %> (<%= s.teacher_name || 'Staff' %>)</span>
+                          <span class="grp-seats <%= isFull ? 'seats-full' : '' %>"><%= isFull ? 'FULL' : seatsLeft + ' left' %></span>
+                        </button>
+                      </form>
+                    <% }) %>
+                    <% if (courseSections.length === 0) { %>
+                      <span style="font-size:.75rem;color:#94a3b8;">No groups available</span>
+                    <% } %>
+                  </div>
                 <% } %>
-              </td>
-              <td style="color:#64748b;font-size:.82rem;">
-                <%= new Date(r.requested_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
-              </td>
-              <td style="text-align:right;">
-                <% if (r.status === 'pending') { %>
-                  <form method="POST" action="/sis/my/registration/cancel/<%= r.id %>" style="display:inline;" onsubmit="return confirm('Cancel this request?');">
-                    <button class="reg-cancel" type="submit">Cancel</button>
-                  </form>
-                <% } else if (r.status === 'rejected' && r.notes) { %>
-                  <span style="color:#64748b;font-size:.75rem;" title="<%= r.notes %>">Reason: <%= r.notes.slice(0, 30) %></span>
-                <% } %>
-              </td>
-            </tr>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+    <% } %>
+  </div>
+
+  <!-- RIGHT: The Cart -->
+  <div class="reg-cart">
+    <div class="cart-sticky">
+      <div class="cart-header">
+        <h3>🛒 Temporary Timetable</h3>
+      </div>
+      
+      <div class="cart-body">
+        <% if (pending.length === 0) { %>
+          <div class="cart-empty">No courses selected yet. Click a group to add it.</div>
+        <% } else { %>
+          <% pending.forEach(p => { %>
+            <div class="cart-item">
+              <div>
+                <div class="cart-title"><%= p.course_title %></div>
+                <div class="cart-sub">Group <%= p.group_name || 'N/A' %></div>
+              </div>
+            </div>
           <% }) %>
-        </tbody>
-      </table>
+        <% } %>
+      </div>
+
+      <div class="cart-footer">
+        <div class="cart-total">
+          <span>Total Courses:</span>
+          <strong><%= pending.length %></strong>
+        </div>
+        <button class="sis-btn sis-btn-gold" style="width:100%;" <%= pending.length === 0 ? 'disabled style="opacity:.5"' : '' %>>
+          📨 Submit to Advisor
+        </button>
+        <div style="text-align:center; margin-top:.5rem; font-size:.75rem; color:#64748b;">
+          (Advisor approval coming next)
+        </div>
+      </div>
     </div>
-  <% } %>
+  </div>
 </div>
 
 <style>
-  .reg-tabs {
-    display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap;
-  }
-  .reg-tab {
-    background: #fff; border: 1px solid #e2e8f0;
-    padding: .6rem 1.1rem; border-radius: 8px;
-    font-size: .82rem; font-weight: 700; color: #475569;
-    cursor: pointer; font-family: inherit; transition: all .15s;
-  }
-  .reg-tab.active {
-    background: linear-gradient(135deg, #06b6d4, #0891b2);
-    color: #fff; border-color: transparent;
-  }
-  .reg-panel { display: none; }
-  .reg-panel.active { display: block; }
+  .reg-legend { display: flex; gap: 1.5rem; background: #fff; padding: 1rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700; color: #475569; }
+  .legend-box { width: 16px; height: 16px; border-radius: 4px; }
+  .box-avail { border: 2px solid #cbd5e1; background: #fff; }
+  .box-cart { background: #8b5cf6; }
+  .box-done { background: #10b981; }
+  .box-locked { background: #f1f5f9; border: 2px dashed #cbd5e1; }
 
-  .reg-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1rem;
-  }
-  .reg-card {
-    background: #fff; border: 1px solid #e2e8f0;
-    border-radius: 12px; padding: 1.25rem;
-    box-shadow: 0 1px 3px rgba(15,23,42,.04);
-    display: flex; flex-direction: column;
-    transition: all .15s;
-  }
-  .reg-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); transform: translateY(-2px); }
-  .reg-card-enrolled { border-left: 4px solid #10b981; }
-  .reg-card-title {
-    font-weight: 800; color: #0f172a; font-size: 1rem;
-    margin-bottom: .5rem; line-height: 1.3;
-  }
-  .reg-card-desc {
-    color: #64748b; font-size: .82rem;
-    line-height: 1.5; margin-bottom: .65rem;
-  }
-  .reg-card-meta {
-    color: #475569; font-size: .8rem;
-    margin-bottom: .35rem;
-  }
-  .reg-card-actions {
-    display: flex; gap: .5rem;
-    margin-top: auto; padding-top: 1rem;
-  }
+  .reg-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
+  
+  /* Semesters */
+  .sem-block { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; overflow: hidden; }
+  .sem-block:nth-child(even) { background: #f0f9ff; border-color: #bae6fd; }
+  .sem-locked { opacity: .7; background: #f1f5f9 !important; border-style: dashed; }
+  
+  .sem-header { padding: .85rem 1.25rem; background: rgba(0,0,0,.03); border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+  .sem-header h3 { font-size: 1rem; font-weight: 800; color: #0f172a; }
+  .lock-icon { font-size: .75rem; color: #64748b; font-weight: 800; background: #e2e8f0; padding: 2px 8px; border-radius: 100px; }
 
-  .reg-badge {
-    display: inline-block; padding: 3px 10px;
-    font-size: .72rem; font-weight: 800;
-    border-radius: 100px; letter-spacing: .04em;
-  }
-  .reg-badge-pending { background: #fef3c7; color: #92400e; }
-  .reg-badge-approved { background: #d1fae5; color: #065f46; }
-  .reg-badge-rejected { background: #fee2e2; color: #991b1b; }
+  .sem-courses { padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
 
-  .reg-table {
-    width: 100%; border-collapse: collapse; table-layout: fixed;
-  }
-  .reg-table thead { background: #f8fafc; }
-  .reg-table th {
-    text-align: left; padding: .7rem .9rem;
-    font-size: .68rem; font-weight: 800;
-    letter-spacing: .1em; text-transform: uppercase;
-    color: #64748b; border-bottom: 2px solid #e2e8f0;
-  }
-  .reg-table td {
-    padding: .8rem .9rem; border-bottom: 1px solid #f1f5f9;
-    font-size: .85rem;
-  }
-  .reg-cancel {
-    background: #fee2e2; color: #991b1b;
-    border: none; padding: .35rem .8rem;
-    border-radius: 6px; font-size: .75rem;
-    font-weight: 700; cursor: pointer; font-family: inherit;
-  }
-  .reg-cancel:hover { background: #fecaca; }
+  /* Course Cards */
+  .course-card { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 2px solid #e2e8f0; border-radius: 10px; padding: 1rem; transition: all .2s; flex-wrap: wrap; gap: 1rem; }
+  .course-card.card-avail:hover { border-color: #06b6d4; }
+  .course-card.card-cart { background: #f3e8ff; border-color: #8b5cf6; }
+  .course-card.card-done { background: #ecfdf5; border-color: #10b981; opacity: .8; }
+  .course-card.card-locked { background: #f8fafc; border-style: dashed; }
 
-  @media (max-width: 700px) {
-    .reg-tabs { flex-direction: column; }
-    .reg-tab { width: 100%; text-align: left; }
-    .reg-grid { grid-template-columns: 1fr; }
-    .sis-card { overflow-x: auto; }
-    .reg-table { min-width: 500px; }
+  .course-info { flex: 1; min-width: 200px; }
+  .course-title { font-weight: 800; color: #0f172a; font-size: .95rem; margin-bottom: .25rem; }
+  .course-meta { display: flex; gap: 1rem; font-size: .75rem; color: #64748b; font-weight: 700; }
+  
+  .status-badge { padding: .4rem .8rem; border-radius: 8px; font-size: .8rem; font-weight: 800; }
+  .badge-done { background: #d1fae5; color: #065f46; }
+  .badge-cart { background: #ede9fe; color: #5b21b6; }
+  .badge-locked { background: #f1f5f9; color: #94a3b8; }
+
+  /* Groups */
+  .groups-list { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .group-btn { display: flex; flex-direction: column; align-items: flex-start; background: #f8fafc; border: 1px solid #cbd5e1; padding: .5rem .75rem; border-radius: 8px; cursor: pointer; transition: all .15s; text-align: left; }
+  .group-btn:hover:not(:disabled) { background: #e0f2fe; border-color: #06b6d4; }
+  .group-btn:disabled { opacity: .5; cursor: not-allowed; background: #f1f5f9; }
+  .grp-name { font-size: .75rem; font-weight: 800; color: #0f172a; }
+  .grp-seats { font-size: .65rem; font-weight: 800; color: #059669; margin-top: 2px; }
+  .grp-seats.seats-full { color: #dc2626; }
+
+  /* Cart */
+  .cart-sticky { position: sticky; top: 2rem; background: #fff; border: 2px solid #0f2942; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
+  .cart-header { background: #0f2942; color: #fff; padding: 1rem; }
+  .cart-header h3 { font-size: 1rem; font-weight: 800; }
+  .cart-body { padding: 1rem; max-height: 400px; overflow-y: auto; }
+  .cart-empty { color: #64748b; font-size: .85rem; text-align: center; padding: 1rem 0; }
+  .cart-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: .75rem; border-radius: 8px; margin-bottom: .5rem; border-left: 3px solid #8b5cf6; }
+  .cart-title { font-weight: 800; font-size: .85rem; color: #0f172a; }
+  .cart-sub { font-size: .72rem; color: #64748b; font-weight: 700; margin-top: 2px; }
+  
+  .cart-footer { padding: 1rem; border-top: 1px solid #e2e8f0; background: #f8fafc; }
+  .cart-total { display: flex; justify-content: space-between; font-weight: 800; color: #0f172a; margin-bottom: 1rem; }
+
+  @media (max-width: 900px) {
+    .reg-layout { grid-template-columns: 1fr; }
+    .cart-sticky { position: static; }
   }
 </style>
-
-<script>
-  (function () {
-    var tabs = document.querySelectorAll('.reg-tab');
-    var panels = document.querySelectorAll('.reg-panel');
-    tabs.forEach(function (tab) {
-      tab.addEventListener('click', function () {
-        var name = tab.getAttribute('data-tab');
-        tabs.forEach(function (t) { t.classList.remove('active'); });
-        panels.forEach(function (p) { p.classList.remove('active'); });
-        tab.classList.add('active');
-        var panel = document.getElementById('tab-' + name);
-        if (panel) panel.classList.add('active');
-      });
-    });
-  })();
-</script>
 
 <%- include('partials/foot') %>
