@@ -664,44 +664,68 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  const profile = await db.get(
-    `SELECT * FROM student_profiles WHERE user_id = $1`, [uid]
-  );
-
-  const payments = await db.all(`
-    SELECT * FROM payments WHERE student_id = $1
-    ORDER BY paid_at DESC
-  `, [uid]);
-
-  const totalPaidRow = await db.get(
-    `SELECT COALESCE(SUM(amount),0) AS total FROM payments WHERE student_id = $1`,
-    [uid]
-  );
-
-  let fees = [];
-  let totalOwed = 0;
+  // 1. Get Student Profile
+  const profile = await db.get(`SELECT * FROM student_profiles WHERE user_id = $1`, [uid]);
+  
+  let level = '';
   if (profile && profile.class_level) {
-    const level = profile.class_level.replace(/[-\s].*$/, '').trim();
-    fees = await db.all(`
-      SELECT * FROM fee_structure
-      WHERE class_level = $1
-      ORDER BY term
-    `, [level]);
-    totalOwed = fees.reduce((sum, f) => sum + Number(f.amount), 0);
+    // Extract "Form 1" from "Form 1A"
+    level = profile.class_level.replace(/[-\s].*$/, '').trim();
   }
 
-  const totalPaid = Number(totalPaidRow.total || 0);
+  // 2. Fetch Charges (Invoices)
+  let charges = [];
+  if (level) {
+    charges = await db.all(`
+      SELECT id, term, academic_year, amount, description, 'Invoice' as type, NOW() as date 
+      FROM fee_structure 
+      WHERE class_level = $1
+    `, [level]);
+  }
+
+  // 3. Fetch Payments (Credits)
+  const payments = await db.all(`
+    SELECT id, term, amount, method as description, 'Payment' as type, paid_at as date, receipt_number 
+    FROM payments 
+    WHERE student_id = $1
+  `, [uid]);
+
+  // 4. Combine into a single Ledger
+  const ledger = [
+    ...charges.map(c => ({
+      date: new Date(c.date), // In real life, you'd use the invoice creation date
+      type: 'Invoice',
+      description: `${c.description || 'Tuition'} (${c.term})`,
+      charge: Number(c.amount),
+      credit: 0,
+      installment: '1. Installment'
+    })),
+    ...payments.map(p => ({
+      date: new Date(p.date),
+      type: 'Payment',
+      description: `${p.description.toUpperCase()} - ${p.receipt_number || ''}`,
+      charge: 0,
+      credit: Number(p.amount),
+      installment: '-'
+    }))
+  ].sort((a, b) => b.date - a.date);
+
+  // 5. Calculate Totals
+  const totalOwed = charges.reduce((sum, c) => sum + Number(c.amount), 0);
+  const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = totalOwed - totalPaid;
 
+  // Hardcoded limits based on your CIU screenshot
+  const fullAccessLimit = 200;
+  const approachingDebt = balance + 200;
+
   res.render('sis/my-fees', {
-    title: 'My Fees',
-    heading: 'My Fees',
-    subtitle: 'Your payment history and balance.',
-    profile, payments, fees,
-    totalPaid, totalOwed, balance,
+    title: 'Accounting',
+    heading: 'Accounting',
+    subtitle: 'View your invoices, payments, and financial status.',
+    profile, level, ledger, totalOwed, totalPaid, balance, fullAccessLimit, approachingDebt
   });
 });
-
 
 // ============================================================
 //                 STUDENT — Transcript
