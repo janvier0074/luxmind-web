@@ -994,14 +994,17 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     hasHold = balance > 0;
   }
 
-  // 2. Fetch all curriculum courses up to current semester + 1
+  // 2. Fetch Curriculum and link to real Courses table
+  const level = profile?.class_level?.replace(/[-\s].*$/, '').trim() || 'Form 1';
   const curriculum = await db.all(`
-    SELECT * FROM curriculum 
-    WHERE program_level = $1 AND semester_number <= $2
-    ORDER BY semester_number, course_name
-  `, [profile?.class_level?.replace(/[-\s].*$/, '').trim() || 'Form 1', currentSem + 1]);
+    SELECT curr.*, c.id AS real_course_id, c.title AS real_course_title
+    FROM curriculum curr
+    LEFT JOIN courses c ON LOWER(c.title) = LOWER(curr.course_name)
+    WHERE curr.program_level = $1
+    ORDER BY curr.semester_number, curr.course_name
+  `, [level]);
 
-  // 3. Fetch Course Sections (Groups) to get quotas
+  // 3. Fetch Course Sections (Groups)
   const sections = await db.all(`
     SELECT s.*, u.full_name AS teacher_name,
            (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
@@ -1033,70 +1036,6 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     curriculum, sections, pending, enrolled, currentSem, hasHold, balance
   });
 });
-// Student — submit a registration request
-router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
-  const db = getDB();
-  const uid = req.session.user.id;
-  const courseId = Number(req.body.course_id);
-
-  if (!courseId) {
-    req.flash('error', 'Please select a course.');
-    return res.redirect('/sis/my/registration');
-  }
-
-  // Check already enrolled
-  const alreadyIn = await db.get(
-    `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
-    [uid, courseId]
-  );
-  if (alreadyIn) {
-    req.flash('error', 'You are already enrolled in this course.');
-    return res.redirect('/sis/my/registration');
-  }
-
-  // Check existing request
-  const existing = await db.get(
-    `SELECT id, status FROM course_registrations WHERE student_id = $1 AND course_id = $2`,
-    [uid, courseId]
-  );
-  if (existing) {
-    if (existing.status === 'pending') {
-      req.flash('error', 'You already have a pending request for this course.');
-    } else if (existing.status === 'rejected') {
-      // Allow re-request — update the row
-      await db.run(
-        `UPDATE course_registrations
-         SET status = 'pending', requested_at = NOW(), reviewed_at = NULL, reviewed_by = NULL, notes = NULL
-         WHERE id = $1`,
-        [existing.id]
-      );
-      req.flash('success', 'Request resubmitted.');
-    }
-    return res.redirect('/sis/my/registration');
-  }
-
-  await db.run(
-    `INSERT INTO course_registrations (student_id, course_id, status)
-     VALUES ($1, $2, 'pending')`,
-    [uid, courseId]
-  );
-
-  req.flash('success', 'Registration request submitted. Waiting for admin approval.');
-  res.redirect('/sis/my/registration');
-});
-
-// Student — cancel a pending request
-router.post('/sis/my/registration/cancel/:id', studentGuard, async (req, res) => {
-  const db = getDB();
-  const uid = req.session.user.id;
-  await db.run(
-    `DELETE FROM course_registrations WHERE id = $1 AND student_id = $2 AND status = 'pending'`,
-    [req.params.id, uid]
-  );
-  req.flash('success', 'Request cancelled.');
-  res.redirect('/sis/my/registration');
-});
-
 // ============================================================
 //                 ADMIN — review registrations
 // ============================================================

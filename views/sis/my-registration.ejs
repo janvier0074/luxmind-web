@@ -13,13 +13,13 @@
 <!-- Legend -->
 <div class="reg-legend">
   <div class="legend-item"><span class="legend-box box-avail"></span> Available</div>
-  <div class="legend-item"><span class="legend-box box-cart"></span> In Cart (Pending)</div>
+  <div class="legend-item"><span class="legend-box box-cart"></span> Selected (In Cart)</div>
   <div class="legend-item"><span class="legend-box box-done"></span> Completed</div>
   <div class="legend-item"><span class="legend-box box-locked"></span> Locked (Future)</div>
 </div>
 
 <div class="reg-layout">
-  <!-- LEFT: Semester Curriculum -->
+  <!-- LEFT: Curriculum Hierarchy -->
   <div class="reg-main">
     <% 
       // Group curriculum by semester
@@ -29,25 +29,31 @@
         if (bySem[c.semester_number]) bySem[c.semester_number].push(c);
       });
 
-      for(let i=1; i<=6; i++) {
-        const isLocked = i > (currentSem + 1);
+      // Loop through Years (1 to 3)
+      for(let year = 1; year <= 3; year++) {
+        const sem1 = (year * 2) - 1;
+        const sem2 = year * 2;
     %>
-      <div class="sem-block <%= isLocked ? 'sem-locked' : '' %>">
-        <div class="sem-header">
-          <h3>Semester <%= i %></h3>
-          <% if (isLocked) { %><span class="lock-icon">🔒 Locked</span><% } %>
-        </div>
+      <!-- YEAR CONTAINER -->
+      <div class="year-block">
+        <h2 class="year-title">📖 Year <%= year %></h2>
 
-        <% if (bySem[i].length === 0) { %>
-          <div style="padding:1rem; color:#64748b; font-size:.85rem;">No courses defined for this semester yet.</div>
-        <% } else { %>
+        <!-- SEMESTER 1 -->
+        <div class="sem-block sem-color-<%= sem1 %>">
+          <div class="sem-header">
+            <h3>Semester <%= sem1 %></h3>
+            <% if (sem1 > currentSem + 1) { %><span class="lock-icon">🔒 Locked</span><% } %>
+          </div>
           <div class="sem-courses">
-            <% bySem[i].forEach(curr => {
-              // Find matching course in DB
-              const courseSections = sections.filter(s => s.course_id === curr.id); 
-              const cartItem = pending.find(p => p.course_id === curr.id);
-              const isDone = enrolled.some(e => e.course_title === curr.course_name);
-              
+            <% if (bySem[sem1].length === 0) { %>
+              <div class="empty-sem">No courses defined for this semester.</div>
+            <% } %>
+            <% bySem[sem1].forEach(curr => {
+              const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
+              const cartItem = pending.find(p => p.course_id === curr.real_course_id);
+              const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
+              const isLocked = sem1 > currentSem + 1;
+
               let cardClass = 'card-avail';
               if (isDone) cardClass = 'card-done';
               else if (cartItem) cardClass = 'card-cart';
@@ -55,7 +61,7 @@
             %>
               <div class="course-card <%= cardClass %>">
                 <div class="course-info">
-                  <div class="course-title"><%= curr.course_name %></div>
+                  <div class="course-title"><%= curr.real_course_title || curr.course_name %></div>
                   <div class="course-meta">
                     <span><%= curr.credits %> Credits</span>
                     <span><%= curr.course_code %></span>
@@ -69,14 +75,16 @@
                 <% } else if (isLocked) { %>
                   <div class="status-badge badge-locked">🔒 Not Available Yet</div>
                 <% } else { %>
-                  <!-- Show Groups -->
                   <div class="groups-list">
+                    <% if (courseSections.length === 0) { %>
+                      <span style="font-size:.75rem;color:#94a3b8;">No groups available in DB</span>
+                    <% } %>
                     <% courseSections.forEach(s => { 
                       const isFull = s.enrolled_count >= s.max_capacity;
                       const seatsLeft = s.max_capacity - s.enrolled_count;
                     %>
                       <form method="POST" action="/sis/my/registration/request" class="group-form">
-                        <input type="hidden" name="course_id" value="<%= curr.id %>">
+                        <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
                         <input type="hidden" name="section_id" value="<%= s.id %>">
                         <button type="submit" class="group-btn" <%= isFull || hasHold ? 'disabled' : '' %>>
                           <span class="grp-name"><%= s.group_name %> (<%= s.teacher_name || 'Staff' %>)</span>
@@ -84,15 +92,73 @@
                         </button>
                       </form>
                     <% }) %>
-                    <% if (courseSections.length === 0) { %>
-                      <span style="font-size:.75rem;color:#94a3b8;">No groups available</span>
-                    <% } %>
                   </div>
                 <% } %>
               </div>
             <% }) %>
           </div>
-        <% } %>
+        </div>
+
+        <!-- SEMESTER 2 -->
+        <div class="sem-block sem-color-<%= sem2 %>">
+          <div class="sem-header">
+            <h3>Semester <%= sem2 %></h3>
+            <% if (sem2 > currentSem + 1) { %><span class="lock-icon">🔒 Locked</span><% } %>
+          </div>
+          <div class="sem-courses">
+            <% if (bySem[sem2].length === 0) { %>
+              <div class="empty-sem">No courses defined for this semester.</div>
+            <% } %>
+            <% bySem[sem2].forEach(curr => {
+              const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
+              const cartItem = pending.find(p => p.course_id === curr.real_course_id);
+              const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
+              const isLocked = sem2 > currentSem + 1;
+
+              let cardClass = 'card-avail';
+              if (isDone) cardClass = 'card-done';
+              else if (cartItem) cardClass = 'card-cart';
+              else if (isLocked) cardClass = 'card-locked';
+            %>
+              <div class="course-card <%= cardClass %>">
+                <div class="course-info">
+                  <div class="course-title"><%= curr.real_course_title || curr.course_name %></div>
+                  <div class="course-meta">
+                    <span><%= curr.credits %> Credits</span>
+                    <span><%= curr.course_code %></span>
+                  </div>
+                </div>
+
+                <% if (isDone) { %>
+                  <div class="status-badge badge-done">✅ Completed</div>
+                <% } else if (cartItem) { %>
+                  <div class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</div>
+                <% } else if (isLocked) { %>
+                  <div class="status-badge badge-locked">🔒 Not Available Yet</div>
+                <% } else { %>
+                  <div class="groups-list">
+                    <% if (courseSections.length === 0) { %>
+                      <span style="font-size:.75rem;color:#94a3b8;">No groups available in DB</span>
+                    <% } %>
+                    <% courseSections.forEach(s => { 
+                      const isFull = s.enrolled_count >= s.max_capacity;
+                      const seatsLeft = s.max_capacity - s.enrolled_count;
+                    %>
+                      <form method="POST" action="/sis/my/registration/request" class="group-form">
+                        <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
+                        <input type="hidden" name="section_id" value="<%= s.id %>">
+                        <button type="submit" class="group-btn" <%= isFull || hasHold ? 'disabled' : '' %>>
+                          <span class="grp-name"><%= s.group_name %> (<%= s.teacher_name || 'Staff' %>)</span>
+                          <span class="grp-seats <%= isFull ? 'seats-full' : '' %>"><%= isFull ? 'FULL' : seatsLeft + ' left' %></span>
+                        </button>
+                      </form>
+                    <% }) %>
+                  </div>
+                <% } %>
+              </div>
+            <% }) %>
+          </div>
+        </div>
       </div>
     <% } %>
   </div>
@@ -127,9 +193,6 @@
         <button class="sis-btn sis-btn-gold" style="width:100%;" <%= pending.length === 0 ? 'disabled style="opacity:.5"' : '' %>>
           📨 Submit to Advisor
         </button>
-        <div style="text-align:center; margin-top:.5rem; font-size:.75rem; color:#64748b;">
-          (Advisor approval coming next)
-        </div>
       </div>
     </div>
   </div>
@@ -145,30 +208,45 @@
   .box-locked { background: #f1f5f9; border: 2px dashed #cbd5e1; }
 
   .reg-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
-  
+
+  /* Years */
+  .year-block { margin-bottom: 2.5rem; }
+  .year-title { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 2px solid #e2e8f0; }
+
   /* Semesters */
-  .sem-block { background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 1.25rem; overflow: hidden; }
-  .sem-block:nth-child(even) { background: #f0f9ff; border-color: #bae6fd; }
-  .sem-locked { opacity: .7; background: #f1f5f9 !important; border-style: dashed; }
+  .sem-block { border-radius: 12px; margin-bottom: 1rem; border: 1px solid transparent; overflow: hidden; }
   
-  .sem-header { padding: .85rem 1.25rem; background: rgba(0,0,0,.03); border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+  /* UNIQUE BACKGROUND COLORS FOR SEMESTERS */
+  .sem-color-1 { background: #f0f9ff; border-color: #bae6fd; }
+  .sem-color-2 { background: #fdf4ff; border-color: #f5d0fe; }
+  .sem-color-3 { background: #f0fdf4; border-color: #bbf7d0; }
+  .sem-color-4 { background: #fffbeb; border-color: #fde68a; }
+  .sem-color-5 { background: #fef2f2; border-color: #fecaca; }
+  .sem-color-6 { background: #f8fafc; border-color: #e2e8f0; }
+
+  .sem-header { padding: .85rem 1.25rem; background: rgba(0,0,0,.04); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,.05); }
   .sem-header h3 { font-size: 1rem; font-weight: 800; color: #0f172a; }
-  .lock-icon { font-size: .75rem; color: #64748b; font-weight: 800; background: #e2e8f0; padding: 2px 8px; border-radius: 100px; }
+  .lock-icon { font-size: .75rem; color: #64748b; font-weight: 800; background: #fff; padding: 2px 8px; border-radius: 100px; }
 
   .sem-courses { padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
+  .empty-sem { padding: 1rem; color: #94a3b8; font-size: .85rem; font-style: italic; }
 
   /* Course Cards */
   .course-card { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 2px solid #e2e8f0; border-radius: 10px; padding: 1rem; transition: all .2s; flex-wrap: wrap; gap: 1rem; }
-  .course-card.card-avail:hover { border-color: #06b6d4; }
-  .course-card.card-cart { background: #f3e8ff; border-color: #8b5cf6; }
-  .course-card.card-done { background: #ecfdf5; border-color: #10b981; opacity: .8; }
-  .course-card.card-locked { background: #f8fafc; border-style: dashed; }
+  
+  /* COURSE CARD STATUS COLORS */
+  .card-avail { background: #fff; border-color: #cbd5e1; }
+  .card-avail:hover { border-color: #06b6d4; box-shadow: 0 4px 12px rgba(6,182,212,.15); }
+  
+  .card-cart { background: #f3e8ff; border-color: #8b5cf6; }
+  .card-done { background: #ecfdf5; border-color: #10b981; opacity: .85; }
+  .card-locked { background: #f8fafc; border-style: dashed; opacity: .6; }
 
   .course-info { flex: 1; min-width: 200px; }
   .course-title { font-weight: 800; color: #0f172a; font-size: .95rem; margin-bottom: .25rem; }
   .course-meta { display: flex; gap: 1rem; font-size: .75rem; color: #64748b; font-weight: 700; }
   
-  .status-badge { padding: .4rem .8rem; border-radius: 8px; font-size: .8rem; font-weight: 800; }
+  .status-badge { padding: .4rem .8rem; border-radius: 8px; font-size: .8rem; font-weight: 800; white-space: nowrap; }
   .badge-done { background: #d1fae5; color: #065f46; }
   .badge-cart { background: #ede9fe; color: #5b21b6; }
   .badge-locked { background: #f1f5f9; color: #94a3b8; }
