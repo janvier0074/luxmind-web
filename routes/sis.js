@@ -2037,4 +2037,178 @@ router.post('/sis/admin/course-teachers/:courseId/role/:teacherId', guard, async
   res.redirect('/sis/admin/course-teachers');
 });
 
+
+// ============================================================
+//                 COURSE WITHDRAWAL
+// ============================================================
+
+// Student — view enrolled courses & request withdrawal
+router.get('/sis/my/withdrawal', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const enrolled = await db.all(`
+    SELECT c.id, c.title, c.description, u.full_name AS teacher_name,
+           (SELECT COUNT(*) FROM lessons WHERE course_id = c.id) AS lesson_count
+    FROM courses c
+    JOIN enrollments e ON e.course_id = c.id
+    LEFT JOIN users u ON u.id = c.teacher_id
+    WHERE e.user_id = $1
+    ORDER BY c.title
+  `, [uid]);
+
+  const requests = await db.all(`
+    SELECT cr.*, c.title AS course_title
+    FROM course_withdrawals cr
+    JOIN courses c ON c.id = cr.course_id
+    WHERE cr.student_id = $1
+    ORDER BY cr.requested_at DESC
+  `, [uid]);
+
+  const pendingCourseIds = requests
+    .filter(r => r.status === 'pending')
+    .map(r => r.course_id);
+
+  res.render('sis/my-withdrawal', {
+    title: 'Course Withdrawal',
+    heading: 'Course Withdrawal',
+    subtitle: 'Request to drop a course from your current schedule.',
+    enrolled, requests, pendingCourseIds,
+  });
+});
+
+// Student — submit request
+router.post('/sis/my/withdrawal/request', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const { course_id, reason } = req.body;
+
+  if (!course_id || !reason || !reason.trim()) {
+    req.flash('error', 'Course and reason are required.');
+    return res.redirect('/sis/my/withdrawal');
+  }
+
+  // Check already enrolled
+  const enrolled = await db.get(
+    `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
+    [uid, Number(course_id)]
+  );
+  if (!enrolled) {
+    req.flash('error', 'You are not enrolled in this course.');
+    return res.redirect('/sis/my/withdrawal');
+  }
+
+  // Check for existing pending request
+  const existing = await db.get(
+    `SELECT id FROM course_withdrawals WHERE student_id = $1 AND course_id = $2 AND status = 'pending'`,
+    [uid, Number(course_id)]
+  );
+  if (existing) {
+    req.flash('error', 'You already have a pending withdrawal request for this course.');
+    return res.redirect('/sis/my/withdrawal');
+  }
+
+  await db.run(
+    `INSERT INTO course_withdrawals (student_id, course_id, reason, status)
+     VALUES ($1, $2, $3, 'pending')`,
+    [uid, Number(course_id), reason.trim()]
+  );
+
+  req.flash('success', 'Withdrawal request submitted for approval.');
+  res.redirect('/sis/my/withdrawal');
+});
+
+// Student — cancel request
+router.post('/sis/my/withdrawal/cancel/:id', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  await db.run(
+    `DELETE FROM course_withdrawals WHERE id = $1 AND student_id = $2 AND status = 'pending'`,
+    [req.params.id, uid]
+  );
+  req.flash('success', 'Withdrawal request cancelled.');
+  res.redirect('/sis/my/withdrawal');
+});
+
+// ============================================================
+//                 ADMIN — Review withdrawals
+// ============================================================
+router.get('/sis/admin/withdrawals', guard, async (req, res) => {
+  const db = getDB();
+
+  const pending = await db.all(`
+    SELECT cw.*, c.title AS course_title,
+           u.full_name AS student_name, u.username AS student_username,
+           u.email AS student_email
+    FROM course_withdrawals cw
+    JOIN courses c ON c.id = cw.course_id
+    JOIN users u ON u.id = cw.student_id
+    WHERE cw.status = 'pending'
+    ORDER BY cw.requested_at ASC
+  `);
+
+  const handled = await db.all(`
+    SELECT cw.*, c.title AS course_title,
+           u.full_name AS student_name, u.username AS student_username
+    FROM course_withdrawals cw
+    JOIN courses c ON c.id = cw.course_id
+    JOIN users u ON u.id = cw.student_id
+    WHERE cw.status IN ('approved','rejected')
+    ORDER BY cw.reviewed_at DESC
+    LIMIT 30
+  `);
+
+  res.render('sis/admin-withdrawals', {
+    title: 'Course Withdrawals',
+    heading: 'Course Withdrawals',
+    subtitle: 'Approve or reject student withdrawal requests.',
+    pending, handled,
+  });
+});
+
+// Admin — approve
+router.post('/sis/admin/withdrawals/:id/approve', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+
+  const reqRow = await db.get(`SELECT * FROM course_withdrawals WHERE id = $1`, [id]);
+  if (!reqRow) {
+    req.flash('error', 'Request not found.');
+    return res.redirect('/sis/admin/withdrawals');
+  }
+
+  // Remove the enrollment
+  await db.run(
+    `DELETE FROM enrollments WHERE user_id = $1 AND course_id = $2`,
+    [reqRow.student_id, reqRow.course_id]
+  );
+
+  await db.run(
+    `UPDATE course_withdrawals
+     SET status = 'approved', reviewed_at = NOW(), reviewed_by = $1
+     WHERE id = $2`,
+    [req.session.user.id, id]
+  );
+
+  req.flash('success', 'Withdrawal approved. Student removed from course.');
+  res.redirect('/sis/admin/withdrawals');
+});
+
+// Admin — reject
+router.post('/sis/admin/withdrawals/:id/reject', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const notes = req.body.admin_notes || null;
+
+  await db.run(
+    `UPDATE course_withdrawals
+     SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1, admin_notes = $2
+     WHERE id = $3`,
+    [req.session.user.id, notes, id]
+  );
+
+  req.flash('success', 'Withdrawal request rejected.');
+  res.redirect('/sis/admin/withdrawals');
+});
+
 module.exports = router;

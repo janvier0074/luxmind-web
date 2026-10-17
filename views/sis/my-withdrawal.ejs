@@ -1,0 +1,296 @@
+<%- include('partials/head', {
+  title: 'Course Withdrawal',
+  heading: 'Course Withdrawal',
+  subtitle: 'Request to drop a course from your current schedule.'
+}) %>
+
+<div class="cw-warning">
+  <span class="cw-warn-icon">⚠️</span>
+  <div>
+    <strong>Before you withdraw:</strong> Dropping a course may affect your GPA, credits, and graduation timeline. Requests are reviewed by the registrar.
+  </div>
+</div>
+
+<!-- REQUEST FORM -->
+<div class="cw-card cw-form-card">
+  <div class="cw-card-head">
+    <span class="cw-icon">📤</span>
+    <div>
+      <h3>New Withdrawal Request</h3>
+      <p>Select a course and provide a reason for withdrawal.</p>
+    </div>
+  </div>
+
+  <% if (enrolled.length === 0) { %>
+    <div class="sis-empty" style="padding:1.5rem;">You're not enrolled in any courses.</div>
+  <% } else { %>
+    <form method="POST" action="/sis/my/withdrawal/request" class="cw-form">
+      <div class="cw-field">
+        <label class="cw-lbl">Course *</label>
+        <select class="cw-input" name="course_id" required>
+          <option value="">— Choose a course —</option>
+          <% enrolled.forEach(c => {
+            const isPending = pendingCourseIds.includes(c.id);
+          %>
+            <option value="<%= c.id %>" <%= isPending ? 'disabled' : '' %>>
+              <%= c.title %> <%= isPending ? '(pending request)' : '' %>
+            </option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="cw-field">
+        <label class="cw-lbl">Reason for Withdrawal *</label>
+        <textarea class="cw-textarea" name="reason" rows="3" required
+          placeholder="e.g. Medical reasons, schedule conflict, personal circumstances..."
+          maxlength="500"></textarea>
+      </div>
+
+      <button class="cw-submit" type="submit">📨 Submit Request</button>
+    </form>
+  <% } %>
+</div>
+
+<!-- HISTORY -->
+<h3 class="cw-sec-title">
+  My Withdrawal Requests
+  <% if (requests.length > 0) { %><span class="cw-sec-count"><%= requests.length %></span><% } %>
+</h3>
+
+<% if (requests.length === 0) { %>
+  <div class="sis-empty" style="padding:2rem;">No withdrawal requests yet.</div>
+<% } else { %>
+  <div class="cw-list">
+    <% requests.forEach(r => {
+      const badgeClass = r.status === 'approved' ? 'cw-badge-approved' :
+                         r.status === 'rejected' ? 'cw-badge-rejected' : 'cw-badge-pending';
+      const itemClass = r.status === 'approved' ? 'cw-item-approved' :
+                        r.status === 'rejected' ? 'cw-item-rejected' : 'cw-item-pending';
+    %>
+      <div class="cw-item <%= itemClass %>">
+        <div class="cw-item-icon">
+          <% if (r.status === 'approved') { %>✅
+          <% } else if (r.status === 'rejected') { %>❌
+          <% } else { %>⏳<% } %>
+        </div>
+
+        <div class="cw-item-body">
+          <div class="cw-item-title"><%= r.course_title %></div>
+          <div class="cw-item-reason"><%= r.reason %></div>
+          <div class="cw-item-date">
+            Requested <%= new Date(r.requested_at).toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }) %>
+          </div>
+          <% if (r.admin_notes) { %>
+            <div class="cw-item-notes">
+              <strong>Registrar:</strong> <%= r.admin_notes %>
+            </div>
+          <% } %>
+        </div>
+
+        <div class="cw-item-right">
+          <span class="cw-badge <%= badgeClass %>">
+            <% if (r.status === 'approved') { %>Approved
+            <% } else if (r.status === 'rejected') { %>Rejected
+            <% } else { %>Pending<% } %>
+          </span>
+
+          <% if (r.status === 'pending') { %>
+            <form method="POST" action="/sis/my/withdrawal/cancel/<%= r.id %>"
+              onsubmit="return confirm('Cancel this withdrawal request?');">
+              <button class="cw-cancel" type="submit">Cancel</button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  /* Warning */
+  .cw-warning {
+    display: flex; gap: .75rem; align-items: flex-start;
+    background: #fef3c7; border-left: 4px solid #f59e0b;
+    padding: 1rem 1.15rem; border-radius: 10px;
+    color: #78350f; font-size: .85rem; line-height: 1.55;
+    margin-bottom: 1.5rem;
+  }
+  .cw-warn-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+  /* Card */
+  .cw-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 1.75rem;
+  }
+  .cw-form-card {
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%);
+    border-color: #bae6fd;
+  }
+  .cw-card-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .cw-icon { font-size: 1.65rem; flex-shrink: 0; }
+  .cw-card-head h3 {
+    font-size: 1.05rem; font-weight: 800;
+    color: #0f172a; margin-bottom: .2rem;
+  }
+  .cw-card-head p {
+    font-size: .82rem; color: #64748b;
+    line-height: 1.5;
+  }
+
+  /* Form */
+  .cw-form { display: flex; flex-direction: column; gap: 1rem; }
+  .cw-field { display: flex; flex-direction: column; }
+  .cw-lbl {
+    font-size: .7rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .4rem;
+  }
+  .cw-input, .cw-textarea {
+    width: 100%; padding: .75rem .9rem;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 10px;
+    background: #fff; font-size: .9rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .cw-input:focus, .cw-textarea:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .cw-textarea { resize: vertical; min-height: 80px; }
+  .cw-submit {
+    align-self: flex-start;
+    padding: .8rem 1.5rem;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: .9rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 16px rgba(239,68,68,.3);
+    transition: all .15s;
+  }
+  .cw-submit:hover { transform: translateY(-2px); }
+
+  /* Section */
+  .cw-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .cw-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  /* List */
+  .cw-list { display: flex; flex-direction: column; gap: .75rem; }
+  .cw-item {
+    display: grid;
+    grid-template-columns: 40px 1fr auto;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem 1.15rem;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .cw-item-pending  { border-left-color: #f59e0b; }
+  .cw-item-approved { border-left-color: #10b981; }
+  .cw-item-rejected { border-left-color: #ef4444; }
+
+  .cw-item-icon { font-size: 1.4rem; line-height: 1; }
+  .cw-item-body { min-width: 0; }
+  .cw-item-title {
+    font-weight: 800; color: #0f172a;
+    font-size: .95rem;
+    word-break: break-word;
+    margin-bottom: .35rem;
+  }
+  .cw-item-reason {
+    color: #475569; font-size: .82rem;
+    line-height: 1.5;
+    word-break: break-word;
+    margin-bottom: .4rem;
+  }
+  .cw-item-date {
+    color: #94a3b8; font-size: .72rem;
+    font-family: ui-monospace, monospace;
+  }
+  .cw-item-notes {
+    margin-top: .5rem;
+    padding: .55rem .75rem;
+    background: #f8fafc;
+    border-radius: 6px;
+    font-size: .78rem;
+    color: #475569;
+    word-break: break-word;
+  }
+
+  .cw-item-right {
+    display: flex; flex-direction: column;
+    align-items: flex-end; gap: .5rem;
+    flex-shrink: 0;
+  }
+  .cw-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: .7rem; font-weight: 800;
+    border-radius: 100px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .cw-badge-pending  { background: #fef3c7; color: #92400e; }
+  .cw-badge-approved { background: #d1fae5; color: #065f46; }
+  .cw-badge-rejected { background: #fee2e2; color: #991b1b; }
+
+  .cw-cancel {
+    background: #fff; color: #991b1b;
+    border: 1px solid #fecaca;
+    padding: .3rem .75rem;
+    border-radius: 6px; font-size: .72rem;
+    font-weight: 700; cursor: pointer;
+    font-family: inherit;
+    transition: all .15s;
+  }
+  .cw-cancel:hover { background: #fee2e2; }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .cw-card { padding: 1.15rem; }
+    .cw-card-head { gap: .6rem; }
+    .cw-icon { font-size: 1.4rem; }
+
+    .cw-submit { align-self: stretch; text-align: center; }
+
+    .cw-item {
+      grid-template-columns: 32px 1fr;
+      gap: .65rem;
+      padding: .85rem;
+    }
+    .cw-item-icon { font-size: 1.15rem; }
+    .cw-item-right {
+      grid-column: 1 / -1;
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: center;
+      width: 100%;
+      padding-top: .5rem;
+      border-top: 1px dashed #f1f5f9;
+      margin-top: .35rem;
+    }
+  }
+</style>
+
+<%- include('partials/foot') %>
