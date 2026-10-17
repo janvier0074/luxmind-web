@@ -1,0 +1,225 @@
+<%- include('partials/head', {
+  title: 'My Graduation',
+  heading: 'My Graduation',
+  subtitle: 'Track your progress towards graduation.'
+}) %>
+
+<!-- Hero Section -->
+<div class="grad-hero">
+  <div class="grad-hero-info">
+    <div class="grad-hero-lbl">Program Level</div>
+    <div class="grad-hero-program"><%= level %></div>
+    <div class="grad-hero-status">
+      <% if (progressPct >= 100) { %>
+        <span class="grad-status grad-status-done">🎉 Eligible for Graduation</span>
+      <% } else if (progressPct >= 75) { %>
+        <span class="grad-status grad-status-close">🔵 Almost There</span>
+      <% } else { %>
+        <span class="grad-status grad-status-progress">⏳ In Progress</span>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="grad-hero-stats">
+    <div class="grad-ring-wrap">
+      <svg class="grad-ring" viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,.15)" stroke-width="8" fill="none"/>
+        <circle cx="50" cy="50" r="40" stroke="#67e8f9" stroke-width="8" fill="none"
+          stroke-dasharray="251.2" stroke-dashoffset="<%= 251.2 - (251.2 * progressPct / 100) %>"
+          stroke-linecap="round" style="transition: stroke-dashoffset 1s;"/>
+      </svg>
+      <div class="grad-ring-text"><%= progressPct %>%</div>
+    </div>
+    <div class="grad-credits">
+      <div class="grad-credit-item">
+        <div class="grad-cr-num"><%= totalEarnedCredits %></div>
+        <div class="grad-cr-lbl">Earned</div>
+      </div>
+      <div class="grad-credit-item grad-credit-divider">
+        <div class="grad-cr-num"><%= totalRequiredCredits %></div>
+        <div class="grad-cr-lbl">Required</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Checklist Table -->
+<h3 class="grad-sec-title">
+  Course Requirements
+  <% if (checklist.length > 0) { %><span class="grad-sec-count"><%= checklist.length %></span><% } %>
+</h3>
+
+<% if (checklist.length === 0) { %>
+  <div class="sis-empty" style="padding:2.5rem;">
+    No graduation requirements found. Ask your admin to set up the Curriculum for <strong><%= level %></strong>.
+  </div>
+<% } else { %>
+  <div class="grad-table-wrap">
+    <table class="grad-table">
+      <thead>
+        <tr>
+          <th style="width:100px;">Code</th>
+          <th>Course Name</th>
+          <th style="width:80px;text-align:center;">Credits</th>
+          <th style="width:100px;text-align:center;">Type</th>
+          <th style="width:150px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% checklist.forEach(c => {
+          let statusClass = 'grad-st-pending';
+          let statusLabel = 'Not Started';
+          let icon = '⚪';
+
+          if (c.status === 'Completed') {
+            statusClass = 'grad-st-completed';
+            statusLabel = 'Completed';
+            icon = '✅';
+          } else if (c.status === 'In Progress') {
+            statusClass = 'grad-st-progress';
+            statusLabel = 'In Progress';
+            icon = '🟡';
+          } else if (c.status === 'Enrolled') {
+            statusClass = 'grad-st-enrolled';
+            statusLabel = 'Enrolled';
+            icon = '🔵';
+          }
+        %>
+          <tr>
+            <td style="font-family:ui-monospace,monospace;font-weight:700;color:#0891b2;font-size:.82rem;"><%= c.course_code || '—' %></td>
+            <td><strong><%= c.course_name %></strong></td>
+            <td style="text-align:center;font-family:ui-monospace,monospace;font-weight:700;"><%= c.credits %></td>
+            <td style="text-align:center;">
+              <% if (c.type === 'Required') { %>
+                <span class="grad-type grad-type-req">Required</span>
+              <% } else { %>
+                <span class="grad-type grad-type-elec">Elective</span>
+              <% } %>
+            </td>
+            <td>
+              <span class="grad-status-badge <%= statusClass %>">
+                <%= icon %> <%= statusLabel %>
+              </span>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+<% } %>
+
+<style>
+  /* Hero */
+  .grad-hero {
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    border-radius: 16px; padding: 2rem 2.25rem; margin-bottom: 2rem;
+    color: #fff; box-shadow: 0 16px 40px rgba(6,182,212,.25);
+    flex-wrap: wrap; gap: 1.5rem;
+  }
+  .grad-hero-info { flex: 1; min-width: 200px; }
+  .grad-hero-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #67e8f9; font-weight: 800;
+  }
+  .grad-hero-program {
+    font-family: Georgia, serif;
+    font-size: 2rem; font-weight: 900; line-height: 1.1;
+    margin: .35rem 0 .75rem;
+  }
+  .grad-status {
+    display: inline-block; padding: 4px 12px;
+    border-radius: 100px; font-size: .75rem;
+    font-weight: 800; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .grad-status-done { background: #10b981; color: #fff; }
+  .grad-status-close { background: #f59e0b; color: #fff; }
+  .grad-status-progress { background: rgba(255,255,255,.2); color: #fff; }
+
+  /* Ring & Stats */
+  .grad-hero-stats {
+    display: flex; align-items: center; gap: 2rem;
+  }
+  .grad-ring-wrap {
+    position: relative; width: 100px; height: 100px;
+  }
+  .grad-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .grad-ring-text {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: Georgia, serif; font-size: 1.4rem; font-weight: 900;
+  }
+  .grad-credits { display: flex; gap: 1.5rem; text-align: center; }
+  .grad-credit-item { display: flex; flex-direction: column; }
+  .grad-credit-divider { border-left: 1px solid rgba(255,255,255,.2); padding-left: 1.5rem; }
+  .grad-cr-num { font-family: Georgia, serif; font-size: 1.5rem; font-weight: 900; line-height: 1; }
+  .grad-cr-lbl { font-size: .65rem; text-transform: uppercase; letter-spacing: .12em; color: rgba(255,255,255,.75); margin-top: .35rem; font-weight: 800; }
+
+  /* Section */
+  .grad-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .75rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #64748b;
+    font-weight: 800; margin-bottom: 1rem;
+  }
+  .grad-sec-count {
+    background: #0f2942; color: #67e8f9;
+    font-size: .68rem; padding: 2px 8px;
+    border-radius: 100px; letter-spacing: 0;
+  }
+
+  /* Table */
+  .grad-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+  }
+  .grad-table { width: 100%; border-collapse: collapse; }
+  .grad-table thead { background: #f8fafc; }
+  .grad-table th {
+    text-align: left; padding: .75rem 1rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .grad-table td {
+    padding: .85rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    vertical-align: middle;
+  }
+  .grad-table tbody tr:hover { background: #f8fafc; }
+
+  .grad-type {
+    display: inline-block; padding: 3px 8px;
+    font-size: .65rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .grad-type-req  { background: #d1fae5; color: #065f46; }
+  .grad-type-elec { background: #fef3c7; color: #92400e; }
+
+  .grad-status-badge {
+    display: inline-flex; align-items: center; gap: .35rem;
+    padding: 4px 10px; border-radius: 100px;
+    font-size: .72rem; font-weight: 700;
+  }
+  .grad-st-completed { background: #d1fae5; color: #065f46; }
+  .grad-st-progress  { background: #fef3c7; color: #92400e; }
+  .grad-st-enrolled  { background: #e0f2fe; color: #0369a1; }
+  .grad-st-pending   { background: #f1f5f9; color: #64748b; }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .grad-hero { padding: 1.5rem; }
+    .grad-hero-program { font-size: 1.5rem; }
+    .grad-hero-stats { width: 100%; justify-content: space-between; }
+    .grad-ring-wrap { width: 80px; height: 80px; }
+    .grad-ring-text { font-size: 1.1rem; }
+    .grad-table-wrap { overflow-x: auto; }
+    .grad-table { min-width: 600px; }
+  }
+</style>
+
+<%- include('partials/foot') %>

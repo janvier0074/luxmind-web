@@ -2539,4 +2539,82 @@ router.get('/sis/my/curriculum', studentGuard, async (req, res) => {
   });
 });
 
+// ============================================================
+//                 STUDENT — MY GRADUATION
+// ============================================================
+router.get('/sis/my/graduation', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // 1. Get Student Level
+  const profile = await db.get(`SELECT class_level FROM student_profiles WHERE user_id = $1`, [uid]);
+  let level = 'Not Assigned';
+  if (profile && profile.class_level) {
+    level = profile.class_level.replace(/[-\s].*$/, '').trim();
+  }
+
+  // 2. Fetch Curriculum for this level
+  const curriculum = await db.all(`
+    SELECT * FROM curriculum 
+    WHERE program_level = $1
+    ORDER BY semester, type
+  `, [level]);
+
+  // 3. Fetch Student's Course Grades (Quizzes only for simplicity)
+  const grades = await db.all(`
+    SELECT c.title AS course_name,
+           COALESCE(SUM(COALESCE(m.override_score, a.score)), 0) AS earned,
+           COALESCE(SUM(a.max_score), 0) AS total
+    FROM courses c
+    JOIN enrollments e ON e.course_id = c.id AND e.user_id = $1
+    LEFT JOIN quizzes q ON q.course_id = c.id
+    LEFT JOIN attempts a ON a.quiz_id = q.id AND a.user_id = $2
+    LEFT JOIN manual_grades m ON m.attempt_id = a.id
+    GROUP BY c.id, c.title
+  `, [uid, uid]);
+
+  // 4. Match Curriculum to Grades to determine Status
+  let totalRequiredCredits = 0;
+  let totalEarnedCredits = 0;
+
+  const checklist = curriculum.map(curr => {
+    totalRequiredCredits += Number(curr.credits);
+    
+    // Find matching enrolled course
+    const matchedGrade = grades.find(g => 
+      g.course_name.toLowerCase().includes(curr.course_name.toLowerCase()) || 
+      curr.course_name.toLowerCase().includes(g.course_name.toLowerCase())
+    );
+
+    let status = 'Not Started';
+    let pct = 0;
+
+    if (matchedGrade) {
+      pct = matchedGrade.total > 0 ? (matchedGrade.earned / matchedGrade.total) * 100 : 0;
+      if (pct >= 60) {
+        status = 'Completed';
+        totalEarnedCredits += Number(curr.credits);
+      } else if (pct > 0 || matchedGrade.earned > 0) {
+        status = 'In Progress';
+      } else {
+        status = 'Enrolled';
+      }
+    }
+
+    return { ...curr, status, pct: Math.round(pct) };
+  });
+
+  // Calculate overall progress
+  const progressPct = totalRequiredCredits > 0 
+    ? Math.round((totalEarnedCredits / totalRequiredCredits) * 100) 
+    : 0;
+
+  res.render('sis/my-graduation', {
+    title: 'My Graduation',
+    heading: 'My Graduation',
+    subtitle: 'Track your progress towards graduation.',
+    level, checklist, totalRequiredCredits, totalEarnedCredits, progressPct
+  });
+});
+
 module.exports = router;
