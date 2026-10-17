@@ -1,0 +1,226 @@
+<%- include('partials/head', {
+  title: 'Curriculum',
+  heading: 'Curriculum Management',
+  subtitle: 'Define required and elective courses per program level.'
+}) %>
+
+<!-- Add form -->
+<div class="curr-card curr-new">
+  <div class="curr-card-head">
+    <span class="curr-icon">📚</span>
+    <div>
+      <h3>Add Course to Curriculum</h3>
+      <p>Map a course to a specific program level (e.g. Form 1).</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/sis/admin/curriculum/new" class="curr-form">
+    <div class="curr-field">
+      <label class="curr-lbl">Program Level *</label>
+      <input class="curr-input" name="program_level" required placeholder="e.g. Form 1" maxlength="40">
+    </div>
+    <div class="curr-field">
+      <label class="curr-lbl">Semester</label>
+      <input class="curr-input" name="semester" placeholder="e.g. Term 1" maxlength="40">
+    </div>
+    <div class="curr-field">
+      <label class="curr-lbl">Course Code</label>
+      <input class="curr-input" name="course_code" placeholder="e.g. CS101" maxlength="20">
+    </div>
+    <div class="curr-field curr-field-wide">
+      <label class="curr-lbl">Course Name *</label>
+      <input class="curr-input" name="course_name" required placeholder="e.g. Intro to Programming" maxlength="80">
+    </div>
+    <div class="curr-field">
+      <label class="curr-lbl">Credits</label>
+      <input class="curr-input" type="number" name="credits" value="3" min="1" max="10">
+    </div>
+    <div class="curr-field">
+      <label class="curr-lbl">Type</label>
+      <select class="curr-input" name="type">
+        <option value="Required">Required</option>
+        <option value="Elective">Elective</option>
+      </select>
+    </div>
+    <div class="curr-field curr-form-actions">
+      <button class="curr-submit" type="submit">➕ Add</button>
+    </div>
+  </form>
+</div>
+
+<!-- List grouped by program -->
+<% const hasGroups = Object.keys(grouped).length > 0; %>
+
+<% if (!hasGroups) { %>
+  <div class="sis-empty" style="padding:2rem;">No curriculum defined yet. Add a course above.</div>
+<% } else { %>
+  <% Object.keys(grouped).forEach(level => { %>
+    <div class="curr-group">
+      <h3 class="curr-sec-title">
+        🎓 <%= level %>
+        <span class="curr-sec-count"><%= grouped[level].length %> courses</span>
+      </h3>
+
+      <div class="curr-table-wrap">
+        <table class="curr-table">
+          <thead>
+            <tr>
+              <th style="width:100px;">Code</th>
+              <th>Course Name</th>
+              <th style="width:120px;">Semester</th>
+              <th style="width:80px;text-align:center;">Credits</th>
+              <th style="width:100px;text-align:center;">Type</th>
+              <th style="width:80px;text-align:center;">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% grouped[level].forEach(c => { %>
+              <tr>
+                <td style="font-family:ui-monospace,monospace;font-weight:700;color:#0891b2;font-size:.82rem;"><%= c.course_code || '—' %></td>
+                <td><strong><%= c.course_name %></strong></td>
+                <td style="color:#64748b;font-size:.85rem;"><%= c.semester || 'All' %></td>
+                <td style="text-align:center;font-family:ui-monospace,monospace;font-weight:700;"><%= c.credits %></td>
+                <td style="text-align:center;">
+                  <% if (c.type === 'Required') { %>
+                    <span class="curr-badge curr-badge-req">Required</span>
+                  <% } else { %>
+                    <span class="curr-badge curr-badge-elec">Elective</span>
+                  <% } %>
+                </td>
+                <td style="text-align:center;">
+                  <form method="POST" action="/sis/admin/curriculum/<%= c.id %>/delete"
+                    onsubmit="return confirm('Remove this course from the curriculum?');" style="display:inline;">
+                    <button class="curr-del" type="submit" title="Delete">✕</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<style>
+  .curr-card {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 14px; padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    margin-bottom: 2rem;
+  }
+  .curr-new {
+    background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%);
+    border-color: #bae6fd;
+  }
+  .curr-card-head {
+    display: flex; align-items: flex-start; gap: .85rem;
+    margin-bottom: 1.25rem; padding-bottom: 1rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .curr-icon { font-size: 1.65rem; flex-shrink: 0; }
+  .curr-card-head h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: .2rem; }
+  .curr-card-head p { font-size: .82rem; color: #64748b; line-height: 1.5; }
+
+  .curr-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 2fr .6fr 1fr auto;
+    gap: .65rem; align-items: end;
+  }
+  .curr-field { display: flex; flex-direction: column; min-width: 0; }
+  .curr-field-wide { grid-column: span 1; }
+  .curr-lbl {
+    font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .1em;
+    color: #475569; margin-bottom: .35rem;
+  }
+  .curr-input {
+    width: 100%; padding: .65rem .8rem;
+    border: 1.5px solid #cbd5e1; border-radius: 9px;
+    background: #fff; font-size: .85rem;
+    font-family: inherit; color: #0f172a;
+    transition: all .15s;
+  }
+  .curr-input:focus {
+    outline: none; border-color: #06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .curr-form-actions { display: flex; }
+  .curr-submit {
+    padding: .65rem 1.2rem;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; border: none; border-radius: 9px;
+    font-size: .82rem; font-weight: 800;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 6px 14px rgba(6,182,212,.3);
+    transition: all .15s; white-space: nowrap;
+  }
+  .curr-submit:hover { transform: translateY(-2px); }
+
+  .curr-group { margin-bottom: 2rem; }
+  .curr-sec-title {
+    display: flex; align-items: center; gap: .5rem;
+    font-size: .95rem; font-weight: 800; color: #0f172a;
+    margin-bottom: 1rem;
+  }
+  .curr-sec-count {
+    background: #e0f2fe; color: #0369a1;
+    font-size: .7rem; padding: 3px 9px;
+    border-radius: 100px; letter-spacing: .04em;
+    font-weight: 800; text-transform: uppercase;
+  }
+
+  .curr-table-wrap {
+    background: #fff; border: 1px solid #e2e8f0;
+    border-radius: 12px; overflow: hidden;
+  }
+  .curr-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .curr-table thead { background: #f8fafc; }
+  .curr-table th {
+    text-align: left; padding: .7rem .9rem;
+    font-size: .68rem; font-weight: 800;
+    letter-spacing: .1em; text-transform: uppercase;
+    color: #64748b; border-bottom: 2px solid #e2e8f0;
+  }
+  .curr-table td {
+    padding: .75rem .9rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: .85rem;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .curr-table tbody tr:hover { background: #f8fafc; }
+
+  .curr-badge {
+    display: inline-block; padding: 3px 8px;
+    font-size: .65rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .curr-badge-req  { background: #d1fae5; color: #065f46; }
+  .curr-badge-elec { background: #fef3c7; color: #92400e; }
+
+  .curr-del {
+    background: #fef2f2; color: #991b1b;
+    border: none; width: 30px; height: 30px;
+    border-radius: 8px; font-size: .78rem;
+    font-weight: 800; cursor: pointer;
+    font-family: inherit; transition: all .15s;
+  }
+  .curr-del:hover { background: #fecaca; }
+
+  /* Mobile */
+  @media (max-width: 1100px) {
+    .curr-form { grid-template-columns: 1fr 1fr 1fr; }
+    .curr-field-wide { grid-column: 1 / -1; }
+    .curr-form-actions { grid-column: 1 / -1; }
+  }
+  @media (max-width: 700px) {
+    .curr-card { padding: 1.15rem; }
+    .curr-form { grid-template-columns: 1fr; }
+    .curr-submit { width: 100%; }
+    .curr-table-wrap { overflow-x: auto; }
+    .curr-table { min-width: 600px; }
+  }
+</style>
+
+<%- include('partials/foot') %>

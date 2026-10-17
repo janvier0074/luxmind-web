@@ -1,0 +1,193 @@
+<%- include('partials/head', {
+  title: 'Curriculum',
+  heading: 'My Curriculum',
+  subtitle: 'Your required and elective courses.'
+}) %>
+
+<!-- Program Banner -->
+<div class="curr-banner">
+  <div class="curr-banner-icon">🎓</div>
+  <div>
+    <div class="curr-banner-lbl">Program Level</div>
+    <div class="curr-banner-val"><%= level %></div>
+  </div>
+</div>
+
+<% if (!hasCourses) { %>
+  <div class="sis-empty" style="padding:3rem 2rem;">
+    <div style="font-size:2.5rem; margin-bottom:1rem;">📭</div>
+    <div style="font-weight:700; color:#0f172a; font-size:1.1rem; margin-bottom:.35rem;">No curriculum defined yet</div>
+    <div style="color:#64748b; max-width:400px; margin:0 auto; line-height:1.5;">
+      Your program coordinator has not published the curriculum for <strong><%= level %></strong> yet. Check back later.
+    </div>
+  </div>
+<% } else { %>
+  <% Object.keys(bySemester).forEach(semester => { 
+    const semCourses = bySemester[semester];
+    const totalCredits = semCourses.reduce((sum, c) => sum + Number(c.credits), 0);
+    const requiredCount = semCourses.filter(c => c.type === 'Required').length;
+    const electiveCount = semCourses.filter(c => c.type === 'Elective').length;
+  %>
+    <div class="curr-semester">
+      <div class="curr-sem-head">
+        <h3><%= semester || 'All Terms' %></h3>
+        <div class="curr-sem-stats">
+          <span class="curr-sem-badge"><%= semCourses.length %> courses</span>
+          <span class="curr-sem-badge"><%= totalCredits %> credits</span>
+        </div>
+      </div>
+
+      <div class="curr-list">
+        <% semCourses.forEach(c => { %>
+          <div class="curr-item">
+            <div class="curr-item-left">
+              <div class="curr-item-code"><%= c.course_code || '—' %></div>
+            </div>
+            <div class="curr-item-body">
+              <div class="curr-item-name"><%= c.course_name %></div>
+              <div class="curr-item-meta">
+                <% if (c.type === 'Required') { %>
+                  <span class="curr-type curr-type-req">Required</span>
+                <% } else { %>
+                  <span class="curr-type curr-type-elec">Elective</span>
+                <% } %>
+              </div>
+            </div>
+            <div class="curr-item-credits">
+              <div class="curr-credit-num"><%= c.credits %></div>
+              <div class="curr-credit-lbl">Credits</div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+  <% }) %>
+<% } %>
+
+<style>
+  .curr-banner {
+    display: flex; align-items: center; gap: 1rem;
+    background: linear-gradient(135deg, #0f2942 0%, #0891b2 100%);
+    color: #fff; padding: 1.5rem 1.75rem;
+    border-radius: 14px; margin-bottom: 2rem;
+    box-shadow: 0 12px 28px rgba(6,182,212,.2);
+  }
+  .curr-banner-icon {
+    width: 52px; height: 52px;
+    background: rgba(255,255,255,.15);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; flex-shrink: 0;
+    backdrop-filter: blur(8px);
+  }
+  .curr-banner-lbl {
+    font-size: .65rem; text-transform: uppercase;
+    letter-spacing: .15em; color: #67e8f9; font-weight: 800;
+  }
+  .curr-banner-val {
+    font-family: Georgia, serif;
+    font-size: 1.5rem; font-weight: 900; line-height: 1.1;
+    margin-top: .2rem;
+  }
+
+  .curr-semester { margin-bottom: 2rem; }
+  
+  .curr-sem-head {
+    display: flex; justify-content: space-between;
+    align-items: center; gap: 1rem;
+    margin-bottom: 1rem; flex-wrap: wrap;
+  }
+  .curr-sem-head h3 {
+    font-size: 1rem; font-weight: 800; color: #0f172a;
+    letter-spacing: -.01em;
+  }
+  .curr-sem-stats { display: flex; gap: .5rem; }
+  .curr-sem-badge {
+    background: #f1f5f9; color: #475569;
+    font-size: .68rem; padding: 3px 10px;
+    border-radius: 100px; font-weight: 700;
+    letter-spacing: .04em; text-transform: uppercase;
+  }
+
+  .curr-list {
+    display: flex; flex-direction: column; gap: .6rem;
+  }
+  .curr-item {
+    display: grid;
+    grid-template-columns: 90px 1fr 80px;
+    gap: 1rem;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.15rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    transition: all .15s;
+  }
+  .curr-item:hover {
+    border-color: #bae6fd;
+    box-shadow: 0 6px 16px rgba(6,182,212,.1);
+    transform: translateX(3px);
+  }
+
+  .curr-item-code {
+    font-family: ui-monospace, monospace;
+    font-weight: 800; font-size: .82rem;
+    color: #0891b2;
+    background: #f0f9ff;
+    padding: .5rem .25rem;
+    border-radius: 6px;
+    text-align: center;
+  }
+  .curr-item-name {
+    font-weight: 700; color: #0f172a;
+    font-size: .95rem; line-height: 1.3;
+    margin-bottom: .35rem;
+    word-break: break-word;
+  }
+  .curr-type {
+    display: inline-block; padding: 2px 8px;
+    font-size: .65rem; font-weight: 800;
+    border-radius: 100px; letter-spacing: .04em;
+    text-transform: uppercase;
+  }
+  .curr-type-req  { background: #d1fae5; color: #065f46; }
+  .curr-type-elec { background: #fef3c7; color: #92400e; }
+
+  .curr-item-credits {
+    text-align: center;
+    padding-left: 1rem;
+    border-left: 1px solid #f1f5f9;
+  }
+  .curr-credit-num {
+    font-family: Georgia, serif;
+    font-size: 1.5rem; font-weight: 900;
+    color: #0f2942; line-height: 1;
+  }
+  .curr-credit-lbl {
+    font-size: .6rem; text-transform: uppercase;
+    letter-spacing: .12em; color: #94a3b8;
+    font-weight: 800; margin-top: .25rem;
+  }
+
+  /* Mobile */
+  @media (max-width: 700px) {
+    .curr-banner { padding: 1.25rem; }
+    .curr-banner-icon { width: 44px; height: 44px; font-size: 1.3rem; }
+    .curr-banner-val { font-size: 1.25rem; }
+
+    .curr-sem-head h3 { font-size: .92rem; }
+
+    .curr-item {
+      grid-template-columns: 70px 1fr 60px;
+      gap: .6rem;
+      padding: .8rem;
+    }
+    .curr-item-code { font-size: .72rem; padding: .4rem .15rem; }
+    .curr-item-name { font-size: .88rem; }
+    .curr-credit-num { font-size: 1.2rem; }
+    .curr-credit-lbl { font-size: .55rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>

@@ -2452,5 +2452,91 @@ router.post('/sis/payment-simulator/confirm', studentGuard, async (req, res) => 
     res.redirect('/sis/my/fees');
   }
 });
+// ============================================================
+//                 CURRICULUM
+// ============================================================
+
+// Admin — Manage Curriculum
+router.get('/sis/admin/curriculum', guard, async (req, res) => {
+  const db = getDB();
+  
+  const courses = await db.all(`
+    SELECT * FROM curriculum 
+    ORDER BY program_level, semester, course_name
+  `);
+
+  // Group by program_level
+  const grouped = {};
+  courses.forEach(c => {
+    if (!grouped[c.program_level]) grouped[c.program_level] = [];
+    grouped[c.program_level].push(c);
+  });
+
+  res.render('sis/admin-curriculum', {
+    title: 'Curriculum',
+    heading: 'Curriculum Management',
+    subtitle: 'Define required and elective courses per program level.',
+    grouped
+  });
+});
+
+router.post('/sis/admin/curriculum/new', guard, async (req, res) => {
+  const db = getDB();
+  const { program_level, semester, course_code, course_name, credits, type } = req.body;
+
+  if (!program_level || !course_name) {
+    req.flash('error', 'Program Level and Course Name are required.');
+    return res.redirect('/sis/admin/curriculum');
+  }
+
+  await db.run(
+    `INSERT INTO curriculum (program_level, semester, course_code, course_name, credits, type)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [program_level.trim(), semester || 'All Terms', course_code || 'N/A', course_name.trim(), Number(credits) || 3, type || 'Required']
+  );
+
+  req.flash('success', 'Course added to curriculum.');
+  res.redirect('/sis/admin/curriculum');
+});
+
+router.post('/sis/admin/curriculum/:id/delete', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM curriculum WHERE id = $1`, [req.params.id]);
+  req.flash('success', 'Course removed from curriculum.');
+  res.redirect('/sis/admin/curriculum');
+});
+
+// Student — View Curriculum
+router.get('/sis/my/curriculum', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  const profile = await db.get(`SELECT class_level FROM student_profiles WHERE user_id = $1`, [uid]);
+  
+  let level = 'Not Assigned';
+  if (profile && profile.class_level) {
+    level = profile.class_level.replace(/[-\s].*$/, '').trim(); // e.g., "Form 1A" -> "Form 1"
+  }
+
+  const courses = await db.all(`
+    SELECT * FROM curriculum 
+    WHERE program_level = $1 
+    ORDER BY semester, type, course_name
+  `, [level]);
+
+  // Group by semester
+  const bySemester = {};
+  courses.forEach(c => {
+    if (!bySemester[c.semester]) bySemester[c.semester] = [];
+    bySemester[c.semester].push(c);
+  });
+
+  res.render('sis/my-curriculum', {
+    title: 'Curriculum',
+    heading: 'My Curriculum',
+    subtitle: 'Your required and elective courses.',
+    level, bySemester, hasCourses: courses.length > 0
+  });
+});
 
 module.exports = router;
