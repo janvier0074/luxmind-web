@@ -15,7 +15,7 @@
   <div class="legend-item"><span class="legend-box box-avail"></span> Available</div>
   <div class="legend-item"><span class="legend-box box-cart"></span> Selected (In Cart)</div>
   <div class="legend-item"><span class="legend-box box-done"></span> Completed</div>
-  <div class="legend-item"><span class="legend-box box-locked"></span> Locked (Future)</div>
+  <div class="legend-item"><span class="legend-box box-warning"></span> Cannot select yet</div>
 </div>
 
 <div class="reg-layout">
@@ -38,127 +38,77 @@
       <div class="year-block">
         <h2 class="year-title">📖 Year <%= year %></h2>
 
-        <!-- SEMESTER 1 -->
-        <div class="sem-block sem-color-<%= sem1 %>">
-          <div class="sem-header">
-            <h3>Semester <%= sem1 %></h3>
-            <% if (sem1 > currentSem + 1) { %><span class="lock-icon">🔒 Locked</span><% } %>
-          </div>
-          <div class="sem-courses">
-            <% if (bySem[sem1].length === 0) { %>
-              <div class="empty-sem">No courses defined for this semester.</div>
-            <% } %>
-            <% bySem[sem1].forEach(curr => {
-              const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
-              const cartItem = pending.find(p => p.course_id === curr.real_course_id);
-              const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
-              const isLocked = sem1 > currentSem + 1;
+        <% [sem1, sem2].forEach(semNum => { %>
+          <!-- SEMESTER BOX -->
+          <div class="sem-box sem-color-<%= semNum %>">
+            <div class="sem-header">
+              <h3>Semester <%= semNum %></h3>
+            </div>
 
-              let cardClass = 'card-avail';
-              if (isDone) cardClass = 'card-done';
-              else if (cartItem) cardClass = 'card-cart';
-              else if (isLocked) cardClass = 'card-locked';
-            %>
-              <div class="course-card <%= cardClass %>">
-                <div class="course-info">
-                  <div class="course-title"><%= curr.real_course_title || curr.course_name %></div>
-                  <div class="course-meta">
-                    <span><%= curr.credits %> Credits</span>
-                    <span><%= curr.course_code %></span>
+            <div class="course-list">
+              <% if (bySem[semNum].length === 0) { %>
+                <div class="empty-sem">No courses defined for this semester.</div>
+              <% } %>
+              
+              <% bySem[semNum].forEach(curr => {
+                const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
+                const cartItem = pending.find(p => p.course_id === curr.real_course_id);
+                const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
+                
+                // Progressive logic: Allowed to take current semester + 1 (e.g. Sem 1 can take Sem 2)
+                const isBlocked = semNum > (currentSem + 1);
+                
+                let rowClass = 'row-avail';
+                if (isDone) rowClass = 'row-done';
+                else if (cartItem) rowClass = 'row-cart';
+                else if (isBlocked) rowClass = 'row-blocked';
+              %>
+                <!-- COURSE ROW -->
+                <div class="course-row <%= rowClass %>">
+                  <div class="c-info">
+                    <div class="c-title"><%= curr.real_course_title || curr.course_name %></div>
+                    <div class="c-code"><%= curr.course_code %></div>
+                  </div>
+                  
+                  <div class="c-credit">
+                    <span class="credit-badge"><%= curr.credits %> Credits</span>
+                  </div>
+
+                  <div class="c-action">
+                    <% if (isDone) { %>
+                      <span class="status-badge badge-done">✅ Completed</span>
+                    <% } else if (cartItem) { %>
+                      <span class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</span>
+                    <% } else if (courseSections.length === 0) { %>
+                      <span style="font-size:.75rem; color:#94a3b8;">No groups created yet</span>
+                    <% } else { %>
+                      <!-- Dropdown or Buttons for Groups -->
+                      <form method="POST" action="/sis/my/registration/request" 
+                            onsubmit="return checkSemester(event, <%= semNum %>, <%= currentSem %>)">
+                        <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
+                        <div class="group-select-wrap">
+                          <select name="section_id" class="group-select" required <%= hasHold ? 'disabled' : '' %>>
+                            <option value="">Choose Group...</option>
+                            <% courseSections.forEach(s => { 
+                              const isFull = s.enrolled_count >= s.max_capacity;
+                              const seatsLeft = s.max_capacity - s.enrolled_count;
+                            %>
+                              <option value="<%= s.id %>" <%= isFull ? 'disabled' : '' %>>
+                                <%= s.group_name %> - <%= s.teacher_name || 'Staff' %> 
+                                (<%= isFull ? 'FULL' : seatsLeft + ' seats left' %>)
+                              </option>
+                            <% }) %>
+                          </select>
+                          <button type="submit" class="add-btn" <%= hasHold ? 'disabled' : '' %>>Add</button>
+                        </div>
+                      </form>
+                    <% } %>
                   </div>
                 </div>
-
-                <% if (isDone) { %>
-                  <div class="status-badge badge-done">✅ Completed</div>
-                <% } else if (cartItem) { %>
-                  <div class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</div>
-                <% } else if (isLocked) { %>
-                  <div class="status-badge badge-locked">🔒 Not Available Yet</div>
-                <% } else { %>
-                  <div class="groups-list">
-                    <% if (courseSections.length === 0) { %>
-                      <span style="font-size:.75rem;color:#94a3b8;">No groups available in DB</span>
-                    <% } %>
-                    <% courseSections.forEach(s => { 
-                      const isFull = s.enrolled_count >= s.max_capacity;
-                      const seatsLeft = s.max_capacity - s.enrolled_count;
-                    %>
-                      <form method="POST" action="/sis/my/registration/request" class="group-form">
-                        <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
-                        <input type="hidden" name="section_id" value="<%= s.id %>">
-                        <button type="submit" class="group-btn" <%= isFull || hasHold ? 'disabled' : '' %>>
-                          <span class="grp-name"><%= s.group_name %> (<%= s.teacher_name || 'Staff' %>)</span>
-                          <span class="grp-seats <%= isFull ? 'seats-full' : '' %>"><%= isFull ? 'FULL' : seatsLeft + ' left' %></span>
-                        </button>
-                      </form>
-                    <% }) %>
-                  </div>
-                <% } %>
-              </div>
-            <% }) %>
+              <% }) %>
+            </div>
           </div>
-        </div>
-
-        <!-- SEMESTER 2 -->
-        <div class="sem-block sem-color-<%= sem2 %>">
-          <div class="sem-header">
-            <h3>Semester <%= sem2 %></h3>
-            <% if (sem2 > currentSem + 1) { %><span class="lock-icon">🔒 Locked</span><% } %>
-          </div>
-          <div class="sem-courses">
-            <% if (bySem[sem2].length === 0) { %>
-              <div class="empty-sem">No courses defined for this semester.</div>
-            <% } %>
-            <% bySem[sem2].forEach(curr => {
-              const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
-              const cartItem = pending.find(p => p.course_id === curr.real_course_id);
-              const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
-              const isLocked = sem2 > currentSem + 1;
-
-              let cardClass = 'card-avail';
-              if (isDone) cardClass = 'card-done';
-              else if (cartItem) cardClass = 'card-cart';
-              else if (isLocked) cardClass = 'card-locked';
-            %>
-              <div class="course-card <%= cardClass %>">
-                <div class="course-info">
-                  <div class="course-title"><%= curr.real_course_title || curr.course_name %></div>
-                  <div class="course-meta">
-                    <span><%= curr.credits %> Credits</span>
-                    <span><%= curr.course_code %></span>
-                  </div>
-                </div>
-
-                <% if (isDone) { %>
-                  <div class="status-badge badge-done">✅ Completed</div>
-                <% } else if (cartItem) { %>
-                  <div class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</div>
-                <% } else if (isLocked) { %>
-                  <div class="status-badge badge-locked">🔒 Not Available Yet</div>
-                <% } else { %>
-                  <div class="groups-list">
-                    <% if (courseSections.length === 0) { %>
-                      <span style="font-size:.75rem;color:#94a3b8;">No groups available in DB</span>
-                    <% } %>
-                    <% courseSections.forEach(s => { 
-                      const isFull = s.enrolled_count >= s.max_capacity;
-                      const seatsLeft = s.max_capacity - s.enrolled_count;
-                    %>
-                      <form method="POST" action="/sis/my/registration/request" class="group-form">
-                        <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
-                        <input type="hidden" name="section_id" value="<%= s.id %>">
-                        <button type="submit" class="group-btn" <%= isFull || hasHold ? 'disabled' : '' %>>
-                          <span class="grp-name"><%= s.group_name %> (<%= s.teacher_name || 'Staff' %>)</span>
-                          <span class="grp-seats <%= isFull ? 'seats-full' : '' %>"><%= isFull ? 'FULL' : seatsLeft + ' left' %></span>
-                        </button>
-                      </form>
-                    <% }) %>
-                  </div>
-                <% } %>
-              </div>
-            <% }) %>
-          </div>
-        </div>
+        <% }) %>
       </div>
     <% } %>
   </div>
@@ -172,7 +122,7 @@
       
       <div class="cart-body">
         <% if (pending.length === 0) { %>
-          <div class="cart-empty">No courses selected yet. Click a group to add it.</div>
+          <div class="cart-empty">No courses selected yet.</div>
         <% } else { %>
           <% pending.forEach(p => { %>
             <div class="cart-item">
@@ -198,6 +148,18 @@
   </div>
 </div>
 
+<script>
+  function checkSemester(event, targetSem, currentSem) {
+    // If trying to select a semester higher than currentSem + 1
+    if (targetSem > (currentSem + 1)) {
+      event.preventDefault();
+      alert("⚠️ Warning: You cannot register for Semester " + targetSem + " yet.\n\nYou are currently in Semester " + currentSem + " and can only register up to Semester " + (currentSem + 1) + ".");
+      return false;
+    }
+    return true;
+  }
+</script>
+
 <style>
   .reg-legend { display: flex; gap: 1.5rem; background: #fff; padding: 1rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; flex-wrap: wrap; }
   .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700; color: #475569; }
@@ -205,7 +167,7 @@
   .box-avail { border: 2px solid #cbd5e1; background: #fff; }
   .box-cart { background: #8b5cf6; }
   .box-done { background: #10b981; }
-  .box-locked { background: #f1f5f9; border: 2px dashed #cbd5e1; }
+  .box-warning { background: #fef3c7; border: 1px solid #f59e0b; }
 
   .reg-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
 
@@ -213,10 +175,8 @@
   .year-block { margin-bottom: 2.5rem; }
   .year-title { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 2px solid #e2e8f0; }
 
-  /* Semesters */
-  .sem-block { border-radius: 12px; margin-bottom: 1rem; border: 1px solid transparent; overflow: hidden; }
-  
-  /* UNIQUE BACKGROUND COLORS FOR SEMESTERS */
+  /* Semesters with Unique Backgrounds */
+  .sem-box { border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid transparent; overflow: hidden; }
   .sem-color-1 { background: #f0f9ff; border-color: #bae6fd; }
   .sem-color-2 { background: #fdf4ff; border-color: #f5d0fe; }
   .sem-color-3 { background: #f0fdf4; border-color: #bbf7d0; }
@@ -224,41 +184,40 @@
   .sem-color-5 { background: #fef2f2; border-color: #fecaca; }
   .sem-color-6 { background: #f8fafc; border-color: #e2e8f0; }
 
-  .sem-header { padding: .85rem 1.25rem; background: rgba(0,0,0,.04); display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,.05); }
-  .sem-header h3 { font-size: 1rem; font-weight: 800; color: #0f172a; }
-  .lock-icon { font-size: .75rem; color: #64748b; font-weight: 800; background: #fff; padding: 2px 8px; border-radius: 100px; }
+  .sem-header { padding: .75rem 1.25rem; background: rgba(0,0,0,.04); border-bottom: 1px solid rgba(0,0,0,.05); }
+  .sem-header h3 { font-size: .95rem; font-weight: 800; color: #0f172a; }
 
-  .sem-courses { padding: 1rem; display: flex; flex-direction: column; gap: .75rem; }
-  .empty-sem { padding: 1rem; color: #94a3b8; font-size: .85rem; font-style: italic; }
+  .course-list { padding: .5rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+  .empty-sem { padding: .5rem; color: #94a3b8; font-size: .85rem; font-style: italic; }
 
-  /* Course Cards */
-  .course-card { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 2px solid #e2e8f0; border-radius: 10px; padding: 1rem; transition: all .2s; flex-wrap: wrap; gap: 1rem; }
+  /* Course Row */
+  .course-row { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; gap: 1rem; transition: all .15s; }
   
-  /* COURSE CARD STATUS COLORS */
-  .card-avail { background: #fff; border-color: #cbd5e1; }
-  .card-avail:hover { border-color: #06b6d4; box-shadow: 0 4px 12px rgba(6,182,212,.15); }
-  
-  .card-cart { background: #f3e8ff; border-color: #8b5cf6; }
-  .card-done { background: #ecfdf5; border-color: #10b981; opacity: .85; }
-  .card-locked { background: #f8fafc; border-style: dashed; opacity: .6; }
+  .row-avail { background: #fff; border-color: #cbd5e1; }
+  .row-cart { background: #f3e8ff; border-color: #8b5cf6; }
+  .row-done { background: #ecfdf5; border-color: #10b981; opacity: .85; }
+  .row-blocked { background: #fef3c7; border-color: #f59e0b; opacity: .8; }
 
-  .course-info { flex: 1; min-width: 200px; }
-  .course-title { font-weight: 800; color: #0f172a; font-size: .95rem; margin-bottom: .25rem; }
-  .course-meta { display: flex; gap: 1rem; font-size: .75rem; color: #64748b; font-weight: 700; }
+  .c-info { flex: 1; min-width: 150px; }
+  .c-title { font-weight: 800; color: #0f172a; font-size: .9rem; }
+  .c-code { font-size: .7rem; color: #64748b; font-family: ui-monospace, monospace; margin-top: 2px; }
+
+  .c-credit { width: 80px; text-align: center; }
+  .credit-badge { background: #e2e8f0; color: #0f172a; padding: 3px 8px; border-radius: 6px; font-size: .72rem; font-weight: 800; }
+
+  .c-action { width: 280px; text-align: right; }
   
-  .status-badge { padding: .4rem .8rem; border-radius: 8px; font-size: .8rem; font-weight: 800; white-space: nowrap; }
+  .status-badge { padding: .35rem .6rem; border-radius: 6px; font-size: .75rem; font-weight: 800; display: inline-block; }
   .badge-done { background: #d1fae5; color: #065f46; }
   .badge-cart { background: #ede9fe; color: #5b21b6; }
-  .badge-locked { background: #f1f5f9; color: #94a3b8; }
 
-  /* Groups */
-  .groups-list { display: flex; gap: .5rem; flex-wrap: wrap; }
-  .group-btn { display: flex; flex-direction: column; align-items: flex-start; background: #f8fafc; border: 1px solid #cbd5e1; padding: .5rem .75rem; border-radius: 8px; cursor: pointer; transition: all .15s; text-align: left; }
-  .group-btn:hover:not(:disabled) { background: #e0f2fe; border-color: #06b6d4; }
-  .group-btn:disabled { opacity: .5; cursor: not-allowed; background: #f1f5f9; }
-  .grp-name { font-size: .75rem; font-weight: 800; color: #0f172a; }
-  .grp-seats { font-size: .65rem; font-weight: 800; color: #059669; margin-top: 2px; }
-  .grp-seats.seats-full { color: #dc2626; }
+  /* Group Select Form */
+  .group-select-wrap { display: flex; gap: .4rem; }
+  .group-select { padding: .4rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: .75rem; font-family: inherit; color: #0f172a; max-width: 200px; outline: none; }
+  .group-select:focus { border-color: #06b6d4; }
+  .add-btn { background: #0f2942; color: #fff; border: none; padding: .4rem .8rem; border-radius: 6px; font-size: .75rem; font-weight: 800; cursor: pointer; transition: all .15s; }
+  .add-btn:hover:not(:disabled) { background: #0891b2; }
+  .add-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
 
   /* Cart */
   .cart-sticky { position: sticky; top: 2rem; background: #fff; border: 2px solid #0f2942; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
@@ -269,13 +228,17 @@
   .cart-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: .75rem; border-radius: 8px; margin-bottom: .5rem; border-left: 3px solid #8b5cf6; }
   .cart-title { font-weight: 800; font-size: .85rem; color: #0f172a; }
   .cart-sub { font-size: .72rem; color: #64748b; font-weight: 700; margin-top: 2px; }
-  
   .cart-footer { padding: 1rem; border-top: 1px solid #e2e8f0; background: #f8fafc; }
   .cart-total { display: flex; justify-content: space-between; font-weight: 800; color: #0f172a; margin-bottom: 1rem; }
 
   @media (max-width: 900px) {
     .reg-layout { grid-template-columns: 1fr; }
     .cart-sticky { position: static; }
+    .course-row { flex-direction: column; align-items: flex-start; gap: .5rem; }
+    .c-credit { text-align: left; }
+    .c-action { width: 100%; text-align: left; }
+    .group-select-wrap { flex-direction: column; }
+    .group-select { max-width: 100%; }
   }
 </style>
 
