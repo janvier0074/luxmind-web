@@ -1,0 +1,130 @@
+<%- include('partials/head', {
+  title: 'My Courses',
+  heading: 'My Courses',
+  subtitle: 'Courses you are assigned to teach.'
+}) %>
+
+<% if (courses.length === 0) { %>
+  <div class="sis-empty" style="padding:3rem;">
+    <div style="font-size:2rem; margin-bottom:1rem;">📚</div>
+    <h3 style="margin-bottom:.5rem;">No courses assigned</h3>
+    <p>You have not been assigned to teach any courses yet. Please contact the administrator.</p>
+  </div>
+<% } else { %>
+  <div class="course-grid">
+    <% courses.forEach(c => { %>
+      <div class="course-card">
+        <div class="course-card-head">
+          <div class="course-title"><%= c.title %></div>
+          <div class="course-role">
+            <% if (c.my_role === 'instructor') { %>
+              <span class="role-badge role-primary">Instructor</span>
+            <% } else if (c.my_role === 'co-instructor') { %>
+              <span class="role-badge role-co">Co-Instructor</span>
+            <% } else { %>
+              <span class="role-badge role-assistant">Assistant</span>
+            <% } %>
+          </div>
+        </div>
+        
+        <% if (c.description) { %>
+          <div class="course-desc"><%= c.description %></div>
+        <% } %>
+
+        <div class="course-meta">
+          <div class="meta-item">👥 <strong><%= c.student_count %></strong> students</div>
+          <% if (c.my_section) { %>
+            <div class="meta-item">🏷️ Section <strong><%= c.my_section %></strong></div>
+          <% } %>
+        </div>
+
+        <div class="course-actions">
+          <a href="https://luxmind.onrender.com/courses/<%= c.id %>" target="_blank" class="btn-lms">
+            🟢 Open in LMS
+          </a>
+          <a href="/sis/attendance?class=" class="btn-attendance">
+            📅 Attendance
+          </a>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  .course-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+  .course-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid #0891b2;
+    border-radius: 12px;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04);
+    transition: all .15s;
+  }
+  .course-card:hover { box-shadow: 0 8px 20px rgba(15,23,42,.08); transform: translateY(-2px); }
+  
+  .course-card-head {
+    display: flex; justify-content: space-between;
+    align-items: flex-start; gap: .5rem; margin-bottom: .5rem;
+  }
+  .course-title {
+    font-weight: 900; color: #0f172a; font-size: 1.1rem;
+    letter-spacing: -.01em; line-height: 1.3;
+  }
+  
+  .role-badge {
+    padding: 2px 8px; border-radius: 100px;
+    font-size: .65rem; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .04em;
+    white-space: nowrap;
+  }
+  .role-primary   { background: #d1fae5; color: #065f46; }
+  .role-co        { background: #fef3c7; color: #92400e; }
+  .role-assistant { background: #e2e8f0; color: #475569; }
+
+  .course-desc {
+    color: #64748b; font-size: .85rem;
+    line-height: 1.5; margin-bottom: 1rem;
+  }
+
+  .course-meta {
+    display: flex; gap: 1rem; flex-wrap: wrap;
+    font-size: .8rem; color: #475569;
+    margin-bottom: 1.25rem;
+    padding-top: .85rem;
+    border-top: 1px dashed #f1f5f9;
+  }
+  .meta-item strong { color: #0f172a; }
+
+  .course-actions {
+    display: flex; gap: .5rem;
+  }
+  .btn-lms, .btn-attendance {
+    flex: 1; text-align: center;
+    padding: .55rem; border-radius: 8px;
+    font-size: .8rem; font-weight: 800;
+    text-decoration: none; transition: all .15s;
+  }
+  .btn-lms {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+  }
+  .btn-lms:hover { opacity: .9; }
+  .btn-attendance {
+    background: #f8fafc; color: #0f2942;
+    border: 1px solid #e2e8f0;
+  }
+  .btn-attendance:hover { background: #e2e8f0; }
+
+  @media (max-width: 700px) {
+    .course-grid { grid-template-columns: 1fr; }
+    .course-actions { flex-direction: column; }
+  }
+</style>
+
+<%- include('partials/foot') %>

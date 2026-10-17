@@ -2641,5 +2641,31 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     level, checklist, totalRequiredCredits, totalEarnedCredits, progressPct
   });
 });
+// ============================================================
+//                 FACULTY — MY COURSES
+// ============================================================
+router.get('/sis/faculty/courses', staffGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
 
+  // Fetch courses assigned to this teacher via course_teachers table
+  const courses = await db.all(`
+    SELECT c.id, c.title, c.description,
+           ct.role AS my_role, ct.section AS my_section,
+           u.full_name AS primary_teacher,
+           (SELECT COUNT(*) FROM enrollments WHERE course_id = c.id) AS student_count
+    FROM course_teachers ct
+    JOIN courses c ON c.id = ct.course_id
+    LEFT JOIN users u ON u.id = c.teacher_id
+    WHERE ct.teacher_id = $1
+    ORDER BY c.title
+  `, [uid]);
+
+  res.render('sis/faculty-courses', {
+    title: 'My Courses',
+    heading: 'My Courses',
+    subtitle: 'Courses you are assigned to teach.',
+    courses,
+  });
+});
 module.exports = router;
