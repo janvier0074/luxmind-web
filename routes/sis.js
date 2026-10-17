@@ -2670,4 +2670,84 @@ router.get('/sis/faculty/courses', staffGuard, async (req, res) => {
     courses,
   });
 });
+
+// ============================================================
+//                 ADMIN — COURSE SECTIONS (GROUPS)
+// ============================================================
+
+router.get('/sis/admin/sections', guard, async (req, res) => {
+  const db = getDB();
+
+  // Get all courses
+  const courses = await db.all(`SELECT id, title FROM courses ORDER BY title`);
+  
+  // Get all sections with their course and teacher info
+  const sections = await db.all(`
+    SELECT s.*, c.title AS course_title, 
+           u.full_name AS teacher_name,
+           (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
+    FROM course_sections s
+    JOIN courses c ON c.id = s.course_id
+    LEFT JOIN users u ON u.id = s.teacher_id
+    ORDER BY c.title, s.group_name
+  `);
+
+  const teachers = await db.all(`
+    SELECT id, full_name, username FROM users
+    WHERE role = 'teacher' AND is_active = 1
+    ORDER BY full_name
+  `);
+
+  // Group sections by course
+  const sectionsByCourse = {};
+  courses.forEach(c => sectionsByCourse[c.id] = []);
+  sections.forEach(s => {
+    if (sectionsByCourse[s.course_id]) {
+      sectionsByCourse[s.course_id].push(s);
+    }
+  });
+
+  res.render('sis/admin-sections', {
+    title: 'Course Groups',
+    heading: 'Course Groups & Quotas',
+    subtitle: 'Create groups (sections) for courses and assign teachers.',
+    courses, teachers, sectionsByCourse
+  });
+});
+
+router.post('/sis/admin/sections/new', guard, async (req, res) => {
+  const db = getDB();
+  const { course_id, teacher_id, group_name, max_capacity, room } = req.body;
+
+  if (!course_id || !group_name) {
+    req.flash('error', 'Course and Group Name are required.');
+    return res.redirect('/sis/admin/sections');
+  }
+
+  try {
+    await db.run(
+      `INSERT INTO course_sections (course_id, teacher_id, group_name, max_capacity, room)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [
+        Number(course_id),
+        teacher_id ? Number(teacher_id) : null,
+        group_name.trim(),
+        max_capacity ? Number(max_capacity) : 30,
+        room ? room.trim() : null
+      ]
+    );
+    req.flash('success', 'Group created successfully.');
+  } catch (e) {
+    console.error(e);
+    req.flash('error', 'Could not create group.');
+  }
+  res.redirect('/sis/admin/sections');
+});
+
+router.post('/sis/admin/sections/:id/delete', guard, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM course_sections WHERE id = $1`, [req.params.id]);
+  req.flash('success', 'Group deleted.');
+  res.redirect('/sis/admin/sections');
+});
 module.exports = router;

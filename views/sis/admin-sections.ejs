@@ -1,0 +1,135 @@
+<%- include('partials/head', {
+  title: 'Course Groups',
+  heading: 'Course Groups & Quotas',
+  subtitle: 'Create groups (sections) for courses and assign teachers.'
+}) %>
+
+<div class="sec-card sec-new">
+  <div class="sec-card-head">
+    <span class="sec-icon">➕</span>
+    <div>
+      <h3>Create a New Group (Section)</h3>
+      <p>Add a teacher, quota, and room for a specific course.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="/sis/admin/sections/new" class="sec-form">
+    <div class="sec-field sec-field-wide">
+      <label class="sec-lbl">Course *</label>
+      <select class="sec-input" name="course_id" required>
+        <option value="">— Choose a course —</option>
+        <% courses.forEach(c => { %>
+          <option value="<%= c.id %>"><%= c.title %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="sec-field">
+      <label class="sec-lbl">Group Name *</label>
+      <input class="sec-input" name="group_name" required placeholder="e.g. GR01" maxlength="10">
+    </div>
+    <div class="sec-field">
+      <label class="sec-lbl">Teacher</label>
+      <select class="sec-input" name="teacher_id">
+        <option value="">— None —</option>
+        <% teachers.forEach(t => { %>
+          <option value="<%= t.id %>"><%= t.full_name || t.username %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="sec-field">
+      <label class="sec-lbl">Quota (Max)</label>
+      <input class="sec-input" type="number" name="max_capacity" value="30" min="1" max="200">
+    </div>
+    <div class="sec-field">
+      <label class="sec-lbl">Room</label>
+      <input class="sec-input" name="room" placeholder="e.g. Room 101" maxlength="20">
+    </div>
+    <div class="sec-field sec-form-actions">
+      <button class="sec-submit" type="submit">➕ Add Group</button>
+    </div>
+  </form>
+</div>
+
+<% Object.keys(sectionsByCourse).forEach(courseId => { 
+  const secs = sectionsByCourse[courseId];
+  if (secs.length === 0) return;
+  const courseTitle = secs[0].course_title;
+%>
+  <div class="sec-group">
+    <h3 class="sec-sec-title">
+      📚 <%= courseTitle %>
+      <span class="sec-sec-count"><%= secs.length %> groups</span>
+    </h3>
+
+    <div class="sec-grid">
+      <% secs.forEach(s => { 
+        const isFull = s.enrolled_count >= s.max_capacity;
+        const pct = s.max_capacity > 0 ? Math.round((s.enrolled_count / s.max_capacity) * 100) : 0;
+      %>
+        <div class="sec-item">
+          <div class="sec-item-head">
+            <div class="sec-item-name"><%= s.group_name %></div>
+            <form method="POST" action="/sis/admin/sections/<%= s.id %>/delete" onsubmit="return confirm('Delete this group?');">
+              <button class="sec-del" type="submit">✕</button>
+            </form>
+          </div>
+          
+          <div class="sec-item-body">
+            <div class="sec-item-row"><span class="sec-lbl">Teacher</span><span><%= s.teacher_name || '—' %></span></div>
+            <div class="sec-item-row"><span class="sec-lbl">Room</span><span><%= s.room || '—' %></span></div>
+            
+            <div style="margin-top:.75rem;">
+              <div style="display:flex;justify-content:space-between;font-size:.75rem;margin-bottom:.35rem;">
+                <span style="color:#64748b;font-weight:800;text-transform:uppercase;letter-spacing:.05em;">Quota</span>
+                <span style="color:<%= isFull ? '#ef4444' : '#0f172a' %>;font-weight:800;">
+                  <%= s.enrolled_count %> / <%= s.max_capacity %>
+                </span>
+              </div>
+              <div style="height:6px;background:#f1f5f9;border-radius:100px;overflow:hidden;">
+                <div style="height:100%;width:<%= pct %>%;background:<%= isFull ? '#ef4444' : '#10b981' %>;border-radius:100px;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </div>
+<% }) %>
+
+<style>
+  .sec-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(15,23,42,.04); }
+  .sec-new { background: linear-gradient(180deg, #f0f9ff 0%, #fff 60%); border-color: #bae6fd; }
+  .sec-card-head { display: flex; align-items: flex-start; gap: .85rem; margin-bottom: 1.25rem; padding-bottom: 1rem; border-bottom: 1px solid #e2e8f0; }
+  .sec-icon { font-size: 1.65rem; flex-shrink: 0; }
+  .sec-card-head h3 { font-size: 1.05rem; font-weight: 800; color: #0f172a; margin-bottom: .2rem; }
+  .sec-card-head p { font-size: .82rem; color: #64748b; line-height: 1.5; }
+
+  .sec-form { display: grid; grid-template-columns: 2fr 1fr 1.5fr .8fr 1fr auto; gap: .65rem; align-items: end; }
+  .sec-field { display: flex; flex-direction: column; min-width: 0; }
+  .sec-field-wide { grid-column: span 1; }
+  .sec-lbl { font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; color: #475569; margin-bottom: .35rem; }
+  .sec-input { width: 100%; padding: .65rem .8rem; border: 1.5px solid #cbd5e1; border-radius: 9px; background: #fff; font-size: .85rem; font-family: inherit; color: #0f172a; }
+  .sec-input:focus { outline: none; border-color: #06b6d4; box-shadow: 0 0 0 3px rgba(6,182,212,.15); }
+  .sec-form-actions { display: flex; }
+  .sec-submit { padding: .65rem 1.1rem; background: linear-gradient(135deg, #06b6d4, #0891b2); color: #fff; border: none; border-radius: 9px; font-size: .82rem; font-weight: 800; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .sec-submit:hover { transform: translateY(-2px); }
+
+  .sec-group { margin-bottom: 2rem; }
+  .sec-sec-title { display: flex; align-items: center; gap: .5rem; font-size: .95rem; font-weight: 800; color: #0f172a; margin-bottom: 1rem; }
+  .sec-sec-count { background: #e0f2fe; color: #0369a1; font-size: .7rem; padding: 3px 9px; border-radius: 100px; font-weight: 800; text-transform: uppercase; }
+
+  .sec-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+  .sec-item { background: #fff; border: 1px solid #e2e8f0; border-left: 4px solid #06b6d4; border-radius: 12px; padding: 1.25rem; box-shadow: 0 1px 3px rgba(15,23,42,.04); }
+  .sec-item-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: .75rem; border-bottom: 1px solid #f1f5f9; }
+  .sec-item-name { font-weight: 900; color: #0f172a; font-size: 1.1rem; }
+  .sec-del { background: #fef2f2; color: #991b1b; border: none; width: 28px; height: 28px; border-radius: 6px; font-weight: 800; cursor: pointer; }
+  .sec-del:hover { background: #fecaca; }
+
+  .sec-item-row { display: flex; justify-content: space-between; font-size: .85rem; margin-bottom: .4rem; }
+  .sec-item-row .sec-lbl { margin-bottom: 0; align-self: center; }
+
+  @media (max-width: 1000px) { .sec-form { grid-template-columns: 1fr 1fr 1fr; } .sec-field-wide { grid-column: 1 / -1; } .sec-form-actions { grid-column: 1 / -1; } }
+  @media (max-width: 700px) { .sec-card { padding: 1.15rem; } .sec-form { grid-template-columns: 1fr; } .sec-submit { width: 100%; } .sec-grid { grid-template-columns: 1fr; } }
+</style>
+
+<%- include('partials/foot') %>
