@@ -358,17 +358,16 @@ router.post('/sis/students/new', guard, async (req, res) => {
   }
 });
 
-router.get('/sis/students/:id', guard, async (req, res) => {
-  const db = getDB();
-  const id = Number(req.params.id);
-
   const student = await db.get(`
-    SELECT u.id, u.username, u.full_name, u.email, u.is_active, u.created_at, sp.*
+    SELECT u.id AS id, u.username, u.full_name, u.email, u.is_active, u.created_at, 
+           sp.admission_number, sp.date_of_birth, sp.gender, sp.guardian_name, 
+           sp.guardian_phone, sp.guardian_email, sp.home_address, sp.class_level, 
+           sp.medical_notes, sp.status, sp.photo_url, sp.guardian_relationship, 
+           sp.admission_date, sp.updated_at
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.id
     WHERE u.id = $1 AND u.role = 'student'
   `, [id]);
-
   if (!student) return res.status(404).render('errors/404');
 
   const attendance = await db.get(`
