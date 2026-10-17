@@ -2371,4 +2371,62 @@ router.get('/sis/admin/fees/balances', guard, async (req, res) => {
   });
 });
 
+// ============================================================
+//                 TEMPORARY PAYMENT SIMULATOR
+// ============================================================
+
+// 1. Student clicks "Pay Now" -> Redirect to fake bank
+router.post('/sis/my/fees/pay', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  
+  // Calculate the exact balance to pay
+  const profile = await db.get(`SELECT class_level FROM student_profiles WHERE user_id = $1`, [uid]);
+  if (!profile || !profile.class_level) return res.redirect('/sis/my/fees');
+
+  const level = profile.class_level.replace(/[-\s].*$/, '').trim();
+  const owedRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM fee_structure WHERE class_level = $1`, [level]);
+  const paidRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM payments WHERE student_id = $1`, [uid]);
+  const balance = Number(owedRow.total) - Number(paidRow.total);
+
+  if (balance <= 0) return res.redirect('/sis/my/fees');
+
+  // Generate a fake transaction reference
+  const ref = 'SIM-' + Date.now().toString().slice(-6);
+
+  // Redirect to the mock bank page
+  res.redirect(`/sis/payment-simulator?amount=${balance}&ref=${ref}`);
+});
+
+// 2. The Fake Bank Page (shows the "Payment Gateway")
+router.get('/sis/payment-simulator', studentGuard, (req, res) => {
+  res.render('sis/payment-simulator', {
+    amount: req.query.amount,
+    ref: req.query.ref
+  });
+});
+
+// 3. Student clicks "Confirm" -> Simulate Bank Webhook
+router.post('/sis/payment-simulator/confirm', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const { amount, ref } = req.body;
+
+  try {
+    // THIS IS EXACTLY WHAT THE REAL WEBHOOK WILL DO
+    await db.run(
+      `INSERT INTO payments (student_id, amount, term, method, receipt_number, paid_at)
+       VALUES ($1, $2, $3, $4, $5, NOW())`,
+      [uid, Number(amount), 'Simulated Payment', 'bank_transfer', ref]
+    );
+
+    req.flash('success', 'Payment confirmed by Bank! Your balance has been cleared.');
+    res.redirect('/sis/my/fees');
+  } catch (e) {
+    console.error('Simulator Error:', e);
+    req.flash('error', 'Payment simulation failed.');
+    res.redirect('/sis/my/fees');
+  }
+});
+
 module.exports = router;

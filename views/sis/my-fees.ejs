@@ -9,6 +9,22 @@
 </div>
 
 <div class="sis-stat-grid">
+<% if (balance > 0) { %>
+  <div class="sis-card" style="background:linear-gradient(135deg,#0f2942,#0891b2); color:#fff; border:none; margin-bottom:2rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <div style="font-size:1.2rem; font-weight:800;">Outstanding Balance</div>
+      <div style="font-size:1.5rem; font-family:Georgia, serif; font-weight:900; color:#67e8f9; margin-top:.2rem;">
+        <%= Number(balance).toLocaleString() %> BIF
+      </div>
+      <div style="font-size:.85rem; opacity:.85; margin-top:.3rem;">Clear your balance to unlock course registration.</div>
+    </div>
+    <form method="POST" action="/sis/my/fees/pay">
+      <button type="submit" style="background:#fff; color:#0f2942; border:none; padding:.8rem 1.5rem; border-radius:10px; font-size:.95rem; font-weight:900; cursor:pointer; box-shadow:0 6px 16px rgba(0,0,0,.2);">
+        💳 Pay Now via Bank
+      </button>
+    </form>
+  </div>
+<% } %>
   <div class="sis-stat slate">
     <div class="sis-stat-num"><%= Number(totalOwed || 0).toLocaleString() %></div>
     <div class="sis-stat-lbl">Total Fees (BIF)</div>

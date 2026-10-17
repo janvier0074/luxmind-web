@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Secure Bank Gateway</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+  body { background: #0f172a; color: #fff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 1rem; }
+  
+  .gateway-card {
+    background: #fff; color: #0f172a; width: 100%; max-width: 440px;
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 24px 48px rgba(0,0,0,.5);
+  }
+  .gateway-header {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    padding: 2rem; text-align: center; border-bottom: 4px solid #06b6d4;
+  }
+  .bank-logo { font-size: 1.5rem; font-weight: 900; letter-spacing: -.02em; color: #fff; }
+  .bank-sub { font-size: .7rem; text-transform: uppercase; letter-spacing: .15em; color: #06b6d4; margin-top: .35rem; font-weight: 800; }
+  
+  .gateway-body { padding: 2rem; text-align: center; }
+  .amount-lbl { font-size: .75rem; text-transform: uppercase; letter-spacing: .1em; color: #64748b; font-weight: 800; }
+  .amount-val { font-family: Georgia, serif; font-size: 2.5rem; font-weight: 900; color: #0f2942; margin: .5rem 0 1.5rem; }
+  .ref-box { background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 1rem; margin-bottom: 2rem; }
+  .ref-lbl { font-size: .65rem; text-transform: uppercase; color: #94a3b8; font-weight: 800; }
+  .ref-val { font-family: ui-monospace, monospace; font-weight: 700; color: #475569; margin-top: .25rem; }
+  
+  .confirm-btn {
+    width: 100%; padding: 1rem;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; border: none; border-radius: 10px;
+    font-size: 1rem; font-weight: 800; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(16,185,129,.3); transition: all .15s;
+  }
+  .confirm-btn:hover { transform: translateY(-2px); }
+  
+  .cancel-link { display: block; margin-top: 1.25rem; font-size: .85rem; color: #64748b; text-decoration: none; font-weight: 700; }
+  .cancel-link:hover { color: #0f172a; }
+  
+  .secure-badge { display: flex; align-items: center; justify-content: center; gap: .4rem; margin-top: 2rem; font-size: .75rem; color: #94a3b8; }
+</style>
+</head>
+<body>
+
+<div class="gateway-card">
+  <div class="gateway-header">
+    <div class="bank-logo">COOPEC / NOVABANK</div>
+    <div class="bank-sub">Sandbox Payment Gateway</div>
+  </div>
+  
+  <div class="gateway-body">
+    <div class="amount-lbl">Amount to Pay</div>
+    <div class="amount-val"><%= Number(amount).toLocaleString() %> BIF</div>
+    
+    <div class="ref-box">
+      <div class="ref-lbl">Transaction Reference</div>
+      <div class="ref-val"><%= ref %></div>
+    </div>
+
+    <form method="POST" action="/sis/payment-simulator/confirm">
+      <input type="hidden" name="amount" value="<%= amount %>">
+      <input type="hidden" name="ref" value="<%= ref %>">
+      <button class="confirm-btn" type="submit">Confirm Bank Transfer</button>
+    </form>
+
+    <a href="/sis/my/fees" class="cancel-link">Cancel and return to LuxMind</a>
+    
+    <div class="secure-badge">
+      🔒 Simulated 256-bit secure connection
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
