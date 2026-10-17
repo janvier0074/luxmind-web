@@ -995,7 +995,7 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
   }
 
   // 2. Fetch Curriculum and link to real Courses table
-  const level = profile?.class_level?.replace(/[-\s].*$/, '').trim() || 'Form 1';
+    const level = profile?.class_level || 'Computer Engineering';
   const curriculum = await db.all(`
     SELECT curr.*, c.id AS real_course_id, c.title AS real_course_title
     FROM curriculum curr
