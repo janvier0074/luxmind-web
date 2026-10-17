@@ -584,8 +584,6 @@ router.get('/sis/attendance/student/:id', staffGuard, async (req, res) => {
   });
 });
 
-
-
 // ============================================================
 //                 STUDENT — Timetable (their courses as a schedule)
 // ============================================================
@@ -693,7 +691,7 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
   // 4. Combine into a single Ledger
   const ledger = [
     ...charges.map(c => ({
-      date: new Date(c.date), // In real life, you'd use the invoice creation date
+      date: new Date(c.date),
       type: 'Invoice',
       description: `${c.description || 'Tuition'} (${c.term})`,
       charge: Number(c.amount),
@@ -824,7 +822,6 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
     totalEarned, totalMax,
   });
 });
-
 
 // ============================================================
 //                 STUDENT — My Grades
@@ -972,6 +969,7 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
     },
   });
 });
+
 // ============================================================
 //                 COURSE REGISTRATION
 // ============================================================
@@ -1342,7 +1340,6 @@ router.post('/sis/admin/documents/:id/reject', guard, async (req, res) => {
   req.flash('success', 'Request rejected.');
   res.redirect('/sis/admin/documents');
 });
-
 
 // ============================================================
 //                 CGPA CALCULATOR
@@ -1960,6 +1957,7 @@ router.post('/sis/admin/exams/:id/delete', staffGuard, async (req, res) => {
   req.flash('success', 'Exam deleted.');
   res.redirect('/sis/admin/exams');
 });
+
 // ============================================================
 //                 ADMIN — MANAGE COURSE TEACHERS
 // ============================================================
@@ -2060,7 +2058,6 @@ router.post('/sis/admin/course-teachers/:courseId/role/:teacherId', guard, async
   req.flash('success', 'Role updated.');
   res.redirect('/sis/admin/course-teachers');
 });
-
 
 // ============================================================
 //                 COURSE WITHDRAWAL
@@ -2452,6 +2449,7 @@ router.post('/sis/payment-simulator/confirm', studentGuard, async (req, res) => 
     res.redirect('/sis/my/fees');
   }
 });
+
 // ============================================================
 //                 CURRICULUM
 // ============================================================
@@ -2560,8 +2558,8 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     ORDER BY semester, type
   `, [level]);
 
-  // 3. Fetch Student's Course Grades (Quizzes only for simplicity)
-  const grades = await db.all(`
+  // 3. Fetch Student's Quiz Grades
+  const quizGrades = await db.all(`
     SELECT c.title AS course_name,
            COALESCE(SUM(COALESCE(m.override_score, a.score)), 0) AS earned,
            COALESCE(SUM(a.max_score), 0) AS total
@@ -2573,7 +2571,35 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     GROUP BY c.id, c.title
   `, [uid, uid]);
 
-  // 4. Match Curriculum to Grades to determine Status
+  // 4. Fetch Student's Exam Grades
+  const examGrades = await db.all(`
+    SELECT c.title AS course_name,
+           COALESCE(SUM(r.score), 0) AS earned,
+           COALESCE(SUM(e.max_score), 0) AS total
+    FROM courses c
+    JOIN enrollments en ON en.course_id = c.id AND en.user_id = $1
+    LEFT JOIN exams e ON e.course_id = c.id
+    LEFT JOIN exam_results r ON r.exam_id = e.id AND r.student_id = $2
+    GROUP BY c.id, c.title
+  `, [uid, uid]);
+
+  // 5. Combine both into a single list of grades
+  const gradesMap = {};
+  [...quizGrades, ...examGrades].forEach(g => {
+    if (!gradesMap[g.course_name]) {
+      gradesMap[g.course_name] = { earned: 0, total: 0 };
+    }
+    gradesMap[g.course_name].earned += Number(g.earned);
+    gradesMap[g.course_name].total += Number(g.total);
+  });
+
+  const grades = Object.keys(gradesMap).map(name => ({
+    course_name: name,
+    earned: gradesMap[name].earned,
+    total: gradesMap[name].total
+  }));
+
+  // 6. Match Curriculum to Grades to determine Status
   let totalRequiredCredits = 0;
   let totalEarnedCredits = 0;
 
