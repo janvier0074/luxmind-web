@@ -28,7 +28,6 @@ router.get('/sis', requireLogin, (req, res) => {
   if (role === 'admin') return res.redirect('/sis/admin');
   if (role === 'teacher') return res.redirect('/sis/faculty');
   if (role === 'student') return res.redirect('/sis/my');
-  // Others (parent, unknown) — send to LMS
   res.redirect('/dashboard');
 });
 
@@ -93,7 +92,6 @@ router.get('/sis/faculty', staffGuard, async (req, res) => {
   const uid = req.session.user.id;
   const user = req.session.user;
 
-  // Classes the teacher can access (for now: all classes; later: assigned only)
   const classRows = await db.all(`
     SELECT sp.class_level AS name,
            COUNT(*) FILTER (WHERE sp.status = 'active') AS student_count
@@ -112,7 +110,6 @@ router.get('/sis/faculty', staffGuard, async (req, res) => {
     `SELECT COUNT(DISTINCT student_id) c FROM attendance WHERE attendance_date = $1`, [today]
   );
 
-  // Recent attendance activity
   const recentRows = await db.all(`
     SELECT a.attendance_date, a.status, a.created_at,
            u.full_name AS student_name,
@@ -144,7 +141,6 @@ router.get('/sis/my', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // Attendance summary
   const attSummary = await db.get(`
     SELECT
       COUNT(*) AS total,
@@ -159,18 +155,15 @@ router.get('/sis/my', studentGuard, async (req, res) => {
     ? Math.round((attSummary.present / attSummary.total) * 100)
     : 0;
 
-  // Student's class info
   const profile = await db.get(
     `SELECT * FROM student_profiles WHERE user_id = $1`, [uid]
   );
 
-  // Fees paid
   const paidRow = await db.get(
     `SELECT COALESCE(SUM(amount), 0) AS total FROM payments WHERE student_id = $1`,
     [uid]
   );
 
-  // Recent attendance
   const recent = await db.all(`
     SELECT * FROM attendance WHERE student_id = $1
     ORDER BY attendance_date DESC LIMIT 10
@@ -359,6 +352,8 @@ router.post('/sis/students/new', guard, async (req, res) => {
 });
 
 router.get('/sis/students/:id', guard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
 
   const student = await db.get(`
     SELECT u.id AS id, u.username, u.full_name, u.email, u.is_active, u.created_at, 
@@ -370,6 +365,7 @@ router.get('/sis/students/:id', guard, async (req, res) => {
     LEFT JOIN student_profiles sp ON sp.user_id = u.id
     WHERE u.id = $1 AND u.role = 'student'
   `, [id]);
+
   if (!student) return res.status(404).render('errors/404');
 
   const attendance = await db.get(`
@@ -606,7 +602,6 @@ router.get('/sis/my/timetable', studentGuard, async (req, res) => {
     ORDER BY c.title
   `, [uid, uid]);
 
-  // Fetch all instructors for each course (multi-teacher support)
   const allCourseTeachers = await db.all(`
     SELECT ct.course_id, ct.role, ct.section,
            u.id, u.full_name, u.username
@@ -615,7 +610,6 @@ router.get('/sis/my/timetable', studentGuard, async (req, res) => {
     ORDER BY ct.course_id, ct.role
   `);
 
-  // Group instructors by course_id
   const teachersByCourse = {};
   for (const row of allCourseTeachers) {
     if (!teachersByCourse[row.course_id]) teachersByCourse[row.course_id] = [];
@@ -663,16 +657,13 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // 1. Get Student Profile
   const profile = await db.get(`SELECT * FROM student_profiles WHERE user_id = $1`, [uid]);
   
   let level = '';
   if (profile && profile.class_level) {
-    // Extract "Form 1" from "Form 1A"
     level = profile.class_level.replace(/[-\s].*$/, '').trim();
   }
 
-  // 2. Fetch Charges (Invoices)
   let charges = [];
   if (level) {
     charges = await db.all(`
@@ -682,14 +673,12 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
     `, [level]);
   }
 
-  // 3. Fetch Payments (Credits)
   const payments = await db.all(`
     SELECT id, term, amount, method as description, 'Payment' as type, paid_at as date, receipt_number 
     FROM payments 
     WHERE student_id = $1
   `, [uid]);
 
-  // 4. Combine into a single Ledger
   const ledger = [
     ...charges.map(c => ({
       date: new Date(c.date),
@@ -709,12 +698,10 @@ router.get('/sis/my/fees', studentGuard, async (req, res) => {
     }))
   ].sort((a, b) => b.date - a.date);
 
-  // 5. Calculate Totals
   const totalOwed = charges.reduce((sum, c) => sum + Number(c.amount), 0);
   const totalPaid = payments.reduce((sum, p) => sum + Number(p.amount), 0);
   const balance = totalOwed - totalPaid;
 
-  // Hardcoded limits based on your CIU screenshot
   const fullAccessLimit = 200;
   const approachingDebt = balance + 200;
 
@@ -733,7 +720,6 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // Get student profile
   const profile = await db.get(`
     SELECT u.full_name, u.username, u.email, sp.admission_number, sp.class_level, sp.date_of_birth
     FROM users u
@@ -741,7 +727,6 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
     WHERE u.id = $1
   `, [uid]);
 
-  // Get all courses with grades
   const quizRows = await db.all(`
     SELECT c.id AS course_id, c.title AS course_title,
            COALESCE(m.override_score, a.score) AS score,
@@ -768,7 +753,6 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
     FROM attendance WHERE student_id = $1
   `, [uid]);
 
-  // Build per-course records
   const courseMap = {};
   const ensure = (id, title) => {
     if (!courseMap[id]) courseMap[id] = { id, title, score: 0, max: 0, quizCount: 0, assCount: 0 };
@@ -798,7 +782,6 @@ router.get('/sis/my/transcript', studentGuard, async (req, res) => {
     else if (pct >= 60) { letter = 'D'; gradeClass = 'g-d'; }
     else { letter = 'F'; gradeClass = 'g-f'; }
 
-    // GPA points: A=4.0, B=3.0, C=2.0, D=1.0, F=0
     const gpaPoints = { A: 4.0, B: 3.0, C: 2.0, D: 1.0, F: 0 }[letter] || 0;
 
     return { ...c, pct, letter, gradeClass, gpaPoints };
@@ -831,17 +814,10 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // Fetch all quizzes + assignments with scores for this student
   const quizGrades = await db.all(`
     SELECT
-      q.id,
-      q.title,
-      c.title AS course_title,
-      c.id AS course_id,
-      a.score,
-      a.max_score,
-      a.submitted_at,
-      m.override_score,
+      q.id, q.title, c.title AS course_title, c.id AS course_id,
+      a.score, a.max_score, a.submitted_at, m.override_score,
       COALESCE(m.override_score, a.score) AS final_score
     FROM attempts a
     JOIN quizzes q ON q.id = a.quiz_id
@@ -854,13 +830,8 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
 
   const assignmentGrades = await db.all(`
     SELECT
-      s.id,
-      a.title,
-      c.title AS course_title,
-      c.id AS course_id,
-      s.score,
-      a.max_points AS max_score,
-      s.submitted_at
+      s.id, a.title, c.title AS course_title, c.id AS course_id,
+      s.score, a.max_points AS max_score, s.submitted_at
     FROM submissions s
     JOIN assignments a ON a.id = s.assignment_id
     JOIN courses c ON c.id = a.course_id
@@ -869,51 +840,31 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
     ORDER BY s.submitted_at DESC
   `, [uid, uid]);
 
-  // Combine into one stream for "recent grades"
   const recent = [
     ...quizGrades.map(q => ({
-      type: 'Quiz',
-      title: q.title,
-      course: q.course_title,
-      course_id: q.course_id,
-      score: Number(q.final_score),
-      max_score: Number(q.max_score),
+      type: 'Quiz', title: q.title, course: q.course_title, course_id: q.course_id,
+      score: Number(q.final_score), max_score: Number(q.max_score),
       pct: q.max_score ? Math.round((Number(q.final_score) / Number(q.max_score)) * 100) : 0,
       submitted_at: q.submitted_at,
     })),
     ...assignmentGrades.map(a => ({
-      type: 'Assignment',
-      title: a.title,
-      course: a.course_title,
-      course_id: a.course_id,
-      score: Number(a.score),
-      max_score: Number(a.max_score),
+      type: 'Assignment', title: a.title, course: a.course_title, course_id: a.course_id,
+      score: Number(a.score), max_score: Number(a.max_score),
       pct: a.max_score ? Math.round((Number(a.score) / Number(a.max_score)) * 100) : 0,
       submitted_at: a.submitted_at,
     })),
   ].sort((a, b) => new Date(b.submitted_at) - new Date(a.submitted_at)).slice(0, 12);
 
-  // Build per-course averages
   const byCourse = {};
   for (const q of quizGrades) {
     const key = q.course_id;
-    if (!byCourse[key]) {
-      byCourse[key] = { course_id: key, title: q.course_title, quizScores: [], assScores: [] };
-    }
-    byCourse[key].quizScores.push({
-      score: Number(q.final_score),
-      max: Number(q.max_score),
-    });
+    if (!byCourse[key]) byCourse[key] = { course_id: key, title: q.course_title, quizScores: [], assScores: [] };
+    byCourse[key].quizScores.push({ score: Number(q.final_score), max: Number(q.max_score) });
   }
   for (const a of assignmentGrades) {
     const key = a.course_id;
-    if (!byCourse[key]) {
-      byCourse[key] = { course_id: key, title: a.course_title, quizScores: [], assScores: [] };
-    }
-    byCourse[key].assScores.push({
-      score: Number(a.score),
-      max: Number(a.max_score),
-    });
+    if (!byCourse[key]) byCourse[key] = { course_id: key, title: a.course_title, quizScores: [], assScores: [] };
+    byCourse[key].assScores.push({ score: Number(a.score), max: Number(a.max_score) });
   }
 
   const courses = Object.values(byCourse).map(c => {
@@ -927,8 +878,7 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
     const totalMax = quizMax + assMax;
     const overallPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : null;
 
-    let letter = '—';
-    let gradeClass = 'sis-grade-empty';
+    let letter = '—'; let gradeClass = 'sis-grade-empty';
     if (overallPct !== null) {
       if (overallPct >= 90) { letter = 'A'; gradeClass = 'sis-grade-a'; }
       else if (overallPct >= 80) { letter = 'B'; gradeClass = 'sis-grade-b'; }
@@ -937,19 +887,9 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
       else { letter = 'F'; gradeClass = 'sis-grade-f'; }
     }
 
-    return {
-      ...c,
-      quizPct,
-      assPct,
-      overallPct,
-      letter,
-      gradeClass,
-      quizCount: c.quizScores.length,
-      assCount: c.assScores.length,
-    };
+    return { ...c, quizPct, assPct, overallPct, letter, gradeClass, quizCount: c.quizScores.length, assCount: c.assScores.length };
   });
 
-  // Overall stats
   const allQuizzes = quizGrades.length;
   const allAss = assignmentGrades.length;
   const totalScore = [...quizGrades.map(q => Number(q.final_score)), ...assignmentGrades.map(a => Number(a.score))].reduce((s, x) => s + x, 0);
@@ -960,27 +900,18 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
     title: 'My Grades',
     heading: 'My Grades',
     subtitle: 'Your academic performance across all courses.',
-    courses,
-    recent,
-    stats: {
-      overallAverage,
-      quizzesTaken: allQuizzes,
-      assignmentsGraded: allAss,
-      totalGraded: allQuizzes + allAss,
-    },
+    courses, recent,
+    stats: { overallAverage, quizzesTaken: allQuizzes, assignmentsGraded: allAss, totalGraded: allQuizzes + allAss },
   });
 });
 
 // ============================================================
 //                 COURSE REGISTRATION
 // ============================================================
-
-// Student — see available courses + their own registrations
 router.get('/sis/my/registration', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // 1. Financial Hold
   const profile = await db.get(`SELECT class_level, current_semester FROM student_profiles WHERE user_id = $1`, [uid]);
   const currentSem = profile?.current_semester || 1;
   const level = profile?.class_level || 'Computer Engineering';
@@ -994,7 +925,6 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     hasHold = balance > 0;
   }
 
-  // 2. Fetch Curriculum
   const curriculum = await db.all(`
     SELECT curr.*, c.id AS real_course_id, c.title AS real_course_title
     FROM curriculum curr
@@ -1003,7 +933,6 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     ORDER BY curr.semester_number, curr.course_name
   `, [level]);
 
-  // 3. Fetch Sections
   const sections = await db.all(`
     SELECT s.*, u.full_name AS teacher_name,
            (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
@@ -1011,7 +940,6 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     LEFT JOIN users u ON u.id = s.teacher_id
   `);
 
-  // 4. Fetch Cart & Enrolled
   const pending = await db.all(`
     SELECT cr.*, c.title AS course_title, s.group_name
     FROM course_registrations cr
@@ -1033,6 +961,47 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     curriculum, sections, pending, enrolled, currentSem, hasHold, balance
   });
 });
+
+// --- HERE IS THE MISSING POST ROUTE ---
+router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const courseId = Number(req.body.course_id);
+
+  if (!courseId) {
+    req.flash('error', 'Invalid course.');
+    return res.redirect('/sis/my/registration');
+  }
+
+  // Find a default section for this course (if they exist)
+  const section = await db.get(
+    `SELECT id FROM course_sections WHERE course_id = $1 LIMIT 1`, 
+    [courseId]
+  );
+
+  // Check if already requested
+  const existing = await db.get(
+    `SELECT id FROM course_registrations WHERE student_id = $1 AND course_id = $2`,
+    [uid, courseId]
+  );
+
+  if (existing) {
+    req.flash('error', 'Course is already in your cart.');
+    return res.redirect('/sis/my/registration');
+  }
+
+  // Insert request
+  await db.run(
+    `INSERT INTO course_registrations (student_id, course_id, section_id, status)
+     VALUES ($1, $2, $3, 'pending')`,
+    [uid, courseId, section ? section.id : null]
+  );
+
+  req.flash('success', 'Course added to your timetable.');
+  res.redirect('/sis/my/registration');
+});
+// -------------------------------------
+
 // ============================================================
 //                 ADMIN — review registrations
 // ============================================================
@@ -1079,15 +1048,14 @@ router.post('/sis/admin/registrations/:id/approve', guard, async (req, res) => {
     return res.redirect('/sis/admin/registrations');
   }
 
-  // Enroll the student (skip if already enrolled)
   const already = await db.get(
     `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
     [reg.student_id, reg.course_id]
   );
   if (!already) {
     await db.run(
-      `INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2)`,
-      [reg.student_id, reg.course_id]
+      `INSERT INTO enrollments (user_id, course_id, section_id) VALUES ($1, $2, $3)`,
+      [reg.student_id, reg.course_id, reg.section_id || null]
     );
   }
 
@@ -1137,12 +1105,10 @@ router.get('/sis/my/profile', studentGuard, async (req, res) => {
 
   if (!profile) return res.status(404).render('errors/404');
 
-  // Enrollment count
   const enrollRow = await db.get(
     `SELECT COUNT(*) c FROM enrollments WHERE user_id = $1`, [uid]
   );
 
-  // Attendance summary
   const attRow = await db.get(`
     SELECT COUNT(*) AS total,
            COUNT(*) FILTER (WHERE status='present') AS present
@@ -1166,7 +1132,6 @@ router.get('/sis/my/profile', studentGuard, async (req, res) => {
 // ============================================================
 //                 DOCUMENT REQUESTS
 // ============================================================
-
 const DOC_TYPES = [
   { value: 'enrollment_certificate', label: 'Enrollment Certificate' },
   { value: 'transcript',             label: 'Official Transcript' },
@@ -1177,7 +1142,6 @@ const DOC_TYPES = [
   { value: 'other',                  label: 'Other (specify below)' },
 ];
 
-// Student — see list + submit new
 router.get('/sis/my/documents', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -1230,7 +1194,6 @@ router.post('/sis/my/documents/cancel/:id', studentGuard, async (req, res) => {
   res.redirect('/sis/my/documents');
 });
 
-// Admin — review
 router.get('/sis/admin/documents', guard, async (req, res) => {
   const db = getDB();
 
@@ -1287,7 +1250,6 @@ router.post('/sis/admin/documents/:id/reject', guard, async (req, res) => {
 // ============================================================
 //                 CGPA CALCULATOR
 // ============================================================
-
 const GPA_MAP = {
   'A+': 4.0, 'A': 4.0, 'A-': 3.7,
   'B+': 3.3, 'B': 3.0, 'B-': 2.7,
@@ -1306,7 +1268,6 @@ router.get('/sis/my/cgpa', studentGuard, async (req, res) => {
     ORDER BY created_at DESC
   `, [uid]);
 
-  // Group by semester
   const bySemester = {};
   let totalPoints = 0;
   let totalCredits = 0;
@@ -1322,7 +1283,6 @@ router.get('/sis/my/cgpa', studentGuard, async (req, res) => {
 
   const cgpa = totalCredits > 0 ? (totalPoints / totalCredits).toFixed(2) : '0.00';
 
-  // Semester GPAs
   const semesterStats = Object.keys(bySemester).map(sem => {
     const list = bySemester[sem];
     let pts = 0, cr = 0;
@@ -1338,32 +1298,19 @@ router.get('/sis/my/cgpa', studentGuard, async (req, res) => {
     };
   });
 
-  // What you need next term — target CGPA scenarios
-  // Assume next semester = 15 credits (typical)
   const nextCredits = 15;
   const targets = [2.0, 2.5, 3.0, 3.5, 4.0].map(target => {
-    // (totalPoints + x * nextCredits) / (totalCredits + nextCredits) = target
-    // x = (target * (totalCredits + nextCredits) - totalPoints) / nextCredits
     const x = (target * (totalCredits + nextCredits) - totalPoints) / nextCredits;
     let achievable = x <= 4.0 && x >= 0;
     let needed = x > 4.0 ? 'Not possible' : (x < 0 ? 'Already guaranteed' : x.toFixed(2));
     return { target, needed, achievable };
   });
 
-    res.render('sis/my-cgpa', {
+  res.render('sis/my-cgpa', {
     title: 'CGPA Calculator',
     heading: 'CGPA Calculator',
     subtitle: 'Track your GPA and plan your next semester.',
-    entries,
-    bySemester,
-    semesterStats,
-    cgpa,
-    totalCredits,
-    totalPoints,
-    gradeOptions: GRADE_OPTIONS,
-    targets,
-    nextCredits,
-    GPA_MAP,
+    entries, bySemester, semesterStats, cgpa, totalCredits, totalPoints, gradeOptions: GRADE_OPTIONS, targets, nextCredits, GPA_MAP,
   });
 });
 
@@ -1414,8 +1361,6 @@ router.post('/sis/my/cgpa/clear', studentGuard, async (req, res) => {
 // ============================================================
 //                 ADMIN — CLASSES MANAGEMENT
 // ============================================================
-
-// List + create form
 router.get('/sis/admin/classes', staffGuard, async (req, res) => {
   const db = getDB();
   const isTeacher = req.session.user.role === 'teacher';
@@ -1455,12 +1400,10 @@ router.get('/sis/admin/classes', staffGuard, async (req, res) => {
     title: 'Classes',
     heading: isTeacher ? 'My Classes' : 'Class Management',
     subtitle: isTeacher ? 'The classes assigned to you.' : 'Create and organize classes for the institution.',
-    classes, teachers,
-    isTeacher,
+    classes, teachers, isTeacher,
   });
 });
 
-// Create
 router.post('/sis/admin/classes/new', guard, async (req, res) => {
   const db = getDB();
   const { name, level, room, capacity, teacher_id } = req.body;
@@ -1474,13 +1417,7 @@ router.post('/sis/admin/classes/new', guard, async (req, res) => {
     await db.run(
       `INSERT INTO classes (name, level, room, capacity, teacher_id)
        VALUES ($1, $2, $3, $4, $5)`,
-      [
-        name.trim(),
-        level ? level.trim() : null,
-        room ? room.trim() : null,
-        capacity ? Number(capacity) : null,
-        teacher_id ? Number(teacher_id) : null,
-      ]
+      [name.trim(), level ? level.trim() : null, room ? room.trim() : null, capacity ? Number(capacity) : null, teacher_id ? Number(teacher_id) : null]
     );
     req.flash('success', 'Class created: ' + name.trim());
   } catch (e) {
@@ -1490,7 +1427,6 @@ router.post('/sis/admin/classes/new', guard, async (req, res) => {
   res.redirect('/sis/admin/classes');
 });
 
-// Detail
 router.get('/sis/admin/classes/:id', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -1504,7 +1440,6 @@ router.get('/sis/admin/classes/:id', guard, async (req, res) => {
 
   if (!cls) return res.status(404).render('errors/404');
 
-  // Students already in this class (via class_students)
   const enrolled = await db.all(`
     SELECT u.id, u.full_name, u.username, u.email,
            sp.admission_number, sp.guardian_name, sp.guardian_phone, sp.status,
@@ -1516,7 +1451,6 @@ router.get('/sis/admin/classes/:id', guard, async (req, res) => {
     ORDER BY u.full_name
   `, [id]);
 
-  // Students NOT in this class (candidates to add)
   const candidates = await db.all(`
     SELECT u.id, u.full_name, u.username, u.email,
            sp.admission_number, sp.class_level
@@ -1542,7 +1476,6 @@ router.get('/sis/admin/classes/:id', guard, async (req, res) => {
   });
 });
 
-// Update
 router.post('/sis/admin/classes/:id/edit', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -1552,14 +1485,7 @@ router.post('/sis/admin/classes/:id/edit', guard, async (req, res) => {
     await db.run(
       `UPDATE classes SET name = $1, level = $2, room = $3, capacity = $4, teacher_id = $5
        WHERE id = $6`,
-      [
-        name.trim(),
-        level ? level.trim() : null,
-        room ? room.trim() : null,
-        capacity ? Number(capacity) : null,
-        teacher_id ? Number(teacher_id) : null,
-        id,
-      ]
+      [name.trim(), level ? level.trim() : null, room ? room.trim() : null, capacity ? Number(capacity) : null, teacher_id ? Number(teacher_id) : null, id]
     );
     req.flash('success', 'Class updated.');
   } catch (e) {
@@ -1568,7 +1494,6 @@ router.post('/sis/admin/classes/:id/edit', guard, async (req, res) => {
   res.redirect('/sis/admin/classes/' + id);
 });
 
-// Delete
 router.post('/sis/admin/classes/:id/delete', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -1577,7 +1502,6 @@ router.post('/sis/admin/classes/:id/delete', guard, async (req, res) => {
   res.redirect('/sis/admin/classes');
 });
 
-// Assign student
 router.post('/sis/admin/classes/:id/assign', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -1599,7 +1523,6 @@ router.post('/sis/admin/classes/:id/assign', guard, async (req, res) => {
          ON CONFLICT (class_id, student_id) DO NOTHING`,
         [id, Number(sid)]
       );
-      // Also set the student's class_level in student_profiles
       if (cls && cls.name) {
         await db.run(
           `UPDATE student_profiles SET class_level = $1, updated_at = NOW() WHERE user_id = $2`,
@@ -1613,7 +1536,6 @@ router.post('/sis/admin/classes/:id/assign', guard, async (req, res) => {
   res.redirect('/sis/admin/classes/' + id);
 });
 
-// Remove student
 router.post('/sis/admin/classes/:id/remove/:studentId', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -1631,8 +1553,6 @@ router.post('/sis/admin/classes/:id/remove/:studentId', guard, async (req, res) 
 // ============================================================
 //                 EXAMS
 // ============================================================
-
-// Student — Exam Program (upcoming + past)
 router.get('/sis/my/exams', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -1660,7 +1580,6 @@ router.get('/sis/my/exams', studentGuard, async (req, res) => {
   });
 });
 
-// Student — Exam Result
 router.get('/sis/my/exams/results', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -1675,7 +1594,6 @@ router.get('/sis/my/exams/results', studentGuard, async (req, res) => {
     ORDER BY e.exam_date DESC
   `, [uid]);
 
-  // Average
   let totalPct = 0, cnt = 0;
   for (const r of results) {
     if (r.score !== null && r.max_score > 0) {
@@ -1693,16 +1611,7 @@ router.get('/sis/my/exams/results', studentGuard, async (req, res) => {
   });
 });
 
-// ============================================================
-//                 ADMIN — EXAMS
-// ============================================================
-// ============================================================
-//                 EXAMS (admin + teacher)
-// ============================================================
-
-// Who can access exam routes — admin and teacher
 function examStaffFilter(req) {
-  // Returns { teacherOnly: true } if the caller is a teacher
   return req.session.user.role === 'teacher' ? { teacherOnly: true, uid: req.session.user.id } : { teacherOnly: false };
 }
 
@@ -1745,8 +1654,7 @@ router.get('/sis/admin/exams', staffGuard, async (req, res) => {
     title: 'Exams',
     heading: isTeacher ? 'My Exams' : 'Exam Management',
     subtitle: isTeacher ? 'Schedule exams and enter results for your courses.' : 'Schedule exams and record results.',
-    exams, courses,
-    isTeacher,
+    exams, courses, isTeacher,
   });
 });
 
@@ -1760,7 +1668,6 @@ router.post('/sis/admin/exams/new', staffGuard, async (req, res) => {
     return res.redirect('/sis/admin/exams');
   }
 
-  // If teacher: verify they own this course
   if (f.teacherOnly) {
     const owns = await db.get(
       `SELECT id FROM courses WHERE id = $1 AND teacher_id = $2`,
@@ -1775,16 +1682,7 @@ router.post('/sis/admin/exams/new', staffGuard, async (req, res) => {
   await db.run(
     `INSERT INTO exams (course_id, title, exam_date, start_time, duration_minutes, room, max_score, created_by)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-    [
-      Number(course_id),
-      title.trim(),
-      exam_date,
-      start_time || null,
-      duration_minutes ? Number(duration_minutes) : 60,
-      room || null,
-      max_score ? Number(max_score) : 100,
-      req.session.user.id,
-    ]
+    [Number(course_id), title.trim(), exam_date, start_time || null, duration_minutes ? Number(duration_minutes) : 60, room || null, max_score ? Number(max_score) : 100, req.session.user.id]
   );
 
   req.flash('success', 'Exam created.');
@@ -1804,7 +1702,6 @@ router.get('/sis/admin/exams/:id', staffGuard, async (req, res) => {
 
   if (!exam) return res.status(404).render('errors/404');
 
-  // Teacher can only access own courses
   if (f.teacherOnly && exam.teacher_id !== f.uid) {
     return res.status(403).render('errors/403');
   }
@@ -1824,8 +1721,7 @@ router.get('/sis/admin/exams/:id', staffGuard, async (req, res) => {
     title: exam.title,
     heading: exam.title,
     subtitle: exam.course_title,
-    exam, students,
-    isTeacher: f.teacherOnly,
+    exam, students, isTeacher: f.teacherOnly,
   });
 });
 
@@ -1885,7 +1781,6 @@ router.post('/sis/admin/exams/:id/delete', staffGuard, async (req, res) => {
   const id = Number(req.params.id);
 
   if (f.teacherOnly) {
-    // Only delete if teacher owns the course
     const owns = await db.get(`
       SELECT e.id FROM exams e JOIN courses c ON c.id = e.course_id
       WHERE e.id = $1 AND c.teacher_id = $2
@@ -1904,16 +1799,10 @@ router.post('/sis/admin/exams/:id/delete', staffGuard, async (req, res) => {
 // ============================================================
 //                 ADMIN — MANAGE COURSE TEACHERS
 // ============================================================
-
-// List courses + their teachers
 router.get('/sis/admin/course-teachers', guard, async (req, res) => {
   const db = getDB();
 
-  const courses = await db.all(`
-    SELECT c.id, c.title, c.description
-    FROM courses c
-    ORDER BY c.title
-  `);
+  const courses = await db.all(`SELECT c.id, c.title, c.description FROM courses c ORDER BY c.title`);
 
   const allLinks = await db.all(`
     SELECT ct.course_id, ct.role, ct.section,
@@ -1943,7 +1832,6 @@ router.get('/sis/admin/course-teachers', guard, async (req, res) => {
   });
 });
 
-// Assign teacher to a course
 router.post('/sis/admin/course-teachers/:courseId/add', guard, async (req, res) => {
   const db = getDB();
   const courseId = Number(req.params.courseId);
@@ -1958,12 +1846,7 @@ router.post('/sis/admin/course-teachers/:courseId/add', guard, async (req, res) 
     await db.run(
       `INSERT INTO course_teachers (course_id, teacher_id, role, section)
        VALUES ($1, $2, $3, $4)`,
-      [
-        courseId,
-        Number(teacher_id),
-        role || 'instructor',
-        section ? section.trim() : null,
-      ]
+      [courseId, Number(teacher_id), role || 'instructor', section ? section.trim() : null]
     );
     req.flash('success', 'Teacher assigned.');
   } catch (e) {
@@ -1973,7 +1856,6 @@ router.post('/sis/admin/course-teachers/:courseId/add', guard, async (req, res) 
   res.redirect('/sis/admin/course-teachers');
 });
 
-// Remove teacher from course
 router.post('/sis/admin/course-teachers/:courseId/remove/:teacherId', guard, async (req, res) => {
   const db = getDB();
   await db.run(
@@ -1984,19 +1866,13 @@ router.post('/sis/admin/course-teachers/:courseId/remove/:teacherId', guard, asy
   res.redirect('/sis/admin/course-teachers');
 });
 
-// Change role
 router.post('/sis/admin/course-teachers/:courseId/role/:teacherId', guard, async (req, res) => {
   const db = getDB();
   const { role, section } = req.body;
   await db.run(
     `UPDATE course_teachers SET role = $1, section = $2
      WHERE course_id = $3 AND teacher_id = $4`,
-    [
-      role || 'instructor',
-      section ? section.trim() : null,
-      Number(req.params.courseId),
-      Number(req.params.teacherId),
-    ]
+    [role || 'instructor', section ? section.trim() : null, Number(req.params.courseId), Number(req.params.teacherId)]
   );
   req.flash('success', 'Role updated.');
   res.redirect('/sis/admin/course-teachers');
@@ -2005,8 +1881,6 @@ router.post('/sis/admin/course-teachers/:courseId/role/:teacherId', guard, async
 // ============================================================
 //                 COURSE WITHDRAWAL
 // ============================================================
-
-// Student — view enrolled courses & request withdrawal
 router.get('/sis/my/withdrawal', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -2029,9 +1903,7 @@ router.get('/sis/my/withdrawal', studentGuard, async (req, res) => {
     ORDER BY cr.requested_at DESC
   `, [uid]);
 
-  const pendingCourseIds = requests
-    .filter(r => r.status === 'pending')
-    .map(r => r.course_id);
+  const pendingCourseIds = requests.filter(r => r.status === 'pending').map(r => r.course_id);
 
   res.render('sis/my-withdrawal', {
     title: 'Course Withdrawal',
@@ -2041,7 +1913,6 @@ router.get('/sis/my/withdrawal', studentGuard, async (req, res) => {
   });
 });
 
-// Student — submit request
 router.post('/sis/my/withdrawal/request', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -2052,7 +1923,6 @@ router.post('/sis/my/withdrawal/request', studentGuard, async (req, res) => {
     return res.redirect('/sis/my/withdrawal');
   }
 
-  // Check already enrolled
   const enrolled = await db.get(
     `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
     [uid, Number(course_id)]
@@ -2062,7 +1932,6 @@ router.post('/sis/my/withdrawal/request', studentGuard, async (req, res) => {
     return res.redirect('/sis/my/withdrawal');
   }
 
-  // Check for existing pending request
   const existing = await db.get(
     `SELECT id FROM course_withdrawals WHERE student_id = $1 AND course_id = $2 AND status = 'pending'`,
     [uid, Number(course_id)]
@@ -2082,7 +1951,6 @@ router.post('/sis/my/withdrawal/request', studentGuard, async (req, res) => {
   res.redirect('/sis/my/withdrawal');
 });
 
-// Student — cancel request
 router.post('/sis/my/withdrawal/cancel/:id', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -2094,9 +1962,6 @@ router.post('/sis/my/withdrawal/cancel/:id', studentGuard, async (req, res) => {
   res.redirect('/sis/my/withdrawal');
 });
 
-// ============================================================
-//                 ADMIN — Review withdrawals
-// ============================================================
 router.get('/sis/admin/withdrawals', guard, async (req, res) => {
   const db = getDB();
 
@@ -2130,7 +1995,6 @@ router.get('/sis/admin/withdrawals', guard, async (req, res) => {
   });
 });
 
-// Admin — approve
 router.post('/sis/admin/withdrawals/:id/approve', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -2141,7 +2005,6 @@ router.post('/sis/admin/withdrawals/:id/approve', guard, async (req, res) => {
     return res.redirect('/sis/admin/withdrawals');
   }
 
-  // Remove the enrollment
   await db.run(
     `DELETE FROM enrollments WHERE user_id = $1 AND course_id = $2`,
     [reqRow.student_id, reqRow.course_id]
@@ -2158,7 +2021,6 @@ router.post('/sis/admin/withdrawals/:id/approve', guard, async (req, res) => {
   res.redirect('/sis/admin/withdrawals');
 });
 
-// Admin — reject
 router.post('/sis/admin/withdrawals/:id/reject', guard, async (req, res) => {
   const db = getDB();
   const id = Number(req.params.id);
@@ -2178,7 +2040,6 @@ router.post('/sis/admin/withdrawals/:id/reject', guard, async (req, res) => {
 // ============================================================
 //                 ADMIN — FEE STRUCTURE
 // ============================================================
-
 router.get('/sis/admin/fees', guard, async (req, res) => {
   const db = getDB();
 
@@ -2236,7 +2097,6 @@ router.post('/sis/admin/fees/structure/:id/delete', guard, async (req, res) => {
 // ============================================================
 //                 ADMIN — RECORD PAYMENTS
 // ============================================================
-
 router.get('/sis/admin/fees/payments', guard, async (req, res) => {
   const db = getDB();
 
@@ -2280,15 +2140,7 @@ router.post('/sis/admin/fees/payments/new', guard, async (req, res) => {
     await db.run(
       `INSERT INTO payments (student_id, amount, term, method, receipt_number, paid_at, recorded_by)
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [
-        Number(student_id),
-        Number(amount),
-        term || null,
-        method || 'cash',
-        receipt,
-        paid_at || new Date().toISOString().slice(0, 10),
-        req.session.user.id,
-      ]
+      [Number(student_id), Number(amount), term || null, method || 'cash', receipt, paid_at || new Date().toISOString().slice(0, 10), req.session.user.id]
     );
     req.flash('success', 'Payment recorded. Receipt: ' + receipt);
   } catch (e) {
@@ -2301,7 +2153,6 @@ router.post('/sis/admin/fees/payments/new', guard, async (req, res) => {
 // ============================================================
 //                 ADMIN — STUDENT BALANCES
 // ============================================================
-
 router.get('/sis/admin/fees/balances', guard, async (req, res) => {
   const db = getDB();
 
@@ -2338,13 +2189,10 @@ router.get('/sis/admin/fees/balances', guard, async (req, res) => {
 // ============================================================
 //                 TEMPORARY PAYMENT SIMULATOR
 // ============================================================
-
-// 1. Student clicks "Pay Now" -> Redirect to fake bank
 router.post('/sis/my/fees/pay', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
   
-  // Calculate the exact balance to pay
   const profile = await db.get(`SELECT class_level FROM student_profiles WHERE user_id = $1`, [uid]);
   if (!profile || !profile.class_level) return res.redirect('/sis/my/fees');
 
@@ -2355,14 +2203,11 @@ router.post('/sis/my/fees/pay', studentGuard, async (req, res) => {
 
   if (balance <= 0) return res.redirect('/sis/my/fees');
 
-  // Generate a fake transaction reference
   const ref = 'SIM-' + Date.now().toString().slice(-6);
 
-  // Redirect to the mock bank page
   res.redirect(`/sis/payment-simulator?amount=${balance}&ref=${ref}`);
 });
 
-// 2. The Fake Bank Page (shows the "Payment Gateway")
 router.get('/sis/payment-simulator', studentGuard, (req, res) => {
   res.render('sis/payment-simulator', {
     amount: req.query.amount,
@@ -2370,14 +2215,12 @@ router.get('/sis/payment-simulator', studentGuard, (req, res) => {
   });
 });
 
-// 3. Student clicks "Confirm" -> Simulate Bank Webhook
 router.post('/sis/payment-simulator/confirm', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
   const { amount, ref } = req.body;
 
   try {
-    // THIS IS EXACTLY WHAT THE REAL WEBHOOK WILL DO
     await db.run(
       `INSERT INTO payments (student_id, amount, term, method, receipt_number, paid_at)
        VALUES ($1, $2, $3, $4, $5, NOW())`,
@@ -2396,8 +2239,6 @@ router.post('/sis/payment-simulator/confirm', studentGuard, async (req, res) => 
 // ============================================================
 //                 CURRICULUM
 // ============================================================
-
-// Admin — Manage Curriculum
 router.get('/sis/admin/curriculum', guard, async (req, res) => {
   const db = getDB();
   
@@ -2406,7 +2247,6 @@ router.get('/sis/admin/curriculum', guard, async (req, res) => {
     ORDER BY program_level, semester, course_name
   `);
 
-  // Group by program_level
   const grouped = {};
   courses.forEach(c => {
     if (!grouped[c.program_level]) grouped[c.program_level] = [];
@@ -2447,7 +2287,6 @@ router.post('/sis/admin/curriculum/:id/delete', guard, async (req, res) => {
   res.redirect('/sis/admin/curriculum');
 });
 
-// Student — View Curriculum
 router.get('/sis/my/curriculum', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -2456,7 +2295,7 @@ router.get('/sis/my/curriculum', studentGuard, async (req, res) => {
   
   let level = 'Not Assigned';
   if (profile && profile.class_level) {
-    level = profile.class_level.replace(/[-\s].*$/, '').trim(); // e.g., "Form 1A" -> "Form 1"
+    level = profile.class_level.replace(/[-\s].*$/, '').trim();
   }
 
   const courses = await db.all(`
@@ -2465,7 +2304,6 @@ router.get('/sis/my/curriculum', studentGuard, async (req, res) => {
     ORDER BY semester, type, course_name
   `, [level]);
 
-  // Group by semester
   const bySemester = {};
   courses.forEach(c => {
     if (!bySemester[c.semester]) bySemester[c.semester] = [];
@@ -2487,21 +2325,18 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // 1. Get Student Level
   const profile = await db.get(`SELECT class_level FROM student_profiles WHERE user_id = $1`, [uid]);
   let level = 'Not Assigned';
   if (profile && profile.class_level) {
     level = profile.class_level.replace(/[-\s].*$/, '').trim();
   }
 
-  // 2. Fetch Curriculum for this level
   const curriculum = await db.all(`
     SELECT * FROM curriculum 
     WHERE program_level = $1
     ORDER BY semester, type
   `, [level]);
 
-  // 3. Fetch Student's Quiz Grades
   const quizGrades = await db.all(`
     SELECT c.title AS course_name,
            COALESCE(SUM(COALESCE(m.override_score, a.score)), 0) AS earned,
@@ -2514,7 +2349,6 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     GROUP BY c.id, c.title
   `, [uid, uid]);
 
-  // 4. Fetch Student's Exam Grades
   const examGrades = await db.all(`
     SELECT c.title AS course_name,
            COALESCE(SUM(r.score), 0) AS earned,
@@ -2526,7 +2360,6 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     GROUP BY c.id, c.title
   `, [uid, uid]);
 
-  // 5. Combine both into a single list of grades
   const gradesMap = {};
   [...quizGrades, ...examGrades].forEach(g => {
     if (!gradesMap[g.course_name]) {
@@ -2542,14 +2375,12 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     total: gradesMap[name].total
   }));
 
-  // 6. Match Curriculum to Grades to determine Status
   let totalRequiredCredits = 0;
   let totalEarnedCredits = 0;
 
   const checklist = curriculum.map(curr => {
     totalRequiredCredits += Number(curr.credits);
     
-    // Find matching enrolled course
     const matchedGrade = grades.find(g => 
       g.course_name.toLowerCase().includes(curr.course_name.toLowerCase()) || 
       curr.course_name.toLowerCase().includes(g.course_name.toLowerCase())
@@ -2573,7 +2404,6 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     return { ...curr, status, pct: Math.round(pct) };
   });
 
-  // Calculate overall progress
   const progressPct = totalRequiredCredits > 0 
     ? Math.round((totalEarnedCredits / totalRequiredCredits) * 100) 
     : 0;
@@ -2585,6 +2415,7 @@ router.get('/sis/my/graduation', studentGuard, async (req, res) => {
     level, checklist, totalRequiredCredits, totalEarnedCredits, progressPct
   });
 });
+
 // ============================================================
 //                 FACULTY — MY COURSES
 // ============================================================
@@ -2592,7 +2423,6 @@ router.get('/sis/faculty/courses', staffGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // Fetch courses assigned to this teacher via course_teachers table
   const courses = await db.all(`
     SELECT c.id, c.title, c.description,
            ct.role AS my_role, ct.section AS my_section,
@@ -2616,14 +2446,11 @@ router.get('/sis/faculty/courses', staffGuard, async (req, res) => {
 // ============================================================
 //                 ADMIN — COURSE SECTIONS (GROUPS)
 // ============================================================
-
 router.get('/sis/admin/sections', guard, async (req, res) => {
   const db = getDB();
 
-  // Get all courses
   const courses = await db.all(`SELECT id, title FROM courses ORDER BY title`);
   
-  // Get all sections with their course and teacher info
   const sections = await db.all(`
     SELECT s.*, c.title AS course_title, 
            u.full_name AS teacher_name,
@@ -2640,7 +2467,6 @@ router.get('/sis/admin/sections', guard, async (req, res) => {
     ORDER BY full_name
   `);
 
-  // Group sections by course
   const sectionsByCourse = {};
   courses.forEach(c => sectionsByCourse[c.id] = []);
   sections.forEach(s => {
@@ -2692,4 +2518,5 @@ router.post('/sis/admin/sections/:id/delete', guard, async (req, res) => {
   req.flash('success', 'Group deleted.');
   res.redirect('/sis/admin/sections');
 });
+
 module.exports = router;
