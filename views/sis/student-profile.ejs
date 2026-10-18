@@ -36,7 +36,30 @@
         <tr><td style="color:#78716c;width:40%;">Username</td><td style="font-family:ui-monospace,monospace;">@<%= student.username %></td></tr>
         <tr><td style="color:#78716c;">Email</td><td><%= student.email || '—' %></td></tr>
         <tr><td style="color:#78716c;">Admission #</td><td style="font-family:ui-monospace,monospace;"><%= student.admission_number || '—' %></td></tr>
-        <tr><td style="color:#78716c;">Class</td><td><%= student.class_level || '—' %></td></tr>
+        
+        <!-- NEW: Department & Advisor Display -->
+        <tr>
+          <td style="color:#78716c;">Department</td>
+          <td>
+            <% if (student.department_id && typeof departments !== 'undefined') { %>
+              <strong style="color:#0891b2;"><%= departments.find(d => d.id === student.department_id)?.name || '—' %></strong>
+            <% } else { %>
+              —
+            <% } %>
+          </td>
+        </tr>
+        <tr>
+          <td style="color:#78716c;">Advisor</td>
+          <td>
+            <% if (student.advisor_id && typeof advisors !== 'undefined') { %>
+              <%= advisors.find(a => a.id === student.advisor_id)?.full_name || '—' %>
+            <% } else { %>
+              —
+            <% } %>
+          </td>
+        </tr>
+
+        <tr><td style="color:#78716c;">Class / Year</td><td><%= student.class_level || '—' %></td></tr>
         <tr><td style="color:#78716c;">Date of Birth</td><td><%= student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : '—' %></td></tr>
         <tr><td style="color:#78716c;">Gender</td><td><%= student.gender || '—' %></td></tr>
         <tr>
@@ -126,8 +149,35 @@
           <option value="female" <%= student.gender === 'female' ? 'selected' : '' %>>Female</option>
         </select>
       </div>
+      
+      <!-- NEW: Department Dropdown -->
       <div>
-        <label class="sis-label">Class</label>
+        <label class="sis-label">Department</label>
+        <select class="sis-select" name="department_id">
+          <option value="">— None —</option>
+          <% if (typeof departments !== 'undefined') { %>
+            <% departments.forEach(d => { %>
+              <option value="<%= d.id %>" <%= student.department_id === d.id ? 'selected' : '' %>><%= d.name %></option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+
+      <!-- NEW: Advisor Dropdown -->
+      <div>
+        <label class="sis-label">Advisor</label>
+        <select class="sis-select" name="advisor_id">
+          <option value="">— None —</option>
+          <% if (typeof advisors !== 'undefined') { %>
+            <% advisors.forEach(a => { %>
+              <option value="<%= a.id %>" <%= student.advisor_id === a.id ? 'selected' : '' %>><%= a.full_name || a.username %></option>
+            <% }) %>
+          <% } %>
+        </select>
+      </div>
+
+      <div>
+        <label class="sis-label">Class / Year (e.g. Form 1)</label>
         <input class="sis-input" name="class_level" value="<%= student.class_level || '' %>">
       </div>
       <div>
