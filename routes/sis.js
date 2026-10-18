@@ -2530,4 +2530,121 @@ router.post('/sis/admin/sections/:id/delete', guard, async (req, res) => {
   res.redirect('/sis/admin/sections');
 });
 
+
+// ============================================================
+//                 FACULTY — ADVISING QUEUE
+// ============================================================
+
+// Show pending registrations for students assigned to this teacher
+router.get('/sis/faculty/advising', staffGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  // Get all pending course requests for students where this teacher is the advisor
+  const pending = await db.all(`
+    SELECT cr.*, c.title AS course_title, c.id AS course_id,
+           s.group_name, s.room,
+           u.full_name AS student_name, u.username AS student_username,
+           sp.admission_number, sp.class_level
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    JOIN users u ON u.id = cr.student_id
+    LEFT JOIN student_profiles sp ON sp.user_id = u.id
+    LEFT JOIN course_sections s ON s.id = cr.section_id
+    WHERE sp.advisor_id = $1 AND cr.status = 'pending'
+    ORDER BY u.full_name, cr.requested_at
+  `, [uid]);
+
+  // Group by student so the advisor sees one card per student
+  const byStudent = {};
+  pending.forEach(r => {
+    if (!byStudent[r.student_id]) {
+      byStudent[r.student_id] = {
+        student_id: r.student_id,
+        student_name: r.student_name,
+        student_username: r.student_username,
+        admission_number: r.admission_number,
+        class_level: r.class_level,
+        courses: []
+      };
+    }
+    byStudent[r.student_id].courses.push(r);
+  });
+
+  res.render('sis/faculty-advising', {
+    title: 'Advising Queue',
+    heading: 'Advising Queue',
+    subtitle: 'Review and approve course selections for your advisees.',
+    advisees: Object.values(byStudent)
+  });
+});
+
+// Approve a single course request
+router.post('/sis/faculty/advising/:id/approve', staffGuard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const uid = req.session.user.id;
+
+  const reg = await db.get(`
+    SELECT cr.*, sp.advisor_id 
+    FROM course_registrations cr
+    JOIN student_profiles sp ON sp.user_id = cr.student_id
+    WHERE cr.id = $1
+  `, [id]);
+
+  if (!reg || reg.advisor_id !== uid) {
+    req.flash('error', 'Not authorized to approve this request.');
+    return res.redirect('/sis/faculty/advising');
+  }
+
+  // Enroll the student
+  const already = await db.get(
+    `SELECT id FROM enrollments WHERE user_id = $1 AND course_id = $2`,
+    [reg.student_id, reg.course_id]
+  );
+  if (!already) {
+    await db.run(
+      `INSERT INTO enrollments (user_id, course_id, section_id) VALUES ($1, $2, $3)`,
+      [reg.student_id, reg.course_id, reg.section_id || null]
+    );
+  }
+
+  // Mark as approved
+  await db.run(
+    `UPDATE course_registrations SET status = 'approved', reviewed_at = NOW(), reviewed_by = $1 WHERE id = $2`,
+    [uid, id]
+  );
+
+  req.flash('success', 'Course approved and student enrolled.');
+  res.redirect('/sis/faculty/advising');
+});
+
+// Reject a single course request
+router.post('/sis/faculty/advising/:id/reject', staffGuard, async (req, res) => {
+  const db = getDB();
+  const id = Number(req.params.id);
+  const uid = req.session.user.id;
+  const notes = req.body.notes || 'Rejected by advisor';
+
+  const reg = await db.get(`
+    SELECT cr.*, sp.advisor_id 
+    FROM course_registrations cr
+    JOIN student_profiles sp ON sp.user_id = cr.student_id
+    WHERE cr.id = $1
+  `, [id]);
+
+  if (!reg || reg.advisor_id !== uid) {
+    req.flash('error', 'Not authorized to reject this request.');
+    return res.redirect('/sis/faculty/advising');
+  }
+
+  await db.run(
+    `UPDATE course_registrations SET status = 'rejected', reviewed_at = NOW(), reviewed_by = $1, notes = $2 WHERE id = $3`,
+    [uid, notes, id]
+  );
+
+  req.flash('success', 'Course rejected.');
+  res.redirect('/sis/faculty/advising');
+});
+
 module.exports = router;

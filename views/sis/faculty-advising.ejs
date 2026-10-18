@@ -1,0 +1,132 @@
+<%- include('partials/head', {
+  title: 'Advising Queue',
+  heading: 'Advising Queue',
+  subtitle: 'Review and approve course selections for your advisees.'
+}) %>
+
+<% if (advisees.length === 0) { %>
+  <div class="sis-empty" style="padding:3rem;">
+    <div style="font-size:2rem; margin-bottom:1rem;">🎉</div>
+    <h3 style="margin-bottom:.5rem;">No pending requests</h3>
+    <p>You are all caught up! Your advisees have not submitted any new course requests.</p>
+  </div>
+<% } else { %>
+  <div class="advise-list">
+    <% advisees.forEach(student => { %>
+      <div class="advise-card">
+        <div class="advise-head">
+          <div class="advise-student">
+            <div class="advise-avatar"><%= (student.student_name || student.student_username || '?').charAt(0).toUpperCase() %></div>
+            <div>
+              <div class="advise-name"><%= student.student_name || student.student_username %></div>
+              <div class="advise-meta">
+                @<%= student.student_username %>
+                <% if (student.admission_number) { %> · <%= student.admission_number %><% } %>
+                <% if (student.class_level) { %> · <%= student.class_level %><% } %>
+              </div>
+            </div>
+          </div>
+          <div class="advise-count"><%= student.courses.length %> course(s)</div>
+        </div>
+
+        <table class="advise-table">
+          <thead>
+            <tr>
+              <th>Course</th>
+              <th>Group</th>
+              <th>Room</th>
+              <th style="text-align:right;">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% student.courses.forEach(c => { %>
+              <tr>
+                <td><strong><%= c.course_title %></strong></td>
+                <td>
+                  <% if (c.group_name) { %>
+                    <span class="badge" style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:4px;font-weight:700;"><%= c.group_name %></span>
+                  <% } else { %>
+                    <span style="color:#94a3b8;">—</span>
+                  <% } %>
+                </td>
+                <td style="color:#64748b;"><%= c.room || '—' %></td>
+                <td style="text-align:right;">
+                  <form method="POST" action="/sis/faculty/advising/<%= c.id %>/approve" style="display:inline;">
+                    <button class="btn-approve" type="submit">✓ Approve</button>
+                  </form>
+                  <form method="POST" action="/sis/faculty/advising/<%= c.id %>/reject" style="display:inline;" 
+                        onsubmit="return confirm('Reject this course?');">
+                    <input type="hidden" name="notes" value="Rejected by Advisor">
+                    <button class="btn-reject" type="submit">✕</button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<style>
+  .advise-list { display: flex; flex-direction: column; gap: 1.25rem; }
+  .advise-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(15,23,42,.04); overflow: hidden;
+  }
+  .advise-head {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 1.25rem; background: #f8fafc; border-bottom: 1px solid #e2e8f0;
+  }
+  .advise-student { display: flex; align-items: center; gap: .75rem; }
+  .advise-avatar {
+    width: 42px; height: 42px; border-radius: 10px;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 900; font-size: 1.1rem; font-family: Georgia, serif;
+  }
+  .advise-name { font-weight: 800; color: #0f172a; font-size: 1rem; }
+  .advise-meta { font-size: .78rem; color: #64748b; font-family: ui-monospace, monospace; margin-top: 2px; }
+  .advise-count {
+    background: #0f2942; color: #67e8f9; font-size: .75rem;
+    padding: 4px 10px; border-radius: 100px; font-weight: 800;
+  }
+
+  .advise-table { width: 100%; border-collapse: collapse; }
+  .advise-table th {
+    text-align: left; padding: .7rem 1.25rem; font-size: .7rem;
+    text-transform: uppercase; letter-spacing: .1em; color: #64748b;
+    border-bottom: 1px solid #e2e8f0; font-weight: 800;
+  }
+  .advise-table td {
+    padding: .85rem 1.25rem; border-bottom: 1px solid #f1f5f9;
+    font-size: .88rem; color: #334155;
+  }
+  .advise-table tr:last-child td { border-bottom: none; }
+
+  .btn-approve {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff; border: none; padding: .4rem .8rem;
+    border-radius: 6px; font-size: .78rem; font-weight: 800;
+    cursor: pointer; margin-right: .35rem; transition: all .15s;
+  }
+  .btn-approve:hover { transform: translateY(-1px); box-shadow: 0 4px 10px rgba(16,185,129,.3); }
+  
+  .btn-reject {
+    background: #fef2f2; color: #991b1b; border: 1px solid #fecaca;
+    padding: .4rem .6rem; border-radius: 6px; font-size: .78rem;
+    font-weight: 800; cursor: pointer; transition: all .15s;
+  }
+  .btn-reject:hover { background: #fee2e2; }
+
+  @media (max-width: 700px) {
+    .advise-head { flex-direction: column; align-items: flex-start; gap: .5rem; }
+    .advise-table th, .advise-table td { padding: .6rem .75rem; }
+    .advise-table td { display: block; text-align: left !important; border: none; padding-bottom: 0; }
+    .advise-table td:first-child { padding-top: .85rem; font-weight: bold; }
+    .advise-table td:last-child { padding-bottom: .85rem; }
+  }
+</style>
+
+<%- include('partials/foot') %>
