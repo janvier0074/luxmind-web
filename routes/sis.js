@@ -980,22 +980,21 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  // 1. Financial Hold Check
+  // 1. Financial Hold
   const profile = await db.get(`SELECT class_level, current_semester FROM student_profiles WHERE user_id = $1`, [uid]);
   const currentSem = profile?.current_semester || 1;
+  const level = profile?.class_level || 'Computer Engineering';
+  
   let balance = 0;
   let hasHold = false;
-  
   if (profile && profile.class_level) {
-    const level = profile.class_level.replace(/[-\s].*$/, '').trim();
     const owedRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM fee_structure WHERE class_level = $1`, [level]);
     const paidRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM payments WHERE student_id = $1`, [uid]);
     balance = Number(owedRow.total) - Number(paidRow.total);
     hasHold = balance > 0;
   }
 
-  // 2. Fetch Curriculum and link to real Courses table
-    const level = profile?.class_level || 'Computer Engineering';
+  // 2. Fetch Curriculum
   const curriculum = await db.all(`
     SELECT curr.*, c.id AS real_course_id, c.title AS real_course_title
     FROM curriculum curr
@@ -1004,7 +1003,7 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     ORDER BY curr.semester_number, curr.course_name
   `, [level]);
 
-  // 3. Fetch Course Sections (Groups)
+  // 3. Fetch Sections
   const sections = await db.all(`
     SELECT s.*, u.full_name AS teacher_name,
            (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
@@ -1012,17 +1011,15 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
     LEFT JOIN users u ON u.id = s.teacher_id
   `);
 
-  // 4. Fetch existing pending registrations (The Cart)
+  // 4. Fetch Cart & Enrolled
   const pending = await db.all(`
-    SELECT cr.*, c.title AS course_title, s.group_name, s.id AS section_id, u.full_name AS teacher_name
+    SELECT cr.*, c.title AS course_title, s.group_name
     FROM course_registrations cr
     JOIN courses c ON c.id = cr.course_id
     LEFT JOIN course_sections s ON s.id = cr.section_id
-    LEFT JOIN users u ON u.id = s.teacher_id
     WHERE cr.student_id = $1
   `, [uid]);
 
-  // 5. Fetch enrolled/completed courses
   const enrolled = await db.all(`
     SELECT c.title AS course_title FROM enrollments e
     JOIN courses c ON c.id = e.course_id
@@ -1032,7 +1029,7 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
   res.render('sis/my-registration', {
     title: 'Course Registration',
     heading: 'Course Registration',
-    subtitle: 'Select your groups and submit to your advisor.',
+    subtitle: 'Select your courses and submit to your advisor.',
     curriculum, sections, pending, enrolled, currentSem, hasHold, balance
   });
 });

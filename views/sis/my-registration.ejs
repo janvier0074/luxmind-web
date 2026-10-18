@@ -1,69 +1,77 @@
 <%- include('partials/head', {
   title: 'Course Registration',
   heading: 'Course Registration',
-  subtitle: 'Select your groups and submit to your advisor.'
+  subtitle: 'Select your courses and submit to your advisor.'
 }) %>
 
 <% if (hasHold) { %>
-  <div style="background:#fee2e2; border-left:4px solid #ef4444; padding:1rem; border-radius:8px; margin-bottom:1.5rem; color:#991b1b;">
+  <div class="hold-banner">
     <strong>⚠️ Financial Hold:</strong> You owe <%= Number(balance).toLocaleString() %> BIF. You cannot register until this is cleared.
   </div>
 <% } %>
 
-<!-- Legend -->
-<div class="reg-legend">
-  <div class="legend-item"><span class="legend-box box-avail"></span> Available</div>
-  <div class="legend-item"><span class="legend-box box-cart"></span> Selected (In Cart)</div>
-  <div class="legend-item"><span class="legend-box box-done"></span> Completed</div>
-  <div class="legend-item"><span class="legend-box box-warning"></span> Cannot select yet</div>
+<!-- Top Summary Bar -->
+<div class="reg-summary">
+  <div class="sum-left">
+    <div class="sum-badge">Current: Semester <%= currentSem %></div>
+    <div class="sum-badge">Selected: <strong><%= pending.length %></strong></div>
+    <div class="sum-badge">Credits: <strong>
+      <% let totalCredits = 0; pending.forEach(p => { const c = curriculum.find(curr => curr.real_course_id === p.course_id); if (c) totalCredits += Number(c.credits); }); %>
+      <%= totalCredits %>
+    </strong></div>
+  </div>
+  <div class="sum-right">
+    <button class="sis-btn sis-btn-gold" <%= pending.length === 0 ? 'disabled style="opacity:.5"' : '' %>>📨 Submit to Advisor</button>
+  </div>
 </div>
 
+<!-- Legend -->
+<div class="reg-legend">
+  <span><span class="lg-box box-avail"></span> Available</span>
+  <span><span class="lg-box box-cart"></span> Selected</span>
+  <span><span class="lg-box box-done"></span> Completed</span>
+  <span><span class="lg-box box-lock"></span> Locked (Future)</span>
+</div>
+
+<!-- Layout Grid -->
 <div class="reg-layout">
-  <!-- LEFT: Curriculum Hierarchy -->
   <div class="reg-main">
     <% 
       // Group curriculum by semester
       const bySem = {};
       for(let i=1; i<=6; i++) bySem[i] = [];
-      curriculum.forEach(c => {
-        if (bySem[c.semester_number]) bySem[c.semester_number].push(c);
-      });
+      curriculum.forEach(c => { if (bySem[c.semester_number]) bySem[c.semester_number].push(c); });
 
       // Loop through Years (1 to 3)
       for(let year = 1; year <= 3; year++) {
         const sem1 = (year * 2) - 1;
         const sem2 = year * 2;
     %>
-      <!-- YEAR CONTAINER -->
       <div class="year-block">
         <h2 class="year-title">📖 Year <%= year %></h2>
 
-        <% [sem1, sem2].forEach(semNum => { %>
-          <!-- SEMESTER BOX -->
-          <div class="sem-box sem-color-<%= semNum %>">
+        <% [sem1, sem2].forEach(semNum => { 
+           const isBlocked = semNum > (currentSem + 1);
+        %>
+          <!-- Semester Box -->
+          <div class="sem-box sem-color-<%= semNum %> <%= isBlocked ? 'sem-locked' : '' %>">
             <div class="sem-header">
               <h3>Semester <%= semNum %></h3>
+              <% if (isBlocked) { %><span class="lock-tag">🔒 Locked</span><% } %>
             </div>
-
+            
             <div class="course-list">
               <% if (bySem[semNum].length === 0) { %>
                 <div class="empty-sem">No courses defined for this semester.</div>
               <% } %>
-              
               <% bySem[semNum].forEach(curr => {
                 const courseSections = sections.filter(s => s.course_id === curr.real_course_id);
                 const cartItem = pending.find(p => p.course_id === curr.real_course_id);
                 const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
                 
-                // Progressive logic: Allowed to take current semester + 1 (e.g. Sem 1 can take Sem 2)
-                const isBlocked = semNum > (currentSem + 1);
-                
-                let rowClass = 'row-avail';
-                if (isDone) rowClass = 'row-done';
-                else if (cartItem) rowClass = 'row-cart';
-                else if (isBlocked) rowClass = 'row-blocked';
+                let rowClass = isDone ? 'row-done' : (cartItem ? 'row-cart' : (isBlocked ? 'row-locked' : 'row-avail'));
               %>
-                <!-- COURSE ROW -->
+                <!-- Course Horizontal Row -->
                 <div class="course-row <%= rowClass %>">
                   <div class="c-info">
                     <div class="c-title"><%= curr.real_course_title || curr.course_name %></div>
@@ -76,31 +84,28 @@
 
                   <div class="c-action">
                     <% if (isDone) { %>
-                      <span class="status-badge badge-done">✅ Completed</span>
+                      <span class="badge badge-done">✅ Completed</span>
                     <% } else if (cartItem) { %>
-                      <span class="status-badge badge-cart">🛒 Group <%= cartItem.group_name %> Selected</span>
+                      <span class="badge badge-cart">🛒 <%= cartItem.group_name %> Selected</span>
                     <% } else if (courseSections.length === 0) { %>
-                      <span style="font-size:.75rem; color:#94a3b8;">No groups created yet</span>
+                      <span style="font-size:.75rem; color:#94a3b8;">No groups available</span>
                     <% } else { %>
-                      <!-- Dropdown or Buttons for Groups -->
                       <form method="POST" action="/sis/my/registration/request" 
-                            onsubmit="return checkSemester(event, <%= semNum %>, <%= currentSem %>)">
+                            onsubmit="return checkSemester(event, <%= semNum %>, <%= currentSem %>)" class="group-form">
                         <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
-                        <div class="group-select-wrap">
-                          <select name="section_id" class="group-select" required <%= hasHold ? 'disabled' : '' %>>
-                            <option value="">Choose Group...</option>
-                            <% courseSections.forEach(s => { 
-                              const isFull = s.enrolled_count >= s.max_capacity;
-                              const seatsLeft = s.max_capacity - s.enrolled_count;
-                            %>
-                              <option value="<%= s.id %>" <%= isFull ? 'disabled' : '' %>>
-                                <%= s.group_name %> - <%= s.teacher_name || 'Staff' %> 
-                                (<%= isFull ? 'FULL' : seatsLeft + ' seats left' %>)
-                              </option>
-                            <% }) %>
-                          </select>
-                          <button type="submit" class="add-btn" <%= hasHold ? 'disabled' : '' %>>Add</button>
-                        </div>
+                        <select name="section_id" class="group-select" required <%= hasHold ? 'disabled' : '' %>>
+                          <option value="">Choose Group...</option>
+                          <% courseSections.forEach(s => { 
+                            const isFull = s.enrolled_count >= s.max_capacity;
+                            const seatsLeft = s.max_capacity - s.enrolled_count;
+                          %>
+                            <option value="<%= s.id %>" <%= isFull ? 'disabled' : '' %>>
+                              <%= s.group_name %> - <%= s.teacher_name || 'Staff' %> 
+                              (<%= isFull ? 'FULL' : seatsLeft + ' left' %>)
+                            </option>
+                          <% }) %>
+                        </select>
+                        <button type="submit" class="add-btn" <%= hasHold ? 'disabled' : '' %>>Add</button>
                       </form>
                     <% } %>
                   </div>
@@ -113,36 +118,21 @@
     <% } %>
   </div>
 
-  <!-- RIGHT: The Cart -->
+  <!-- Sticky Cart -->
   <div class="reg-cart">
     <div class="cart-sticky">
-      <div class="cart-header">
-        <h3>🛒 Temporary Timetable</h3>
-      </div>
-      
+      <div class="cart-header">🛒 Temporary Timetable</div>
       <div class="cart-body">
         <% if (pending.length === 0) { %>
           <div class="cart-empty">No courses selected yet.</div>
         <% } else { %>
           <% pending.forEach(p => { %>
             <div class="cart-item">
-              <div>
-                <div class="cart-title"><%= p.course_title %></div>
-                <div class="cart-sub">Group <%= p.group_name || 'N/A' %></div>
-              </div>
+              <div class="cart-title"><%= p.course_title %></div>
+              <div class="cart-sub">Group <%= p.group_name || 'N/A' %></div>
             </div>
           <% }) %>
         <% } %>
-      </div>
-
-      <div class="cart-footer">
-        <div class="cart-total">
-          <span>Total Courses:</span>
-          <strong><%= pending.length %></strong>
-        </div>
-        <button class="sis-btn sis-btn-gold" style="width:100%;" <%= pending.length === 0 ? 'disabled style="opacity:.5"' : '' %>>
-          📨 Submit to Advisor
-        </button>
       </div>
     </div>
   </div>
@@ -150,10 +140,9 @@
 
 <script>
   function checkSemester(event, targetSem, currentSem) {
-    // If trying to select a semester higher than currentSem + 1
     if (targetSem > (currentSem + 1)) {
       event.preventDefault();
-      alert("⚠️ Warning: You cannot register for Semester " + targetSem + " yet.\n\nYou are currently in Semester " + currentSem + " and can only register up to Semester " + (currentSem + 1) + ".");
+      alert("⚠️ Warning:\nYou are currently in Semester " + currentSem + ".\nYou cannot register for Semester " + targetSem + " yet.\nYou can only register up to Semester " + (currentSem + 1) + ".");
       return false;
     }
     return true;
@@ -161,84 +150,86 @@
 </script>
 
 <style>
-  .reg-legend { display: flex; gap: 1.5rem; background: #fff; padding: 1rem; border-radius: 10px; border: 1px solid #e2e8f0; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .legend-item { display: flex; align-items: center; gap: .4rem; font-size: .8rem; font-weight: 700; color: #475569; }
-  .legend-box { width: 16px; height: 16px; border-radius: 4px; }
-  .box-avail { border: 2px solid #cbd5e1; background: #fff; }
+  /* Hold Banner */
+  .hold-banner { background: #fee2e2; border-left: 4px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; color: #991b1b; font-weight: 600; }
+  
+  /* Top Summary Bar */
+  .reg-summary { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #e2e8f0; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,23,42,.04); flex-wrap: wrap; gap: 1rem; }
+  .sum-left { display: flex; gap: 1rem; flex-wrap: wrap; }
+  .sum-badge { background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: .85rem; font-weight: 700; color: #0f172a; }
+  
+  /* Legend */
+  .reg-legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; font-size: .78rem; font-weight: 700; color: #475569; }
+  .lg-box { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
+  .box-avail { border: 1.5px solid #cbd5e1; background: #fff; }
   .box-cart { background: #8b5cf6; }
   .box-done { background: #10b981; }
-  .box-warning { background: #fef3c7; border: 1px solid #f59e0b; }
+  .box-lock { background: #f1f5f9; border: 1.5px dashed #cbd5e1; }
 
-  .reg-layout { display: grid; grid-template-columns: 1fr 320px; gap: 1.5rem; align-items: start; }
-
+  /* Layout */
+  .reg-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
+  
   /* Years */
-  .year-block { margin-bottom: 2.5rem; }
-  .year-title { font-size: 1.3rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 2px solid #e2e8f0; }
-
-  /* Semesters with Unique Backgrounds */
-  .sem-box { border-radius: 12px; margin-bottom: 1.25rem; border: 1px solid transparent; overflow: hidden; }
+  .year-block { margin-bottom: 2rem; }
+  .year-title { font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; }
+  
+  /* Semesters */
+  .sem-box { border-radius: 10px; margin-bottom: 1rem; border: 1px solid transparent; overflow: hidden; }
   .sem-color-1 { background: #f0f9ff; border-color: #bae6fd; }
   .sem-color-2 { background: #fdf4ff; border-color: #f5d0fe; }
   .sem-color-3 { background: #f0fdf4; border-color: #bbf7d0; }
   .sem-color-4 { background: #fffbeb; border-color: #fde68a; }
   .sem-color-5 { background: #fef2f2; border-color: #fecaca; }
   .sem-color-6 { background: #f8fafc; border-color: #e2e8f0; }
+  .sem-locked { opacity: .6; background: #f1f5f9 !important; border-style: dashed !important; }
 
-  .sem-header { padding: .75rem 1.25rem; background: rgba(0,0,0,.04); border-bottom: 1px solid rgba(0,0,0,.05); }
-  .sem-header h3 { font-size: .95rem; font-weight: 800; color: #0f172a; }
+  .sem-header { padding: .65rem 1.25rem; background: rgba(0,0,0,.04); border-bottom: 1px solid rgba(0,0,0,.05); display: flex; justify-content: space-between; align-items: center; }
+  .sem-header h3 { font-size: .85rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: .05em; }
+  .lock-tag { font-size: .65rem; color: #64748b; font-weight: 800; background: #fff; padding: 2px 8px; border-radius: 100px; }
 
-  .course-list { padding: .5rem 1rem; display: flex; flex-direction: column; gap: .5rem; }
+  /* Course Rows */
+  .course-list { padding: .5rem; display: flex; flex-direction: column; gap: .35rem; }
   .empty-sem { padding: .5rem; color: #94a3b8; font-size: .85rem; font-style: italic; }
-
-  /* Course Row */
-  .course-row { display: flex; align-items: center; justify-content: space-between; padding: .75rem 1rem; background: #fff; border-radius: 8px; border: 1px solid #e2e8f0; gap: 1rem; transition: all .15s; }
+  .course-row { display: flex; justify-content: space-between; align-items: center; padding: .6rem 1rem; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0; gap: 1rem; transition: all .15s; }
   
-  .row-avail { background: #fff; border-color: #cbd5e1; }
+  .row-avail { border-color: #cbd5e1; }
   .row-cart { background: #f3e8ff; border-color: #8b5cf6; }
   .row-done { background: #ecfdf5; border-color: #10b981; opacity: .85; }
-  .row-blocked { background: #fef3c7; border-color: #f59e0b; opacity: .8; }
+  .row-locked { background: #f8fafc; border-style: dashed; }
 
-  .c-info { flex: 1; min-width: 150px; }
-  .c-title { font-weight: 800; color: #0f172a; font-size: .9rem; }
-  .c-code { font-size: .7rem; color: #64748b; font-family: ui-monospace, monospace; margin-top: 2px; }
-
-  .c-credit { width: 80px; text-align: center; }
-  .credit-badge { background: #e2e8f0; color: #0f172a; padding: 3px 8px; border-radius: 6px; font-size: .72rem; font-weight: 800; }
-
-  .c-action { width: 280px; text-align: right; }
+  .c-info { flex: 1; min-width: 0; }
+  .c-title { font-weight: 700; color: #0f172a; font-size: .88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .c-code { font-size: .68rem; color: #64748b; font-family: ui-monospace, monospace; margin-top: 2px; }
   
-  .status-badge { padding: .35rem .6rem; border-radius: 6px; font-size: .75rem; font-weight: 800; display: inline-block; }
+  .c-credit { width: 70px; text-align: center; }
+  .credit-badge { background: #e2e8f0; color: #0f172a; padding: 2px 6px; border-radius: 4px; font-size: .68rem; font-weight: 800; white-space: nowrap; }
+  
+  .c-action { width: 260px; display: flex; justify-content: flex-end; }
+  
+  .badge { padding: .3rem .6rem; border-radius: 6px; font-size: .72rem; font-weight: 800; }
   .badge-done { background: #d1fae5; color: #065f46; }
   .badge-cart { background: #ede9fe; color: #5b21b6; }
 
-  /* Group Select Form */
-  .group-select-wrap { display: flex; gap: .4rem; }
-  .group-select { padding: .4rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: .75rem; font-family: inherit; color: #0f172a; max-width: 200px; outline: none; }
-  .group-select:focus { border-color: #06b6d4; }
-  .add-btn { background: #0f2942; color: #fff; border: none; padding: .4rem .8rem; border-radius: 6px; font-size: .75rem; font-weight: 800; cursor: pointer; transition: all .15s; }
+  .group-form { display: flex; gap: .35rem; width: 100%; }
+  .group-select { flex: 1; padding: .35rem .5rem; border: 1px solid #cbd5e1; border-radius: 6px; font-size: .72rem; font-family: inherit; color: #0f172a; outline: none; }
+  .add-btn { background: #0f2942; color: #fff; border: none; padding: .35rem .75rem; border-radius: 6px; font-size: .72rem; font-weight: 800; cursor: pointer; white-space: nowrap; }
   .add-btn:hover:not(:disabled) { background: #0891b2; }
   .add-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
 
   /* Cart */
-  .cart-sticky { position: sticky; top: 2rem; background: #fff; border: 2px solid #0f2942; border-radius: 12px; overflow: hidden; box-shadow: 0 8px 24px rgba(15,23,42,.08); }
-  .cart-header { background: #0f2942; color: #fff; padding: 1rem; }
-  .cart-header h3 { font-size: 1rem; font-weight: 800; }
-  .cart-body { padding: 1rem; max-height: 400px; overflow-y: auto; }
-  .cart-empty { color: #64748b; font-size: .85rem; text-align: center; padding: 1rem 0; }
-  .cart-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: .75rem; border-radius: 8px; margin-bottom: .5rem; border-left: 3px solid #8b5cf6; }
-  .cart-title { font-weight: 800; font-size: .85rem; color: #0f172a; }
-  .cart-sub { font-size: .72rem; color: #64748b; font-weight: 700; margin-top: 2px; }
-  .cart-footer { padding: 1rem; border-top: 1px solid #e2e8f0; background: #f8fafc; }
-  .cart-total { display: flex; justify-content: space-between; font-weight: 800; color: #0f172a; margin-bottom: 1rem; }
+  .cart-sticky { position: sticky; top: 2rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(15,23,42,.05); }
+  .cart-header { background: #0f2942; color: #fff; padding: .85rem 1rem; font-size: .9rem; font-weight: 800; }
+  .cart-body { padding: 1rem; }
+  .cart-empty { font-size: .8rem; color: #64748b; text-align: center; padding: 1rem 0; font-style: italic; }
+  .cart-item { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #8b5cf6; padding: .6rem; border-radius: 6px; margin-bottom: .5rem; }
+  .cart-title { font-weight: 800; font-size: .8rem; color: #0f172a; }
+  .cart-sub { font-size: .68rem; color: #64748b; font-weight: 700; }
 
   @media (max-width: 900px) {
     .reg-layout { grid-template-columns: 1fr; }
-    .cart-sticky { position: static; }
-    .course-row { flex-direction: column; align-items: flex-start; gap: .5rem; }
-    .c-credit { text-align: left; }
-    .c-action { width: 100%; text-align: left; }
-    .group-select-wrap { flex-direction: column; }
-    .group-select { max-width: 100%; }
+    .cart-sticky { position: static; margin-top: 2rem; }
+    .c-action { width: auto; flex-direction: column; align-items: flex-end; }
+    .group-form { flex-direction: column; }
   }
 </style>
 
