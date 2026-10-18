@@ -360,7 +360,7 @@ router.get('/sis/students/:id', guard, async (req, res) => {
            sp.admission_number, sp.date_of_birth, sp.gender, sp.guardian_name, 
            sp.guardian_phone, sp.guardian_email, sp.home_address, sp.class_level, 
            sp.medical_notes, sp.status, sp.photo_url, sp.guardian_relationship, 
-           sp.admission_date, sp.updated_at
+           sp.admission_date, sp.updated_at, sp.department_id, sp.advisor_id
     FROM users u
     LEFT JOIN student_profiles sp ON sp.user_id = u.id
     WHERE u.id = $1 AND u.role = 'student'
@@ -387,12 +387,17 @@ router.get('/sis/students/:id', guard, async (req, res) => {
     [id]
   );
 
+  // Fetch all departments and advisors for the dropdowns
+  const departments = await db.all(`SELECT id, name FROM departments ORDER BY name`);
+  const advisors = await db.all(`SELECT id, full_name, username FROM users WHERE role = 'teacher' AND is_active = 1 ORDER BY full_name`);
+
   res.render('sis/student-profile', {
     title: student.full_name || 'Student',
     heading: student.full_name || student.username,
     subtitle: 'Student record',
     student, attendance, payments,
     totalPaid: totalPaidRow.total,
+    departments, advisors
   });
 });
 
@@ -403,6 +408,7 @@ router.post('/sis/students/:id/edit', guard, async (req, res) => {
     full_name, admission_number, date_of_birth, gender,
     guardian_name, guardian_phone, guardian_email,
     home_address, class_level, medical_notes, status,
+    department_id, advisor_id
   } = req.body;
 
   await db.run(
@@ -418,22 +424,29 @@ router.post('/sis/students/:id/edit', guard, async (req, res) => {
         admission_number = $1, date_of_birth = $2, gender = $3,
         guardian_name = $4, guardian_phone = $5, guardian_email = $6,
         home_address = $7, class_level = $8, medical_notes = $9, status = $10,
+        department_id = $11, advisor_id = $12,
         updated_at = NOW()
-       WHERE user_id = $11`,
+       WHERE user_id = $13`,
       [admission_number, date_of_birth || null, gender, guardian_name,
        guardian_phone, guardian_email, home_address, class_level,
-       medical_notes, status, id]
+       medical_notes, status, 
+       department_id ? Number(department_id) : null, 
+       advisor_id ? Number(advisor_id) : null, 
+       id]
     );
   } else {
     await db.run(
       `INSERT INTO student_profiles
        (user_id, admission_number, date_of_birth, gender,
         guardian_name, guardian_phone, guardian_email,
-        home_address, class_level, medical_notes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+        home_address, class_level, medical_notes, status,
+        department_id, advisor_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [id, admission_number, date_of_birth || null, gender, guardian_name,
        guardian_phone, guardian_email, home_address, class_level,
-       medical_notes, status]
+       medical_notes, status,
+       department_id ? Number(department_id) : null, 
+       advisor_id ? Number(advisor_id) : null]
     );
   }
 
@@ -962,7 +975,6 @@ router.get('/sis/my/registration', studentGuard, async (req, res) => {
   });
 });
 
-// --- HERE IS THE MISSING POST ROUTE ---
 router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
@@ -1000,7 +1012,6 @@ router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
   req.flash('success', 'Course added to your timetable.');
   res.redirect('/sis/my/registration');
 });
-// -------------------------------------
 
 // ============================================================
 //                 ADMIN — review registrations
