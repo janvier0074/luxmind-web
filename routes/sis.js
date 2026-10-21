@@ -1,75 +1,75 @@
-<%- include('partials/head', {
-  title: 'Advisor Approvals',
-  heading: 'Advisor Approvals',
-  subtitle: 'Review and approve student course registrations.'
-}) %>
+const express = require('express');
+const { getDB } = require('../config/database');
+const { requireLogin, requireRole } = require('../middleware/auth');
+const router = express.Router();
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+const studentGuard = [requireLogin, (req, res, next) => {
+  if (!req.session.user) return res.redirect('/login');
+  if (req.session.user.role !== 'student') return res.status(403).render('errors/403');
+  next();
+}];
 
-<style>
-  .advisor-wrapper { font-family: 'Plus Jakarta Sans', sans-serif; background: #fff; border-radius: 2rem; box-shadow: 0 30px 60px -20px rgba(10, 30, 50, 0.4); overflow: hidden; margin-bottom: 2rem; }
-  .advisor-header { background: linear-gradient(105deg, #0a1e32 0%, #0f2a44 55%, #1e4d7b 100%); padding: 1.8rem 2.5rem; display: flex; align-items: center; justify-content: space-between; color: #fff; border-bottom: 4px solid #f5a623; }
-  .student-card { padding: 1.5rem 2.5rem; border-bottom: 1px solid #d9e6f2; }
-  .student-name { font-size: 1.25rem; font-weight: 800; color: #0a1e32; margin-bottom: 0.2rem; }
-  .course-list-box { background: #f7fafd; border-radius: 1rem; padding: 1rem 1.5rem; margin-top: 1rem; border: 1px solid #d9e6f2; }
-  .course-row { display: flex; justify-content: space-between; padding: 0.75rem 0; border-bottom: 1px dashed #cbd5e1; }
-  .course-row:last-child { border-bottom: none; }
-  .btn-approve { background: #1f8a5f; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.15s; }
-  .btn-approve:hover { background: #166a48; transform: translateY(-1px); }
-  .btn-reject { background: #b33e2e; color: #fff; border: none; padding: 0.7rem 1.5rem; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.15s; }
-  .btn-reject:hover { background: #922e20; transform: translateY(-1px); }
-</style>
+router.get('/sis/my/registration', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const courses = await db.all(`SELECT * FROM courses ORDER BY id ASC`);
+  const cart = await db.all(`SELECT cr.id as cart_id, cr.course_id, c.title, c.code, c.credits FROM course_registrations cr JOIN courses c ON c.id = cr.course_id WHERE cr.student_id = $1 AND cr.status = 'draft'`, [uid]);
+  const pending = await db.all(`SELECT cr.id as cart_id, cr.course_id, c.title, c.code, c.credits FROM course_registrations cr JOIN courses c ON c.id = cr.course_id WHERE cr.student_id = $1 AND cr.status = 'pending_advisor'`, [uid]);
 
-<div class="advisor-wrapper">
-  <div class="advisor-header">
-    <div>
-      <h2 style="margin: 0; font-size: 1.5rem; font-weight: 800;"><i class="fas fa-clipboard-check" style="color: #ffc857;"></i> Pending Approvals</h2>
-      <p style="margin: 0.2rem 0 0; color: #d9e6f2; font-size: 0.9rem;">Review student course selections below.</p>
-    </div>
-    <div style="background: rgba(255,255,255,0.1); padding: 0.5rem 1.5rem; border-radius: 100px;">
-      <i class="fas fa-user-shield" style="color: #ffc857;"></i> Advisor Portal
-    </div>
-  </div>
+  res.render('sis/my-registration', {
+    title: 'Course Registration', heading: 'Course Registration',
+    courses, cart, pending, user: req.session.user
+  });
+});
 
-  <% if (typeof pendingStudents === 'undefined' || pendingStudents.length === 0) { %>
-    <div style="padding: 4rem 2rem; text-align: center; color: #64748b;">
-      <i class="fas fa-check-circle" style="font-size: 4rem; color: #cbd5e1; margin-bottom: 1rem;"></i>
-      <h3 style="font-size: 1.5rem; color: #0a1e32; margin-bottom: 0.5rem;">All caught up!</h3>
-      <p>No pending registrations to approve right now.</p>
-    </div>
-  <% } else { %>
-    <% pendingStudents.forEach(student => { %>
-      <div class="student-card">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-          <div>
-            <div class="student-name"><%= student.full_name || student.username %></div>
-            <div style="color: #64748b; font-size: 0.9rem;"><%= student.total_courses %> courses requested</div>
-          </div>
-          
-          <div style="display: flex; gap: 0.75rem;">
-            <form method="POST" action="/sis/advisor/approvals/reject" style="margin: 0;">
-              <input type="hidden" name="student_id" value="<%= student.id %>">
-              <button type="submit" class="btn-reject" onclick="return confirm('Reject this registration?');"><i class="fas fa-times"></i> Reject</button>
-            </form>
-            <form method="POST" action="/sis/advisor/approvals/approve" style="margin: 0;">
-              <input type="hidden" name="student_id" value="<%= student.id %>">
-              <button type="submit" class="btn-approve"><i class="fas fa-check"></i> Approve</button>
-            </form>
-          </div>
-        </div>
+router.post('/sis/my/registration/add', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const courseId = Number(req.body.course_id);
+  const existing = await db.get(`SELECT id FROM course_registrations WHERE student_id = $1 AND course_id = $2`, [uid, courseId]);
+  if (existing) { req.flash('error', 'Already in cart.'); return res.redirect('/sis/my/registration'); }
+  await db.run(`INSERT INTO course_registrations (student_id, course_id, status) VALUES ($1, $2, 'draft')`, [uid, courseId]);
+  req.flash('success', 'Added.');
+  res.redirect('/sis/my/registration');
+});
 
-        <div class="course-list-box">
-          <% pendingCourses.filter(c => c.student_id === student.id).forEach(course => { %>
-            <div class="course-row">
-              <span><strong style="color: #1e4d7b;"><%= course.code %></strong> - <span style="font-weight: 600; color: #0a1e32;"><%= course.title %></span></span>
-              <span style="background: #e2e8f0; padding: 0.1rem 0.6rem; border-radius: 100px; font-size: 0.75rem; font-weight: 700;"><%= course.credits %> CR</span>
-            </div>
-          <% }) %>
-        </div>
-      </div>
-    <% }) %>
-  <% } %>
-</div>
+router.post('/sis/my/registration/remove', studentGuard, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM course_registrations WHERE id = $1 AND student_id = $2 AND status = 'draft'`, [Number(req.body.cart_id), req.session.user.id]);
+  res.redirect('/sis/my/registration');
+});
 
-<%- include('partials/foot') %>
+router.post('/sis/my/registration/submit', studentGuard, async (req, res) => {
+  const db = getDB();
+  await db.run(`UPDATE course_registrations SET status = 'pending_advisor' WHERE student_id = $1 AND status = 'draft'`, [req.session.user.id]);
+  req.flash('success', 'Submitted!');
+  res.redirect('/sis/my/registration');
+});
+
+router.get('/sis/advisor/approvals', requireLogin, async (req, res) => {
+  const db = getDB();
+  const pendingStudents = await db.all(`SELECT u.id, u.full_name, u.username, COUNT(cr.id) as total_courses FROM course_registrations cr JOIN users u ON u.id = cr.student_id WHERE cr.status = 'pending_advisor' GROUP BY u.id, u.full_name, u.username`);
+  const pendingCourses = await db.all(`SELECT cr.student_id, c.title, c.code, c.credits FROM course_registrations cr JOIN courses c ON c.id = cr.course_id WHERE cr.status = 'pending_advisor'`);
+  res.render('sis/advisor-approvals', { title: 'Advisor Approvals', heading: 'Advisor Approvals', pendingStudents, pendingCourses, user: req.session.user });
+});
+
+router.post('/sis/advisor/approvals/approve', requireLogin, async (req, res) => {
+  const db = getDB();
+  const studentId = Number(req.body.student_id);
+  const courses = await db.all(`SELECT course_id FROM course_registrations WHERE student_id = $1 AND status = 'pending_advisor'`, [studentId]);
+  for (const c of courses) {
+    await db.run(`INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2)`, [studentId, c.course_id]);
+  }
+  await db.run(`UPDATE course_registrations SET status = 'approved' WHERE student_id = $1 AND status = 'pending_advisor'`, [studentId]);
+  req.flash('success', 'Approved!');
+  res.redirect('/sis/advisor/approvals');
+});
+
+router.post('/sis/advisor/approvals/reject', requireLogin, async (req, res) => {
+  const db = getDB();
+  await db.run(`DELETE FROM course_registrations WHERE student_id = $1 AND status = 'pending_advisor'`, [Number(req.body.student_id)]);
+  req.flash('error', 'Rejected.');
+  res.redirect('/sis/advisor/approvals');
+});
+
+module.exports = router;
