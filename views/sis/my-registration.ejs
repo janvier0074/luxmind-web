@@ -1,231 +1,169 @@
 <%- include('partials/head', {
   title: 'Course Registration',
   heading: 'Course Registration',
-  subtitle: 'Click a course to add it to your timetable.'
+  subtitle: 'Select your courses, then review before submitting to your advisor.'
 }) %>
 
-<% if (hasHold) { %>
-  <div class="hold-banner">
-    <strong>⚠️ Financial Hold:</strong> You owe <%= Number(balance).toLocaleString() %> BIF. You cannot register until this is cleared.
-  </div>
-<% } %>
-
-<!-- Top Summary Bar -->
-<div class="reg-summary">
-  <div class="sum-left">
-    <div class="sum-badge">Current: Semester <%= currentSem %></div>
-    <div class="sum-badge">Selected: <strong><%= pending.length %></strong></div>
-    <div class="sum-badge">Credits: <strong>
-      <% let totalCredits = 0; pending.forEach(p => { const c = curriculum.find(curr => curr.real_course_id === p.course_id); if (c) totalCredits += Number(c.credits); }); %>
-      <%= totalCredits %>
-    </strong></div>
-  </div>
-  <div class="sum-right">
-    <button class="sis-btn sis-btn-gold" <%= pending.length === 0 ? 'disabled style="opacity:.5"' : '' %>>📨 Submit to Advisor</button>
-  </div>
-</div>
-
-<!-- Legend -->
-<div class="reg-legend">
-  <span><span class="lg-box box-avail"></span> Available</span>
-  <span><span class="lg-box box-cart"></span> Selected</span>
-  <span><span class="lg-box box-done"></span> Completed</span>
-</div>
-
-<!-- Layout Grid -->
-<div class="reg-layout">
-  <div class="reg-main">
-    <% 
-      // Group curriculum by semester
-      const bySem = {};
-      for(let i=1; i<=6; i++) bySem[i] = [];
-      curriculum.forEach(c => { if (bySem[c.semester_number]) bySem[c.semester_number].push(c); });
-
-      // Loop through Years (1 to 3)
-      for(let year = 1; year <= 3; year++) {
-        const sem1 = (year * 2) - 1;
-        const sem2 = year * 2;
-    %>
-      <div class="year-block">
-        <h2 class="year-title">📖 Year <%= year %></h2>
-
-        <% [sem1, sem2].forEach(semNum => { 
-           const isBlocked = semNum > (currentSem + 1);
-        %>
-          <!-- Semester Box -->
-          <div class="sem-box sem-color-<%= semNum %> <%= isBlocked ? 'sem-locked' : '' %>">
-            <div class="sem-header">
-              <h3>Semester <%= semNum %></h3>
-              <% if (isBlocked) { %><span class="lock-tag">🔒 Locked</span><% } %>
-            </div>
-            
-            <div class="course-list">
-              <% bySem[semNum].forEach(curr => {
-                const cartItem = pending.find(p => p.course_id === curr.real_course_id);
-                const isDone = enrolled.some(e => e.course_title === curr.real_course_title);
-                
-                let rowClass = isDone ? 'row-done' : (cartItem ? 'row-cart' : (isBlocked ? 'row-locked' : 'row-avail'));
-              %>
-                <!-- CLICKABLE COURSE ROW -->
-                <form method="POST" action="/sis/my/registration/request" 
-                      onsubmit="return checkSemester(event, <%= semNum %>, <%= currentSem %>)" 
-                      class="course-form">
-                  <input type="hidden" name="course_id" value="<%= curr.real_course_id %>">
-                  
-                  <button type="submit" class="course-btn <%= rowClass %>" 
-                          <%= (isDone || cartItem || isBlocked || hasHold) ? 'disabled' : '' %>>
-                    
-                    <div class="c-info">
-                      <div class="c-title"><%= curr.real_course_title || curr.course_name %></div>
-                      <div class="c-code"><%= curr.course_code %></div>
-                    </div>
-                    
-                    <div class="c-credit">
-                      <span class="credit-badge"><%= curr.credits %> Credits</span>
-                    </div>
-
-                    <div class="c-status">
-                      <% if (isDone) { %>
-                        <span class="badge badge-done">✅ Completed</span>
-                      <% } else if (cartItem) { %>
-                        <span class="badge badge-cart">🛒 Selected</span>
-                      <% } else if (isBlocked) { %>
-                        <span class="badge badge-lock">🔒 Locked</span>
-                      <% } else { %>
-                        <span class="badge badge-add">➕ Click to Add</span>
-                      <% } %>
-                    </div>
-                  </button>
-                </form>
-              <% }) %>
-            </div>
-          </div>
-        <% }) %>
-      </div>
-    <% } %>
-  </div>
-
-  <!-- Sticky Cart Table -->
-  <div class="reg-cart">
-    <div class="cart-sticky">
-      <div class="cart-header">🛒 Selected Courses</div>
-      
-      <% if (pending.length === 0) { %>
-        <div class="cart-empty">No courses selected yet. Click a course on the left.</div>
-      <% } else { %>
-        <table class="cart-table">
-          <thead>
-            <tr>
-              <th>Course</th>
-              <th>Credits</th>
-            </tr>
-          </thead>
-          <tbody>
-            <% pending.forEach(p => { 
-              const c = curriculum.find(curr => curr.real_course_id === p.course_id); 
-            %>
-              <tr>
-                <td><%= p.course_title %></td>
-                <td><%= c ? c.credits : '-' %></td>
-              </tr>
-            <% }) %>
-          </tbody>
-        </table>
-      <% } %>
-    </div>
-  </div>
-</div>
-
-<script>
-  function checkSemester(event, targetSem, currentSem) {
-    if (targetSem > (currentSem + 1)) {
-      event.preventDefault();
-      alert("⚠️ Warning:\nYou are currently in Semester " + currentSem + ".\nYou cannot register for Semester " + targetSem + " yet.");
-      return false;
-    }
-    return true;
-  }
-</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-  .hold-banner { background: #fee2e2; border-left: 4px solid #ef4444; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; color: #991b1b; font-weight: 600; }
-  
-  .reg-summary { display: flex; justify-content: space-between; align-items: center; background: #fff; border: 1px solid #e2e8f0; padding: 1rem 1.5rem; border-radius: 12px; margin-bottom: 1rem; box-shadow: 0 1px 3px rgba(15,23,42,.04); flex-wrap: wrap; gap: 1rem; }
-  .sum-left { display: flex; gap: 1rem; flex-wrap: wrap; }
-  .sum-badge { background: #f8fafc; border: 1px solid #cbd5e1; padding: 4px 12px; border-radius: 8px; font-size: .85rem; font-weight: 700; color: #0f172a; }
-  
-  .reg-legend { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; font-size: .78rem; font-weight: 700; color: #475569; }
-  .lg-box { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 4px; vertical-align: middle; }
-  .box-avail { border: 1.5px solid #cbd5e1; background: #fff; }
-  .box-cart { background: #8b5cf6; }
-  .box-done { background: #10b981; }
-
-  .reg-layout { display: grid; grid-template-columns: 1fr 300px; gap: 1.5rem; align-items: start; }
-  
-  .year-block { margin-bottom: 2rem; }
-  .year-title { font-size: 1.2rem; font-weight: 900; color: #0f172a; margin-bottom: 1rem; }
-  
-  .sem-box { border-radius: 10px; margin-bottom: 1rem; border: 1px solid transparent; overflow: hidden; }
-  .sem-color-1 { background: #f0f9ff; border-color: #bae6fd; }
-  .sem-color-2 { background: #fdf4ff; border-color: #f5d0fe; }
-  .sem-color-3 { background: #f0fdf4; border-color: #bbf7d0; }
-  .sem-color-4 { background: #fffbeb; border-color: #fde68a; }
-  .sem-color-5 { background: #fef2f2; border-color: #fecaca; }
-  .sem-color-6 { background: #f8fafc; border-color: #e2e8f0; }
-  .sem-locked { opacity: .6; background: #f1f5f9 !important; border-style: dashed !important; }
-
-  .sem-header { padding: .65rem 1.25rem; background: rgba(0,0,0,.04); border-bottom: 1px solid rgba(0,0,0,.05); display: flex; justify-content: space-between; align-items: center; }
-  .sem-header h3 { font-size: .85rem; font-weight: 800; color: #0f172a; text-transform: uppercase; letter-spacing: .05em; }
-  .lock-tag { font-size: .65rem; color: #64748b; font-weight: 800; background: #fff; padding: 2px 8px; border-radius: 100px; }
-
-  /* Clickable Rows */
-  .course-list { padding: .5rem; display: flex; flex-direction: column; gap: .35rem; }
-  .course-form { display: block; width: 100%; }
-  
-  .course-btn {
-    width: 100%; display: flex; justify-content: space-between; align-items: center;
-    padding: .8rem 1rem; background: #fff; border-radius: 6px; border: 1px solid #e2e8f0;
-    gap: 1rem; text-align: left; font-family: inherit; cursor: pointer; transition: all .15s;
+  /* ---------- EXACT STYLES FROM YOUR UPLOADED FILE ---------- */
+  .endeavor-wrapper * { margin: 0; padding: 0; box-sizing: border-box; }
+  .endeavor-wrapper {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --endeavor-navy: #0a1e32; --endeavor-deep: #0f2a44; --endeavor-blue: #1e4d7b;
+    --endeavor-amber: #f5a623; --endeavor-gold: #ffc857; --endeavor-mist: #eef4fa;
+    --endeavor-frost: #d9e6f2; --endeavor-ice: #f7fafd; --endeavor-success: #1f8a5f;
+    background: #fff; border-radius: 2rem; box-shadow: 0 30px 60px -20px rgba(10, 30, 50, 0.4); overflow: hidden; margin-bottom: 2rem;
   }
   
-  .course-btn:hover:not(:disabled) { border-color: #06b6d4; box-shadow: 0 2px 8px rgba(6,182,212,.1); transform: translateY(-1px); }
-  .course-btn:disabled { cursor: default; }
+  .endeavor-header { background: linear-gradient(105deg, var(--endeavor-navy) 0%, var(--endeavor-deep) 55%, var(--endeavor-blue) 100%); padding: 1.8rem 2.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; position: relative; }
+  .endeavor-header::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, var(--endeavor-amber), var(--endeavor-gold), var(--endeavor-amber)); }
+  .brand-block { display: flex; align-items: center; gap: 1.2rem; }
+  .brand-mark { width: 58px; height: 58px; background: var(--endeavor-amber); border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: var(--endeavor-navy); }
+  .brand-text h1 { font-size: 1.8rem; font-weight: 800; color: #fff; line-height: 1.2; margin: 0; }
+  .brand-text span { display: block; font-size: 0.8rem; font-weight: 600; color: var(--endeavor-gold); letter-spacing: 2.5px; text-transform: uppercase; margin-top: 0.15rem; }
+  .user-pill { background: rgba(255, 255, 255, 0.1); padding: 0.6rem 1.6rem; border-radius: 100px; display: flex; align-items: center; gap: 0.8rem; font-size: 0.95rem; font-weight: 600; color: #fff; border: 1px solid rgba(255, 255, 255, 0.2); }
+  .user-pill i { color: var(--endeavor-gold); font-size: 1.2rem; }
 
-  .row-avail { border-color: #cbd5e1; }
-  .row-cart { background: #f3e8ff; border-color: #8b5cf6; }
-  .row-done { background: #ecfdf5; border-color: #10b981; opacity: .85; }
-  .row-locked { background: #f8fafc; border-style: dashed; opacity: .7; }
+  .endeavor-body { padding: 2.2rem 2.5rem 2rem; background: var(--endeavor-ice); }
 
-  .c-info { flex: 1; }
-  .c-title { font-weight: 700; color: #0f172a; font-size: .9rem; }
-  .c-code { font-size: .7rem; color: #64748b; font-family: ui-monospace, monospace; margin-top: 2px; }
+  .semester-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; margin-bottom: 2rem; }
+  @media (max-width: 1200px) { .semester-grid { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 700px)  { .semester-grid { grid-template-columns: 1fr; } }
+
+  .semester-panel { background: #fff; border-radius: 1.25rem; border: 1px solid var(--endeavor-frost); overflow: hidden; box-shadow: 0 8px 20px -6px rgba(10, 30, 50, 0.12); display: flex; flex-direction: column; }
+  .semester-header { background: var(--endeavor-mist); padding: 0.9rem 1.2rem; border-bottom: 2px solid var(--endeavor-frost); display: flex; align-items: center; justify-content: space-between; }
+  .semester-header h3 { font-size: 1rem; font-weight: 800; color: var(--endeavor-navy); margin: 0; }
+  .year-badge { background: var(--endeavor-blue); color: #fff; font-size: 0.65rem; font-weight: 700; padding: 0.2rem 0.7rem; border-radius: 100px; }
+  .course-list { padding: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem; flex: 1; }
+
+  .course-tile { padding: 0.75rem 1rem 0.75rem 2.4rem; border-radius: 12px; border: 1.5px solid transparent; transition: all 0.15s ease; position: relative; display: flex; flex-direction: column; gap: 0.2rem; text-decoration: none; color: inherit; width: 100%; text-align: left; font-family: inherit; background: #fff; cursor: pointer; }
+  .course-tile:hover { transform: translateY(-2px); box-shadow: 0 6px 14px -6px rgba(10, 30, 50, 0.2); }
   
-  .c-credit { width: 80px; text-align: center; }
-  .credit-badge { background: #e2e8f0; color: #0f172a; padding: 2px 8px; border-radius: 4px; font-size: .7rem; font-weight: 800; white-space: nowrap; }
-  
-  .c-status { width: 130px; text-align: right; }
-  .badge { padding: .35rem .7rem; border-radius: 6px; font-size: .75rem; font-weight: 800; white-space: nowrap; display: inline-block; }
-  .badge-done { background: #d1fae5; color: #065f46; }
-  .badge-cart { background: #ede9fe; color: #5b21b6; }
-  .badge-lock { background: #f1f5f9; color: #64748b; }
-  .badge-add { background: #0f2942; color: #fff; }
+  .tile-available { background: #ffffff; border: 1.5px dashed #3b7cb9; }
+  .tile-selected { background: #d4f0e3; border-color: #1f8a5f; }
+  .tile-completed { background: #e8f0fe; border-color: #a0b8d6; opacity: 0.92; }
+  .tile-locked { background: #f3f4f6; border: 1px solid #cbd5e1; opacity: 0.75; cursor: not-allowed; }
 
-  /* The Cart Table */
-  .cart-sticky { position: sticky; top: 2rem; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(15,23,42,.05); }
-  .cart-header { background: #0f2942; color: #fff; padding: .85rem 1rem; font-size: .9rem; font-weight: 800; }
-  .cart-empty { padding: 1.5rem 1rem; text-align: center; color: #64748b; font-size: .82rem; font-style: italic; }
+  .tile-credit-front { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); padding: 0.35rem; border-radius: 8px; background: var(--endeavor-navy); color: var(--endeavor-gold); font-size: 0.7rem; font-weight: 800; display: flex; flex-direction: column; align-items: center; }
+  .tile-credit-front small { font-size: 0.55rem; font-weight: 600; color: #cfd9e6; }
   
-  .cart-table { width: 100%; border-collapse: collapse; }
-  .cart-table th { background: #f8fafc; text-align: left; padding: .6rem 1rem; font-size: .65rem; text-transform: uppercase; letter-spacing: .1em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
-  .cart-table td { padding: .6rem 1rem; font-size: .82rem; color: #0f172a; font-weight: 700; border-bottom: 1px solid #f1f5f9; }
-  .cart-table td:last-child { text-align: right; font-family: ui-monospace, monospace; }
+  .tile-code { font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--endeavor-blue); }
+  .tile-title { font-size: 0.82rem; font-weight: 700; color: var(--endeavor-navy); line-height: 1.3; }
+  .tile-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 0.2rem; font-size: 0.68rem; font-weight: 600; color: #4a6785; }
 
-  @media (max-width: 900px) {
-    .reg-layout { grid-template-columns: 1fr; }
-    .cart-sticky { position: static; margin-top: 2rem; }
-    .c-status { width: auto; }
-    .badge { font-size: .65rem; padding: .25rem .5rem; }
-  }
+  .summary-footer { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1.2rem; background: #fff; border-radius: 100px; padding: 1.1rem 2rem; box-shadow: 0 8px 20px -6px rgba(10, 30, 50, 0.12); border: 1px solid var(--endeavor-frost); }
+  .selected-stats { display: flex; align-items: center; gap: 1rem; font-weight: 500; color: var(--endeavor-deep); }
+  .selected-stats strong { font-weight: 800; color: var(--endeavor-navy); font-size: 1.1rem; margin: 0 0.15rem; }
+  .btn-submit { background: var(--endeavor-navy); border: none; padding: 0.9rem 2.4rem; border-radius: 100px; font-weight: 700; font-size: 0.95rem; color: #fff; cursor: pointer; box-shadow: 0 12px 24px -10px var(--endeavor-navy); transition: all 0.15s ease; display: flex; align-items: center; gap: 0.5rem; }
+  .btn-submit:hover { background: var(--endeavor-deep); transform: translateY(-2px); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 </style>
+
+<div class="endeavor-wrapper">
+  <header class="endeavor-header">
+    <div class="brand-block">
+      <div class="brand-mark">L</div>
+      <div class="brand-text">
+        <h1>LuxMind Endeavor</h1>
+        <span>4-Year Curriculum · 8 Semesters</span>
+      </div>
+    </div>
+    <div class="user-pill">
+      <i class="fas fa-user-graduate"></i>
+      <span><%= user.full_name || user.username %></span>
+    </div>
+  </header>
+
+  <main class="endeavor-body">
+    <% if (pending.length > 0) { %>
+      <div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 12px; margin-bottom: 2rem; text-align: center; font-weight: bold; border: 1px solid #fcd34d;">
+        <i class="fas fa-clock"></i> Your registration is currently pending Advisor approval.
+      </div>
+    <% } %>
+
+    <div class="semester-grid">
+      <% 
+        // Group database courses by semester
+        const bySem = {};
+        for (let i = 1; i <= 8; i++) bySem[i] = [];
+        courses.forEach(c => { if (bySem[c.semester_number]) bySem[c.semester_number].push(c); });
+        
+        const labels = {1:'Year 1 · Fall',2:'Year 1 · Spring',3:'Year 2 · Fall',4:'Year 2 · Spring',5:'Year 3 · Fall',6:'Year 3 · Spring',7:'Year 4 · Fall',8:'Year 4 · Spring'};
+        
+        for (let semNum = 1; semNum <= 8; semNum++) {
+      %>
+        <div class="semester-panel">
+          <div class="semester-header">
+            <h3><%= labels[semNum] %></h3>
+            <span class="year-badge">Sem <%= semNum %></span>
+          </div>
+          <div class="course-list">
+            <% if (bySem[semNum].length === 0) { %>
+              <div style="padding: 1rem; text-align: center; color: #94a3b8; font-size: 0.8rem;">No courses available</div>
+            <% } %>
+
+            <% bySem[semNum].forEach(course => {
+              // Find if this course is in the cart or pending
+              const cartItem = cart.find(c => c.course_id === course.id);
+              const pendingItem = pending.find(p => p.course_id === course.id);
+              
+              let tileClass = 'tile-available';
+              let label = 'Available';
+              let clickable = true;
+
+              if (pendingItem) {
+                tileClass = 'tile-selected'; label = 'Pending'; clickable = false;
+              } else if (cartItem) {
+                tileClass = 'tile-selected'; label = 'Selected'; clickable = false;
+              } else if (pending.length > 0) {
+                // If they already submitted, lock everything
+                tileClass = 'tile-locked'; label = 'Locked'; clickable = false;
+              }
+            %>
+              <% if (clickable) { %>
+                <form method="POST" action="/sis/my/registration/add" style="margin: 0;">
+                  <input type="hidden" name="course_id" value="<%= course.id %>">
+                  <button type="submit" class="course-tile <%= tileClass %>">
+                    <div class="tile-credit-front"><%= course.credits || 3 %><small>CR</small></div>
+                    <div class="tile-code"><%= course.code || 'N/A' %></div>
+                    <div class="tile-title"><%= course.title %></div>
+                    <div class="tile-meta"><span style="color: var(--endeavor-success); font-weight: 800;">+ Add to Cart</span></div>
+                  </button>
+                </form>
+              <% } else { %>
+                <div class="course-tile <%= tileClass %>">
+                  <div class="tile-credit-front"><%= course.credits || 3 %><small>CR</small></div>
+                  <div class="tile-code"><%= course.code || 'N/A' %></div>
+                  <div class="tile-title"><%= course.title %></div>
+                  <div class="tile-meta"><span><%= label %></span></div>
+                </div>
+              <% } %>
+            <% }) %>
+          </div>
+        </div>
+      <% } %>
+    </div>
+
+    <div class="summary-footer">
+      <div class="selected-stats">
+        <i class="fas fa-check-double" style="color: var(--endeavor-amber); font-size: 1.5rem;"></i>
+        <span>Selected: <strong><%= cart.length %></strong> courses</span>
+      </div>
+      
+      <div style="display: flex; gap: 1rem;">
+        <% if (cart.length > 0 && pending.length === 0) { %>
+          <form method="POST" action="/sis/my/registration/submit" style="margin: 0;">
+            <button type="submit" class="btn-submit"><i class="fas fa-rocket"></i> Submit to Advisor</button>
+          </form>
+        <% } else if (pending.length > 0) { %>
+          <button class="btn-submit" disabled style="background: #64748b;"><i class="fas fa-clock"></i> Awaiting Advisor</button>
+        <% } %>
+      </div>
+    </div>
+  </main>
+</div>
 
 <%- include('partials/foot') %>
