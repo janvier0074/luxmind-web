@@ -921,96 +921,124 @@ router.get('/sis/my/grades', studentGuard, async (req, res) => {
 // ============================================================
 //                 COURSE REGISTRATION
 // ============================================================
+// ==========================================
+// --- FRESH COURSE REGISTRATION SYSTEM ---
+// ==========================================
+
+// 1. Student View
 router.get('/sis/my/registration', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
 
-  const profile = await db.get(`SELECT class_level, current_semester FROM student_profiles WHERE user_id = $1`, [uid]);
-  const currentSem = profile?.current_semester || 1;
-  const level = profile?.class_level || 'Computer Engineering';
+  const courses = await db.all(`SELECT * FROM courses ORDER BY id ASC`);
   
-  let balance = 0;
-  let hasHold = false;
-  if (profile && profile.class_level) {
-    const owedRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM fee_structure WHERE class_level = $1`, [level]);
-    const paidRow = await db.get(`SELECT COALESCE(SUM(amount),0) as total FROM payments WHERE student_id = $1`, [uid]);
-    balance = Number(owedRow.total) - Number(paidRow.total);
-    hasHold = balance > 0;
-  }
-
-  const curriculum = await db.all(`
-    SELECT curr.*, c.id AS real_course_id, c.title AS real_course_title
-    FROM curriculum curr
-    LEFT JOIN courses c ON LOWER(c.title) = LOWER(curr.course_name)
-    WHERE curr.program_level = $1
-    ORDER BY curr.semester_number, curr.course_name
-  `, [level]);
-
-  const sections = await db.all(`
-    SELECT s.*, u.full_name AS teacher_name,
-           (SELECT COUNT(*) FROM enrollments e WHERE e.section_id = s.id) AS enrolled_count
-    FROM course_sections s
-    LEFT JOIN users u ON u.id = s.teacher_id
-  `);
-
-  const pending = await db.all(`
-    SELECT cr.*, c.title AS course_title, s.group_name
+  // Notice we select cr.course_id here so the EJS can match it!
+  const cart = await db.all(`
+    SELECT cr.id as cart_id, cr.course_id, c.title, c.code, c.credits 
     FROM course_registrations cr
     JOIN courses c ON c.id = cr.course_id
-    LEFT JOIN course_sections s ON s.id = cr.section_id
-    WHERE cr.student_id = $1
+    WHERE cr.student_id = $1 AND cr.status = 'draft'
   `, [uid]);
 
-  const enrolled = await db.all(`
-    SELECT c.title AS course_title FROM enrollments e
-    JOIN courses c ON c.id = e.course_id
-    WHERE e.user_id = $1
+  const pending = await db.all(`
+    SELECT cr.id as cart_id, cr.course_id, c.title, c.code, c.credits 
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    WHERE cr.student_id = $1 AND cr.status = 'pending_advisor'
   `, [uid]);
 
   res.render('sis/my-registration', {
-    title: 'Course Registration',
-    heading: 'Course Registration',
-    subtitle: 'Select your courses and submit to your advisor.',
-    curriculum, sections, pending, enrolled, currentSem, hasHold, balance
+    title: 'Course Registration', heading: 'Course Registration',
+    courses, cart, pending, user: req.session.user
   });
 });
 
-router.post('/sis/my/registration/request', studentGuard, async (req, res) => {
+// 2. Add to Cart
+router.post('/sis/my/registration/add', studentGuard, async (req, res) => {
   const db = getDB();
   const uid = req.session.user.id;
   const courseId = Number(req.body.course_id);
 
-  if (!courseId) {
-    req.flash('error', 'Invalid course.');
-    return res.redirect('/sis/my/registration');
-  }
-
-  // Find a default section for this course (if they exist)
-  const section = await db.get(
-    `SELECT id FROM course_sections WHERE course_id = $1 LIMIT 1`, 
-    [courseId]
-  );
-
-  // Check if already requested
-  const existing = await db.get(
-    `SELECT id FROM course_registrations WHERE student_id = $1 AND course_id = $2`,
-    [uid, courseId]
-  );
-
+  const existing = await db.get(`SELECT id FROM course_registrations WHERE student_id = $1 AND course_id = $2`, [uid, courseId]);
   if (existing) {
-    req.flash('error', 'Course is already in your cart.');
+    req.flash('error', 'Course already in your cart.');
     return res.redirect('/sis/my/registration');
   }
 
-  // Insert request
-  await db.run(
-    `INSERT INTO course_registrations (student_id, course_id, section_id, status)
-     VALUES ($1, $2, $3, 'pending')`,
-    [uid, courseId, section ? section.id : null]
-  );
-
-  req.flash('success', 'Course added to your timetable.');
+  await db.run(`INSERT INTO course_registrations (student_id, course_id, status) VALUES ($1, $2, 'draft')`, [uid, courseId]);
+  req.flash('success', 'Added to cart.');
   res.redirect('/sis/my/registration');
+});
+
+// 3. Remove from Cart
+router.post('/sis/my/registration/remove', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+  const cartId = Number(req.body.cart_id);
+
+  await db.run(`DELETE FROM course_registrations WHERE id = $1 AND student_id = $2 AND status = 'draft'`, [cartId, uid]);
+  req.flash('success', 'Removed from cart.');
+  res.redirect('/sis/my/registration');
+});
+
+// 4. Submit to Advisor
+router.post('/sis/my/registration/submit', studentGuard, async (req, res) => {
+  const db = getDB();
+  const uid = req.session.user.id;
+
+  await db.run(`UPDATE course_registrations SET status = 'pending_advisor' WHERE student_id = $1 AND status = 'draft'`, [uid]);
+  req.flash('success', 'Submitted to advisor!');
+  res.redirect('/sis/my/registration');
+});
+
+// 5. Advisor View
+router.get('/sis/advisor/approvals', requireLogin, async (req, res) => {
+  const db = getDB();
+
+  const pendingStudents = await db.all(`
+    SELECT u.id, u.full_name, u.username, COUNT(cr.id) as total_courses
+    FROM course_registrations cr
+    JOIN users u ON u.id = cr.student_id
+    WHERE cr.status = 'pending_advisor'
+    GROUP BY u.id, u.full_name, u.username
+  `);
+
+  const pendingCourses = await db.all(`
+    SELECT cr.student_id, c.title, c.code, c.credits, cr.id as reg_id
+    FROM course_registrations cr
+    JOIN courses c ON c.id = cr.course_id
+    WHERE cr.status = 'pending_advisor'
+  `);
+
+  res.render('sis/advisor-approvals', { 
+    title: 'Advisor Approvals', heading: 'Advisor Approvals', 
+    pendingStudents, pendingCourses, user: req.session.user 
+  });
+});
+
+// 6. Advisor Approve
+router.post('/sis/advisor/approvals/approve', requireLogin, async (req, res) => {
+  const db = getDB();
+  const studentId = Number(req.body.student_id);
+
+  const courses = await db.all(`SELECT course_id FROM course_registrations WHERE student_id = $1 AND status = 'pending_advisor'`, [studentId]);
+  for (const c of courses) {
+    await db.run(`INSERT INTO enrollments (user_id, course_id) VALUES ($1, $2)`, [studentId, c.course_id]);
+  }
+
+  await db.run(`UPDATE course_registrations SET status = 'approved' WHERE student_id = $1 AND status = 'pending_advisor'`, [studentId]);
+  req.flash('success', 'Approved!');
+  res.redirect('/sis/advisor/approvals');
+});
+
+// 7. Advisor Reject
+router.post('/sis/advisor/approvals/reject', requireLogin, async (req, res) => {
+  const db = getDB();
+  const studentId = Number(req.body.student_id);
+
+  await db.run(`DELETE FROM course_registrations WHERE student_id = $1 AND status = 'pending_advisor'`, [studentId]);
+  req.flash('error', 'Rejected.');
+  res.redirect('/sis/advisor/approvals');
 });
 
 // ============================================================
